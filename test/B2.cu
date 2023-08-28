@@ -14,7 +14,7 @@ using namespace std;
 const int threadsPerBlock = 256;
 
 __global__ void
-vectorAdd(const signed char *A, const float *B, thrust::complex<float> *C, int ny, int nx)
+B2(const signed char *A, const float *B, thrust::complex<float> *C, int ny, int nx)
 {
     /*
     Calculates the inner sum of eq B2. Sum of blocks and absolute value, square needs to be done on the host.
@@ -100,7 +100,7 @@ int main(void){
     cudaMemcpy(hostsum, d_out, sizeof(thrust::complex<float>), cudaMemcpyDeviceToHost);
     
     cout << *hostsum;
-    
+
     // Free device global memory
     cudaFree(d_A);
     cudaFree(d_B);

@@ -21,8 +21,8 @@ LDFLAGS=-lcurand
 
 all: output
 
-output: B2.cu
-	$(CUDACC) $(NVCC_FLAGS) B2.cu -o B2 $(LDFLAGS)
+output: test.cu
+	$(CUDACC) $(NVCC_FLAGS) test.cu -o test $(LDFLAGS)
 
 clean:
-	rm -f B2
+	rm -f test

@@ -8,8 +8,37 @@
 using namespace std;
 
 const int THREADS = 256;
-// Initialize random bond signs
 
+
+__global__ void
+B2(const signed char *A, const float *B, thrust::complex<float> *C, int ny, int nx)
+{
+    /*
+    Calculates the inner sum of eq B2. Sum of blocks and absolute value, square needs to be done on the host.
+    */
+    int tid = blockDim.x * blockIdx.x + threadIdx.x;
+    
+    thrust::complex<float> imag = thrust::complex<float>(0, 1.0f);
+
+    if (tid < nx*ny){       
+        int i = tid/ny;
+        int j = tid%ny;
+        
+        float dot = B[0]*i + B[1]*j;
+        C[tid] = A[tid]*exp(imag*dot);
+    }
+}
+
+// Initialize lattice spins
+__global__ void init_spins(signed char* lattice, const float* __restrict__ randvals,
+    const long long nx, const long long ny) {
+        const long long  tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
+        if (tid >= nx * ny) return;
+        
+        float randval = randvals[tid];
+        signed char val = (randval < 0.5f) ? -1 : 1;
+        lattice[tid] = val;
+}
 
 
 __global__ void init_randombond(signed char* interactions, const float* __restrict__ interaction_randvals,
@@ -39,6 +68,29 @@ __global__ void HE(const signed char *lattice, const signed char *interactions, 
 
     summand[tid] = J * lattice[tid] * lattice[inn*ny+j]*interactions[tid] + J * lattice[tid] * lattice[i*ny+jnn]*interactions[tid+nx*ny];
 }
+
+int main(void){
+
+    int *seeds = (int *)malloc(1000*sizeof(int));
+
+    srand(time(NULL));
+    
+    for (int i=0; i < 1000; i++){
+        seeds[i] = rand();
+    }
+    
+    for (int i = 0; i< 1000; i++){
+        for (int j = 0; j<1000; j++){
+            if (i==j){
+                continue;
+            }
+            if(seeds[i]==seeds[j]){
+                printf("SAME VALUES\n");
+            }
+        }
+    } 
+}
+
 int main(void){
     // Lattice size, probability, factors,...
     int nx = 30;

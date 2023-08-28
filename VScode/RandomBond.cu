@@ -69,7 +69,7 @@ int icouplingpp;
 int icouplingnn;
 
 if (is_black) {
-    icouplingpp = 2*(nx-1)*ny + 2*(ny*ipp + j) + (i+1)%2;
+    icouplingpp = 2*(nx-1)*ny + 2*(ny*(i+1) + j) + (i+1)%2;
     icouplingnn = 2*(nx-1)*ny + 2*(ny*inn + j) + (i+1)%2;
     joff = (i % 2) ? jnn : jpp;
 
@@ -83,7 +83,7 @@ if (is_black) {
         }
     }
 } else {
-    icouplingpp = 2*(nx-1)*ny + 2*(ny*ipp + j) + i%2;
+    icouplingpp = 2*(nx-1)*ny + 2*(ny*(i+1) + j) + i%2;
     icouplingnn = 2*(nx-1)*ny + 2*(ny*inn + j) + i%2;
     joff = (i % 2) ? jpp : jnn;
 
@@ -107,7 +107,7 @@ if (is_black) {
 
   // Determine whether to flip spin
   signed char lij = lattice[i * ny + j];
-  float acceptance_ratio = exp(-coupling_constant * nn_sum * lij);
+  float acceptance_ratio = exp(-2 * coupling_constant * nn_sum * lij);
   if (randvals[i*ny + j] < acceptance_ratio) {
     lattice[i * ny + j] = -lij;
   }  
@@ -235,7 +235,7 @@ static void usage(const char *pname) {
     bool write = true;
     unsigned long long seed = 1234ULL;
     const float p = 0.031091730001f;
-    const float coupling_constant = 0.5*log((1-p)/p);
+    const float coupling_constant = 0.5*TCRIT*log((1-p)/p);
     // 0.5*log((1-p)/p);2.0f;
     //alpha = 0.5f
 
@@ -384,8 +384,7 @@ static void usage(const char *pname) {
     if (write) write_lattice(lattice_b, lattice_w, "final.txt", nx, ny);
     write_bonds(interactions, "final_bonds.txt" ,nx, ny);
   
-
-
+  
 
 
     //cudaDeviceSynchronize();

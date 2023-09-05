@@ -4,6 +4,7 @@
 #include <curand.h>
 #include <cub/cub.cuh>
 #include <iostream>
+#include <thrust/complex.h>
 
 using namespace std;
 
@@ -53,6 +54,90 @@ __global__ void init_randombond(signed char* interactions, const float* __restri
         interactions[tid] = bondval;                                  
 }
 
+template<bool is_black>
+__global__ void calc_energy(float* sum, signed char* lattice, signed char* __restrict__ op_lattice, 
+    signed char* interactions, const long long nx, const long long ny, const float coupling_constant){
+    
+    const long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
+    const int i = tid/ny;
+    const int j = tid%ny;
+  
+    if (i>=nx || j >= ny) return;
+
+        // Set up periodic boundary conditions
+    int ipp = (i + 1 < nx) ? i + 1 : 0;
+    int inn = (i - 1 >= 0) ? i - 1: nx - 1;
+    int jpp = (j + 1 < ny) ? j + 1 : 0;
+    int jnn = (j - 1 >= 0) ? j - 1: ny - 1;
+
+    int joff;
+    int jcouplingoff;
+    int icouplingpp;
+    int icouplingnn;
+
+    if (is_black) {
+        icouplingpp = 2*(nx-1)*ny + 2*(ny*(i+1) + j) + (i+1)%2;
+        icouplingnn = 2*(nx-1)*ny + 2*(ny*inn + j) + (i+1)%2;
+        joff = (i % 2) ? jnn : jpp;
+
+        if (i % 2) {
+            jcouplingoff = 2 * (i * ny + joff) + 1;
+        } else {
+            if (j + 1 >= ny) {
+                jcouplingoff = 2 * (i * ny + j + 1) - 1;
+            } else {
+                jcouplingoff = 2 * (i * ny + joff) - 1;
+            }
+        }
+    } else {
+        icouplingpp = 2*(nx-1)*ny + 2*(ny*(i+1) + j) + i%2;
+        icouplingnn = 2*(nx-1)*ny + 2*(ny*inn + j) + i%2;
+        joff = (i % 2) ? jpp : jnn;
+
+        if (i % 2) {
+            if (j+1 >= ny) {
+                jcouplingoff = 2 * (i * ny + j + 1) - 1;
+            } else {
+                jcouplingoff = 2 * (i * ny + joff) - 1;
+            }
+        } else {
+            jcouplingoff = 2 * (i * ny + joff) + 1;
+        }
+    }
+
+    // Compute sum of nearest neighbor spins times the coupling
+    sum[tid] = coupling_constant*(op_lattice[inn * ny + j]*interactions[icouplingnn] + op_lattice[i * ny + j]*interactions[2*(i*ny + j)] 
+    + op_lattice[ipp * ny + j]*interactions[icouplingpp] + op_lattice[i * ny + joff]*interactions[jcouplingoff]);
+}
+
+__global__ void B2_lattices(signed char* lattice_b, signed char* lattice_w, const float *wave_vector, thrust::complex<float> *sum, int ny, int nx){
+    
+    int tid = blockDim.x * blockIdx.x + threadIdx.x;
+    
+    int i = tid/ny;
+    int j = tid%ny;
+
+    if (i>=nx || j >= ny) return;
+
+    int b_orig_j;
+    int w_orig_j; 
+
+    if (i%2==0){
+        b_orig_j = 2*j +1;
+        w_orig_j = 2*j;
+    }
+    else{
+        b_orig_j = 2*j;
+        w_orig_j = 2*j + 1;
+    }
+
+    thrust::complex<float> imag = thrust::complex<float>(0, 1.0f);
+
+    float dot_b = wave_vector[0]*i + wave_vector[1]*b_orig_j;
+    float dot_w = wave_vector[0]*i + wave_vector[1]*w_orig_j;
+    sum[tid] = lattice_b[tid]*exp(imag*dot_b) + lattice_w[tid]*exp(imag*dot_w);
+}
+
 __global__ void HE(const signed char *lattice, const signed char *interactions, float J, float *summand, int ny, int nx){
     
     // Calculate indices i, j
@@ -70,7 +155,16 @@ __global__ void HE(const signed char *lattice, const signed char *interactions, 
 }
 
 int main(void){
+    thrust::complex<float> imag = thrust::complex<float>(2.0, 0);
 
+    thrust::complex<float> final_sum;
+
+    final_sum = thrust::abs(imag)*thrust::abs(imag);
+    
+    cout << final_sum;
+}
+
+/*
     int *seeds = (int *)malloc(1000*sizeof(int));
 
     srand(time(NULL));
@@ -167,3 +261,4 @@ int main(void){
     
     printf("Reduced sum %f", *hostsum);
 }
+*/

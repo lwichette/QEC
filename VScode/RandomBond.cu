@@ -70,7 +70,7 @@ int icouplingnn;
 
 if (is_black) {
     icouplingpp = 2*(nx-1)*ny + 2*(ny*(i+1) + j) + (i+1)%2;
-    icouplingnn = 2*(nx-1)*ny + 2*(ny*inn + j) + (i+1)%2;
+    icouplingnn = 2*(nx-1)*ny + 2*(ny*(inn+1) + j) + (i+1)%2;
     joff = (i % 2) ? jnn : jpp;
 
     if (i % 2) {
@@ -84,7 +84,7 @@ if (is_black) {
     }
 } else {
     icouplingpp = 2*(nx-1)*ny + 2*(ny*(i+1) + j) + i%2;
-    icouplingnn = 2*(nx-1)*ny + 2*(ny*inn + j) + i%2;
+    icouplingnn = 2*(nx-1)*ny + 2*(ny*(inn+1) + j) + i%2;
     joff = (i % 2) ? jpp : jnn;
 
     if (i % 2) {
@@ -112,6 +112,8 @@ if (is_black) {
     lattice[i * ny + j] = -lij;
   }  
 }
+
+
 void update(signed char *lattice_b, signed char *lattice_w, float* randvals, curandGenerator_t rng, signed char* interactions, float inv_temp, long long nx, long long ny, float coupling_constant) {
  
     // Setup CUDA launch configuration
@@ -330,7 +332,7 @@ static void usage(const char *pname) {
     // Warmup iterations
     printf("Starting warmup...\n");
     for (int i = 0; i < nwarmup; i++) {
-    update(lattice_b, lattice_w, randvals, rng, interactions, inv_temp, nx, ny, coupling_constant);
+      update(lattice_b, lattice_w, randvals, rng, interactions, inv_temp, nx, ny, coupling_constant);
     }
 
     //Synchronize devices
@@ -338,6 +340,7 @@ static void usage(const char *pname) {
 
     printf("Starting trial iterations...\n");
     auto t0 = std::chrono::high_resolution_clock::now();
+    
     for (int i = 0; i < niters; i++) {
       update(lattice_b, lattice_w, randvals, rng, interactions, inv_temp, nx, ny,coupling_constant);
       if (i % 1000 == 0) printf("Completed %d/%d iterations...\n", i+1, niters);
@@ -360,14 +363,20 @@ static void usage(const char *pname) {
     // Reduce
     double* devsum;
     int nchunks = (nx * ny/2 + CUB_CHUNK_SIZE - 1)/ CUB_CHUNK_SIZE;
+    
     cudaMalloc(&devsum, 2 * nchunks * sizeof(*devsum));
     size_t cub_workspace_bytes = 0;
     void* workspace = NULL;
+    
     cub::DeviceReduce::Sum(workspace, cub_workspace_bytes, lattice_b, devsum, CUB_CHUNK_SIZE);
     cudaMalloc(&workspace, cub_workspace_bytes);
+    
     for (int i = 0; i < nchunks; i++) {
+      
       cub::DeviceReduce::Sum(workspace, cub_workspace_bytes, &lattice_b[i*CUB_CHUNK_SIZE], devsum + 2*i,
                              std::min((long long) CUB_CHUNK_SIZE, nx * ny/2 - i * CUB_CHUNK_SIZE));
+
+
       cub::DeviceReduce::Sum(workspace, cub_workspace_bytes, &lattice_w[i*CUB_CHUNK_SIZE], devsum + 2*i + 1,
                              std::min((long long) CUB_CHUNK_SIZE, nx * ny/2 - i * CUB_CHUNK_SIZE));
     }
@@ -375,15 +384,17 @@ static void usage(const char *pname) {
     double* hostsum;
     hostsum = (double*)malloc(2 * nchunks * sizeof(*hostsum));
     cudaMemcpy(hostsum, devsum, 2 * nchunks * sizeof(*devsum), cudaMemcpyDeviceToHost);
+    
     double fullsum = 0.0;
+    
     for (int i = 0; i < 2 * nchunks; i++) {
       fullsum += hostsum[i];
     }
+    
     std::cout << "\taverage magnetism (absolute): " << abs(fullsum / (nx * ny)) << std::endl;
   
     if (write) write_lattice(lattice_b, lattice_w, "final.txt", nx, ny);
     write_bonds(interactions, "final_bonds.txt" ,nx, ny);
-  
   
 
 
@@ -400,7 +411,5 @@ static void usage(const char *pname) {
     //cudaFree(lattice_w);
     //curandDestroyGenerator(interaction_rng);
     //curandDestroyGenerator(rng); 
-
-
     return 0;
 }

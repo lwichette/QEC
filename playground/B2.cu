@@ -81,7 +81,7 @@ int main(void){
     cudaMemcpy(d_A, h_A, nx*ny*sizeof(signed char), cudaMemcpyHostToDevice);
     cudaMemcpy(d_B, h_B, 2*sizeof(float), cudaMemcpyHostToDevice);
 
-    vectorAdd<<<blocksPerGrid, threadsPerBlock>>>(d_A, d_B, d_C, ny, nx);
+    B2<<<blocksPerGrid, threadsPerBlock>>>(d_A, d_B, d_C, ny, nx);
 
     // Reduce sum
     thrust::complex<float>* d_out = NULL;

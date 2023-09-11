@@ -12,15 +12,16 @@
 #include <cub/cub.cuh>
 #define CUB_CHUNK_SIZE ((1ll<<31) - (1ll<<28))
 
-#define TCRIT 0.0000051226918531421f
 #define THREADS 128
 //2.26918531421f
+
 
 // Initialize lattice spins
 __global__ void init_spins(signed char* lattice,
     const float* __restrict__ randvals,
     const long long nx,
     const long long ny) {
+
 const long long  tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
 if (tid >= nx * ny) return;
 
@@ -52,6 +53,7 @@ __global__ void update_lattice(signed char* lattice, signed char* __restrict__ o
                                const float coupling_constant) {
 
   const long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
+  
   const int i = tid/ny;
   const int j = tid%ny;
 
@@ -126,48 +128,48 @@ void update(signed char *lattice_b, signed char *lattice_w, float* randvals, cur
     // Update white
     curandGenerateUniform(rng, randvals, nx*ny/2);
     update_lattice<false><<<blocks, THREADS>>>(lattice_w, lattice_b, randvals,interactions, inv_temp, nx, ny/2, coupling_constant);
-  }
+}
 
 
  // Write lattice configuration to file
  void write_lattice(signed char *lattice_b, signed char *lattice_w, std::string filename, long long nx, long long ny) {
-    printf("Writing lattice to %s...\n", filename.c_str());
-    signed char *lattice_h, *lattice_b_h, *lattice_w_h;
-    lattice_h = (signed char*) malloc(nx * ny * sizeof(*lattice_h));
-    lattice_b_h = (signed char*) malloc(nx * ny/2 * sizeof(*lattice_b_h));
-    lattice_w_h = (signed char*) malloc(nx * ny/2 * sizeof(*lattice_w_h));
-  
-    cudaMemcpy(lattice_b_h, lattice_b, nx * ny/2 * sizeof(*lattice_b), cudaMemcpyDeviceToHost);
-    cudaMemcpy(lattice_w_h, lattice_w, nx * ny/2 * sizeof(*lattice_w), cudaMemcpyDeviceToHost);
-  
-    for (int i = 0; i < nx; i++) {
-      for (int j = 0; j < ny/2; j++) {
-        if (i % 2) {
-          lattice_h[i*ny + 2*j+1] = lattice_b_h[i*ny/2 + j];
-          lattice_h[i*ny + 2*j] = lattice_w_h[i*ny/2 + j];
-        } else {
-          lattice_h[i*ny + 2*j] = lattice_b_h[i*ny/2 + j];
-          lattice_h[i*ny + 2*j+1] = lattice_w_h[i*ny/2 + j];
-        }
+  printf("Writing lattice to %s...\n", filename.c_str());
+  signed char *lattice_h, *lattice_b_h, *lattice_w_h;
+  lattice_h = (signed char*) malloc(nx * ny * sizeof(*lattice_h));
+  lattice_b_h = (signed char*) malloc(nx * ny/2 * sizeof(*lattice_b_h));
+  lattice_w_h = (signed char*) malloc(nx * ny/2 * sizeof(*lattice_w_h));
+
+  cudaMemcpy(lattice_b_h, lattice_b, nx * ny/2 * sizeof(*lattice_b), cudaMemcpyDeviceToHost);
+  cudaMemcpy(lattice_w_h, lattice_w, nx * ny/2 * sizeof(*lattice_w), cudaMemcpyDeviceToHost);
+
+  for (int i = 0; i < nx; i++) {
+    for (int j = 0; j < ny/2; j++) {
+      if (i % 2) {
+        lattice_h[i*ny + 2*j+1] = lattice_w_h[i*ny/2 + j];
+        lattice_h[i*ny + 2*j] = lattice_b_h[i*ny/2 + j];
+      } else {
+        lattice_h[i*ny + 2*j] = lattice_w_h[i*ny/2 + j];
+        lattice_h[i*ny + 2*j+1] = lattice_b_h[i*ny/2 + j];
       }
     }
-  
-    std::ofstream f;
-    f.open(filename);
-    if (f.is_open()) {
-      for (int i = 0; i < nx; i++) {
-        for (int j = 0; j < ny; j++) {
-           f << (int)lattice_h[i * ny + j] << " ";
-        }
-        f << std::endl;
-      }
-    }
-    f.close();
-  
-    free(lattice_h);
-    free(lattice_b_h);
-    free(lattice_w_h);
   }
+
+  std::ofstream f;
+  f.open(filename);
+  if (f.is_open()) {
+    for (int i = 0; i < nx; i++) {
+      for (int j = 0; j < ny; j++) {
+         f << (int)lattice_h[i * ny + j] << " ";
+      }
+      f << std::endl;
+    }
+  }
+  f.close();
+
+  free(lattice_h);
+  free(lattice_b_h);
+  free(lattice_w_h);
+}
 
 
 // Write interaction bonds to file
@@ -227,15 +229,17 @@ static void usage(const char *pname) {
     exit(EXIT_SUCCESS);
   }
 
+
   int main(int argc, char **argv) {
-    long nx = 8080;
-    long ny = 8080;
-    int niters = 100;
+    long nx = 1000;
+    long ny = 1000;
+    int niters = 1000;
     float alpha = 1.0f;
     int nwarmup = 100;
+    float TCRIT = 8.0f;
     float inv_temp = 1.0f / (alpha*TCRIT);
     bool write = true;
-    unsigned long long seed = 1234ULL;
+    unsigned long long seed = 0ULL;
     const float p = 0.031091730001f;
     const float coupling_constant = 0.5*TCRIT*log((1-p)/p);
     // 0.5*log((1-p)/p);2.0f;
@@ -305,7 +309,6 @@ static void usage(const char *pname) {
     cudaMalloc(&lattice_b, nx * ny/2 * sizeof(*lattice_b));
     cudaMalloc(&lattice_w, nx * ny/2 * sizeof(*lattice_w));
 
-
     //Initialize the arrays for white and black lattice
     curandGenerateUniform(rng, randvals, nx*ny/2);
     init_spins<<<blocks, THREADS>>>(lattice_b, randvals, nx, ny/2);
@@ -328,9 +331,10 @@ static void usage(const char *pname) {
 
     //Synchronize devices
     cudaDeviceSynchronize();
-
+    
     // Warmup iterations
     printf("Starting warmup...\n");
+
     for (int i = 0; i < nwarmup; i++) {
       update(lattice_b, lattice_w, randvals, rng, interactions, inv_temp, nx, ny, coupling_constant);
     }
@@ -347,6 +351,9 @@ static void usage(const char *pname) {
     }
   
     cudaDeviceSynchronize();
+
+    if (write) write_lattice(lattice_b, lattice_w, "final.txt", nx, ny);
+    write_bonds(interactions, "final_bonds.txt" ,nx, ny);
     auto t1 = std::chrono::high_resolution_clock::now();
   
     double duration = (double) std::chrono::duration_cast<std::chrono::microseconds>(t1-t0).count();
@@ -393,8 +400,7 @@ static void usage(const char *pname) {
     
     std::cout << "\taverage magnetism (absolute): " << abs(fullsum / (nx * ny)) << std::endl;
   
-    if (write) write_lattice(lattice_b, lattice_w, "final.txt", nx, ny);
-    write_bonds(interactions, "final_bonds.txt" ,nx, ny);
+
   
 
 

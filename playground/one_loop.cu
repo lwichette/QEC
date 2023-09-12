@@ -7,6 +7,7 @@
 #include <thrust/complex.h>
 #include <cmath>
 #include <math.h>
+#include <vector>
 
 using namespace std;
 
@@ -60,6 +61,7 @@ void init_interactions_with_seed(signed char* interactions, const long long seed
     init_randombond<<<blocks, THREADS>>>(interactions, interaction_randvals,nx,ny,p);
     
     cudaFree(interaction_randvals); 
+    curandDestroyGenerator(interaction_rng);
 }
 
 // Initialize lattice spins
@@ -91,6 +93,7 @@ void init_spins_with_seed(signed char* lattice_b, signed char* lattice_w, const 
     curandGenerateUniform(rng, randvals, nx*ny/2);
     init_spins<<<blocks, THREADS>>>(lattice_w, randvals, nx, ny/2);
 
+    curandDestroyGenerator(rng);
     cudaFree(randvals); 
 }
 
@@ -386,24 +389,22 @@ void update(signed char *lattice_b, signed char *lattice_w, float* randvals, cur
 
 int main(void){
     // Initialize all possible parameters
-    int niters = 1000;
-    int nwarmup = 100;
-    long nx = 12;
-    long ny = 12;  
-    //float p = 0.15;
     float p = 0.06f;
     float alpha = 1.0f;
-    float TCRIT = 2.060f;
-    float inv_temp = 1.0f / (alpha*TCRIT);
-    const float coupling_constant = inv_temp;
   
-    int num_iterations = 100;
-    int num_iterations_error = 100;
+    int num_iterations_seeds = 10;
+    int num_iterations_error = 10;
 
-    int blocks = (nx*ny*2 + THREADS -1)/THREADS;
+    int niters = 10;
+    int nwarmup = 10;
+    
 
-    // Initialize seeds used for spin and interaction initialization
-    srand(time(NULL));
+
+    int L[6] = {12, 14, 18, 24, 28, 36};
+    float temp[13] = {1.8f, 1.85, 1.9, 1.95, 2.0, 2.05, 2.1, 2.15, 2.2, 2.25, 2.3, 2.35, 2.4};
+    
+    float inv_temp;
+    float coupling_constant;
 
     unsigned long long seeds_spins = 0ULL;
     unsigned long long seeds_interactions = 0ULL;
@@ -411,136 +412,183 @@ int main(void){
     // Variables used for sum reduction
     void *d_temp_storage = NULL;
     size_t temp_storage_bytes = 0;
-    
-    // Weighted error
-    float *d_error_weight_0, *d_error_weight_k;
-    cudaMalloc(&d_error_weight_0, num_iterations_error*sizeof(*d_error_weight_0));
-    cudaMalloc(&d_error_weight_k, num_iterations_error*sizeof(*d_error_weight_k));
-    
-    // Allocate the wave vector and copy it to GPU memory
+        
+    // Allocate the wave vectors and copy it to GPU memory
     float wave_vector_0[2] = {0,0};
-    float wave_vector_k[2] = {2.0*M_PI/nx,0};
-    
-    float *d_wave_vector_0, *d_wave_vector_k;
+    float *d_wave_vector_0;
     cudaMalloc(&d_wave_vector_0, 2 * sizeof(*d_wave_vector_0));
-    cudaMalloc(&d_wave_vector_k, 2 * sizeof(*d_wave_vector_k));
     cudaMemcpy(d_wave_vector_0, wave_vector_0, 2*sizeof(float), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_wave_vector_k, wave_vector_k, 2*sizeof(float), cudaMemcpyHostToDevice);
-
-    // Loop over different errors
-    for (int j=0; j<num_iterations_error; j++){
-
-        printf("Started error iteration %u \n", j);
-
-        // Initialize arrays on the GPU to store results per spin system for energy and sum of B2
-        thrust::complex<float> *d_store_sum_0, *d_store_sum_k;
-        cudaMalloc(&d_store_sum_0, num_iterations*sizeof(*d_store_sum_0));
-        cudaMalloc(&d_store_sum_k, num_iterations*sizeof(*d_store_sum_k));
-
-        float *d_store_energy;
-        cudaMalloc(&d_store_energy, num_iterations*sizeof(*d_store_energy));
-
-        //Setup interaction lattice on device
-        signed char *d_interactions;
-        cudaMalloc(&d_interactions, nx*ny*2*sizeof(*d_interactions));
-
-        init_interactions_with_seed(d_interactions, seeds_interactions, nx, ny, p);
-        
-        //Synchronize devices
-        cudaDeviceSynchronize();
-
-        // Loop over number of iterations
-        for (int i=0; i<num_iterations; i++){
-            
-            // Setup black and white lattice arrays on device
-            signed char *lattice_b, *lattice_w;
-            cudaMalloc(&lattice_b, nx * ny/2 * sizeof(*lattice_b));
-            cudaMalloc(&lattice_w, nx * ny/2 * sizeof(*lattice_w));
-
-            init_spins_with_seed(lattice_b, lattice_w, seeds_spins, nx, ny);
-
-            // Setup cuRAND generator
-            curandGenerator_t rng;
-            curandCreateGenerator(&rng, CURAND_RNG_PSEUDO_PHILOX4_32_10);
-            curandSetPseudoRandomGeneratorSeed(rng, seeds_spins);
-            float *randvals;
-            cudaMalloc(&randvals, nx * ny/2 * sizeof(*randvals));
-
-            //Synchronize devices
-            cudaDeviceSynchronize();
-            
-            // Warmup iterations
-            //printf("Starting warmup...\n");
-            for (int j = 0; j < nwarmup; j++) {
-                update(lattice_b, lattice_w, randvals, rng, d_interactions, inv_temp, nx, ny, coupling_constant);
-            }
-
-            //Synchronize devices
-            cudaDeviceSynchronize();
-
-            for (int j = 0; j < niters; j++) {
-                update(lattice_b, lattice_w, randvals, rng, d_interactions, inv_temp, nx, ny,coupling_constant);
-                //if (j % 1000 == 0) printf("Completed %d/%d iterations...\n", j+1, niters);
-            }
-
-            cudaDeviceSynchronize();
-            
-            calculate_B2(lattice_b, lattice_w, d_store_sum_0, d_wave_vector_0, i, nx, ny);
-            calculate_B2(lattice_b, lattice_w, d_store_sum_k, d_wave_vector_k, i, nx, ny);
-            
-            cudaDeviceSynchronize();
-
-            calculate_energy(lattice_b, lattice_w, d_interactions, d_store_energy, coupling_constant, i, nx, ny);
-
-            cudaDeviceSynchronize();
-
-            seeds_spins += 1;
-        }
     
-        // Take absolute square + exp
-        abs_square<<<blocks, THREADS>>>(d_store_sum_0, num_iterations);
-        abs_square<<<blocks, THREADS>>>(d_store_sum_k, num_iterations);
-         
-        exp_beta<<<blocks, THREADS>>>(d_store_energy, inv_temp, num_iterations, nx);
-        
-        // Calculate partition function
-        float *d_partition_function;
-        cudaMalloc(&d_partition_function, sizeof(float));
-        cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, d_store_energy, d_partition_function, num_iterations);
-        cudaMalloc(&d_temp_storage, temp_storage_bytes);
-        cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, d_store_energy, d_partition_function, num_iterations);
+    for (int l=0; l<6;l++){
+        long nx = L[l];
+        long ny = L[l];
+    
+        int blocks = (nx*ny*2 + THREADS -1)/THREADS;
+        float wave_vector_k[2] = {2.0*M_PI/nx,0};
+        float *d_wave_vector_k;
+        cudaMalloc(&d_wave_vector_k, 2 * sizeof(*d_wave_vector_k));
+        cudaMemcpy(d_wave_vector_k, wave_vector_k, 2*sizeof(float), cudaMemcpyHostToDevice);
+    
+        std::vector< float > psi_l;
 
-        calculate_weighted_energies(d_error_weight_0, d_store_energy, d_store_sum_0, d_partition_function, num_iterations, blocks, j);
-        calculate_weighted_energies(d_error_weight_k, d_store_energy, d_store_sum_k, d_partition_function, num_iterations, blocks, j);
+        for (int t = 0; t < (int)sizeof(temp)/sizeof(temp[0]); t++){
 
-        cudaDeviceSynchronize();
+            printf("Started temperature %f \n", temp[t]);
 
-        seeds_interactions += 1;
+            inv_temp = 1/(alpha*temp[t]);
+            coupling_constant = inv_temp;
+
+            // Weighted error
+            float *d_error_weight_0, *d_error_weight_k;
+            cudaMalloc(&d_error_weight_0, num_iterations_error*sizeof(*d_error_weight_0));
+            cudaMalloc(&d_error_weight_k, num_iterations_error*sizeof(*d_error_weight_k));
+
+            // Loop over different errors
+            for (int j=0; j<num_iterations_error; j++){
+
+                // Initialize arrays on the GPU to store results per spin system for energy and sum of B2
+                thrust::complex<float> *d_store_sum_0, *d_store_sum_k;
+                cudaMalloc(&d_store_sum_0, num_iterations_seeds*sizeof(*d_store_sum_0));
+                cudaMalloc(&d_store_sum_k, num_iterations_seeds*sizeof(*d_store_sum_k));
+
+                float *d_store_energy;
+                cudaMalloc(&d_store_energy, num_iterations_seeds*sizeof(*d_store_energy));
+
+                //Setup interaction lattice on device
+                signed char *d_interactions;
+                cudaMalloc(&d_interactions, nx*ny*2*sizeof(*d_interactions));
+
+                init_interactions_with_seed(d_interactions, seeds_interactions, nx, ny, p);
+                
+                //Synchronize devices
+                cudaDeviceSynchronize();
+
+                // Loop over number of iterations
+                for (int i=0; i<num_iterations_seeds; i++){
+                    
+                    // Setup black and white lattice arrays on device
+                    signed char *lattice_b, *lattice_w;
+                    cudaMalloc(&lattice_b, nx * ny/2 * sizeof(*lattice_b));
+                    cudaMalloc(&lattice_w, nx * ny/2 * sizeof(*lattice_w));
+
+                    init_spins_with_seed(lattice_b, lattice_w, seeds_spins, nx, ny);
+
+                    // Setup cuRAND generator
+                    curandGenerator_t rng;
+                    curandCreateGenerator(&rng, CURAND_RNG_PSEUDO_PHILOX4_32_10);
+                    curandSetPseudoRandomGeneratorSeed(rng, seeds_spins);
+                    float *randvals;
+                    cudaMalloc(&randvals, nx * ny/2 * sizeof(*randvals));
+
+                    //Synchronize devices
+                    cudaDeviceSynchronize();
+                    
+                    // Warmup iterations
+                    //printf("Starting warmup...\n");
+                    for (int j = 0; j < nwarmup; j++) {
+                        update(lattice_b, lattice_w, randvals, rng, d_interactions, inv_temp, nx, ny, coupling_constant);
+                    }
+
+                    //Synchronize devices
+                    cudaDeviceSynchronize();
+
+                    for (int j = 0; j < niters; j++) {
+                        update(lattice_b, lattice_w, randvals, rng, d_interactions, inv_temp, nx, ny,coupling_constant);
+                        //if (j % 1000 == 0) printf("Completed %d/%d iterations...\n", j+1, niters);
+                    }
+                    
+                    cudaDeviceSynchronize();
+                    
+                    calculate_B2(lattice_b, lattice_w, d_store_sum_0, d_wave_vector_0, i, nx, ny);
+                    calculate_B2(lattice_b, lattice_w, d_store_sum_k, d_wave_vector_k, i, nx, ny);
+                    
+                    cudaDeviceSynchronize();
+
+                    calculate_energy(lattice_b, lattice_w, d_interactions, d_store_energy, coupling_constant, i, nx, ny);
+
+                    cudaDeviceSynchronize();
+
+                    seeds_spins += 1;
+
+                    //write_lattice(lattice_b, lattice_w, "lattice/final_lattice_" + std::to_string(i) + ".txt", nx, ny);
+
+                    cudaFree(lattice_b);
+                    cudaFree(lattice_w);
+                    cudaFree(randvals);
+                    curandDestroyGenerator(rng);
+                }
+            
+                // Take absolute square + exp
+                abs_square<<<blocks, THREADS>>>(d_store_sum_0, num_iterations_seeds);
+                abs_square<<<blocks, THREADS>>>(d_store_sum_k, num_iterations_seeds);
+                
+                exp_beta<<<blocks, THREADS>>>(d_store_energy, inv_temp, num_iterations_seeds, nx);
+                
+                // Calculate partition function
+                float *d_partition_function;
+                cudaMalloc(&d_partition_function, sizeof(float));
+                cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, d_store_energy, d_partition_function, num_iterations_seeds);
+                cudaMalloc(&d_temp_storage, temp_storage_bytes);
+                cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, d_store_energy, d_partition_function, num_iterations_seeds);
+
+                calculate_weighted_energies(d_error_weight_0, d_store_energy, d_store_sum_0, d_partition_function, num_iterations_seeds, blocks, j);
+                calculate_weighted_energies(d_error_weight_k, d_store_energy, d_store_sum_k, d_partition_function, num_iterations_seeds, blocks, j);
+
+                cudaDeviceSynchronize();
+
+                seeds_interactions += 1;
+
+                //write_bonds(d_interactions, "lattice/final_bonds.txt", nx, ny);
+                cudaFree(d_store_sum_0);
+                cudaFree(d_store_sum_k);
+                cudaFree(d_store_energy);
+                cudaFree(d_interactions);
+                cudaFree(d_partition_function);
+            }
+
+            // Magnetic susceptibility 
+            float *d_magnetic_susceptibility_0, *d_magnetic_susceptibility_k;
+            cudaMalloc(&d_magnetic_susceptibility_0, sizeof(*d_magnetic_susceptibility_0));
+            cudaMalloc(&d_magnetic_susceptibility_k, sizeof(*d_magnetic_susceptibility_k));
+
+            // Sum reduction for both
+            cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, d_error_weight_0, d_magnetic_susceptibility_0, num_iterations_error);
+            cudaMalloc(&d_temp_storage, temp_storage_bytes);
+            cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, d_error_weight_0, d_magnetic_susceptibility_0, num_iterations_error);
+
+            cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, d_error_weight_k, d_magnetic_susceptibility_k, num_iterations_error);
+            cudaMalloc(&d_temp_storage, temp_storage_bytes);
+            cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, d_error_weight_k, d_magnetic_susceptibility_k, num_iterations_error);
+
+            cudaDeviceSynchronize();
+
+            float *h_magnetic_susceptibility_0 = (float *)malloc(sizeof(float));
+            float *h_magnetic_susceptibility_k = (float *)malloc(sizeof(float));
+            
+            cudaMemcpy(h_magnetic_susceptibility_0, d_magnetic_susceptibility_0, sizeof(float), cudaMemcpyDeviceToHost);
+            cudaMemcpy(h_magnetic_susceptibility_k, d_magnetic_susceptibility_k, sizeof(float), cudaMemcpyDeviceToHost);
+
+            float psi = 1/(2*sin(M_PI/nx))*sqrt(*h_magnetic_susceptibility_0 / *h_magnetic_susceptibility_k - 1);
+
+            psi_l.push_back(psi/nx);
+
+            cudaFree(d_magnetic_susceptibility_0);
+            cudaFree(d_magnetic_susceptibility_k);
+            cudaFree(d_error_weight_0);
+            cudaFree(d_error_weight_k);
+        }
+
+        std::ofstream f;
+        f.open("lattice/psi_L_" + std::to_string(nx) + ".txt");
+        if (f.is_open()) {
+            for (int i = 0; i < (int)sizeof(temp)/sizeof(temp[0]); i++) {
+                f << psi_l[i] << " " << temp[i] "\n";
+            }
+        }
+        f.close();
+
+        cudaFree(d_wave_vector_k);
     }
 
-    // Magnetic susceptibility 
-    float *d_magnetic_susceptibility_0, *d_magnetic_susceptibility_k;
-    cudaMalloc(&d_magnetic_susceptibility_0, sizeof(*d_magnetic_susceptibility_0));
-    cudaMalloc(&d_magnetic_susceptibility_k, sizeof(*d_magnetic_susceptibility_k));
 
-    // Sum reduction for both
-    cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, d_error_weight_0, d_magnetic_susceptibility_0, num_iterations_error);
-    cudaMalloc(&d_temp_storage, temp_storage_bytes);
-    cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, d_error_weight_0, d_magnetic_susceptibility_0, num_iterations_error);
-
-    cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, d_error_weight_k, d_magnetic_susceptibility_k, num_iterations_error);
-    cudaMalloc(&d_temp_storage, temp_storage_bytes);
-    cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, d_error_weight_k, d_magnetic_susceptibility_k, num_iterations_error);
-
-    cudaDeviceSynchronize();
-
-    float *h_magnetic_susceptibility_0 = (float *)malloc(sizeof(float));
-    float *h_magnetic_susceptibility_k = (float *)malloc(sizeof(float));
-    
-    cudaMemcpy(h_magnetic_susceptibility_0, d_magnetic_susceptibility_0, sizeof(float), cudaMemcpyDeviceToHost);
-    cudaMemcpy(h_magnetic_susceptibility_k, d_magnetic_susceptibility_k, sizeof(float), cudaMemcpyDeviceToHost);
-
-    float psi = 1/(2*sin(M_PI/nx))*sqrt(*h_magnetic_susceptibility_0 / *h_magnetic_susceptibility_k - 1);
-
-    printf("%f", psi/nx);
 }

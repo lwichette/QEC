@@ -386,22 +386,67 @@ void update(signed char *lattice_b, signed char *lattice_w, float* randvals, cur
     update_lattice<false><<<blocks, THREADS>>>(lattice_w, lattice_b, randvals,interactions, inv_temp, nx, ny/2, coupling_constant);
 }
 
+float calc_psi(float *d_error_weight_0, float *d_error_weight_k, const int num_iterations_error, const int nx){
+    
+    // Magnetic susceptibility 
+    float *d_magnetic_susceptibility_0, *d_magnetic_susceptibility_k;
+    cudaMalloc(&d_magnetic_susceptibility_0, sizeof(*d_magnetic_susceptibility_0));
+    cudaMalloc(&d_magnetic_susceptibility_k, sizeof(*d_magnetic_susceptibility_k));
+
+    // Variables used for sum reduction
+    void *d_temp = NULL;
+    size_t temp_storage = 0;
+
+    // Sum reduction for both
+    cub::DeviceReduce::Sum(d_temp, temp_storage, d_error_weight_0, d_magnetic_susceptibility_0, num_iterations_error);
+    cudaMalloc(&d_temp, temp_storage);
+    cub::DeviceReduce::Sum(d_temp, temp_storage, d_error_weight_0, d_magnetic_susceptibility_0, num_iterations_error);
+
+    cub::DeviceReduce::Sum(d_temp, temp_storage, d_error_weight_k, d_magnetic_susceptibility_k, num_iterations_error);
+    cudaMalloc(&d_temp, temp_storage);
+    cub::DeviceReduce::Sum(d_temp, temp_storage, d_error_weight_k, d_magnetic_susceptibility_k, num_iterations_error);
+
+    cudaDeviceSynchronize();
+
+    float *h_magnetic_susceptibility_0 = (float *)malloc(sizeof(float));
+    float *h_magnetic_susceptibility_k = (float *)malloc(sizeof(float));
+    
+    cudaMemcpy(h_magnetic_susceptibility_0, d_magnetic_susceptibility_0, sizeof(float), cudaMemcpyDeviceToHost);
+    cudaMemcpy(h_magnetic_susceptibility_k, d_magnetic_susceptibility_k, sizeof(float), cudaMemcpyDeviceToHost);
+
+    float psi = 1/(2*sin(M_PI/nx))*sqrt(*h_magnetic_susceptibility_0 / *h_magnetic_susceptibility_k - 1);
+
+    cudaFree(d_magnetic_susceptibility_0);
+    cudaFree(d_magnetic_susceptibility_k);
+    free(h_magnetic_susceptibility_0);
+    free(h_magnetic_susceptibility_k);
+
+    return psi;
+}
 
 int main(void){
     // Initialize all possible parameters
     float p = 0.06f;
     float alpha = 1.0f;
   
-    int num_iterations_seeds = 10;
-    int num_iterations_error = 10;
+    int num_iterations_seeds = 200;
+    int num_iterations_error = 200;
 
-    int niters = 10;
-    int nwarmup = 10;
+    int niters = 1000;
+    int nwarmup = 100;
     
+    int L[1] = {14};
+    
+    float start_temp = 1.2f;
+    float end_temp = 2.2f;
+    float num_temps = 12;
+    float step = (end_temp-start_temp)/num_temps;
 
+    std::vector<float> temp;
 
-    int L[6] = {12, 14, 18, 24, 28, 36};
-    float temp[13] = {1.8f, 1.85, 1.9, 1.95, 2.0, 2.05, 2.1, 2.15, 2.2, 2.25, 2.3, 2.35, 2.4};
+    for (int i=0; i < num_temps+1; i++){
+        temp.push_back(start_temp+i*step);
+    }
     
     float inv_temp;
     float coupling_constant;
@@ -419,7 +464,7 @@ int main(void){
     cudaMalloc(&d_wave_vector_0, 2 * sizeof(*d_wave_vector_0));
     cudaMemcpy(d_wave_vector_0, wave_vector_0, 2*sizeof(float), cudaMemcpyHostToDevice);
     
-    for (int l=0; l<6;l++){
+    for (int l=0; l < (int)sizeof(L)/sizeof(L[0]);l++){
         long nx = L[l];
         long ny = L[l];
     
@@ -429,12 +474,16 @@ int main(void){
         cudaMalloc(&d_wave_vector_k, 2 * sizeof(*d_wave_vector_k));
         cudaMemcpy(d_wave_vector_k, wave_vector_k, 2*sizeof(float), cudaMemcpyHostToDevice);
     
-        std::vector< float > psi_l;
+        std::vector<float> psi_l;
 
-        for (int t = 0; t < (int)sizeof(temp)/sizeof(temp[0]); t++){
+        printf("Started with lattice size: %u \n", L[l]);
 
-            printf("Started temperature %f \n", temp[t]);
+        for (int t = 0; t < num_temps+1; t++){
 
+            printf("Temperature: %f \n", temp[t]);
+            
+            auto t0 = std::chrono::high_resolution_clock::now();
+            
             inv_temp = 1/(alpha*temp[t]);
             coupling_constant = inv_temp;
 
@@ -546,49 +595,30 @@ int main(void){
                 cudaFree(d_partition_function);
             }
 
-            // Magnetic susceptibility 
-            float *d_magnetic_susceptibility_0, *d_magnetic_susceptibility_k;
-            cudaMalloc(&d_magnetic_susceptibility_0, sizeof(*d_magnetic_susceptibility_0));
-            cudaMalloc(&d_magnetic_susceptibility_k, sizeof(*d_magnetic_susceptibility_k));
-
-            // Sum reduction for both
-            cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, d_error_weight_0, d_magnetic_susceptibility_0, num_iterations_error);
-            cudaMalloc(&d_temp_storage, temp_storage_bytes);
-            cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, d_error_weight_0, d_magnetic_susceptibility_0, num_iterations_error);
-
-            cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, d_error_weight_k, d_magnetic_susceptibility_k, num_iterations_error);
-            cudaMalloc(&d_temp_storage, temp_storage_bytes);
-            cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, d_error_weight_k, d_magnetic_susceptibility_k, num_iterations_error);
-
-            cudaDeviceSynchronize();
-
-            float *h_magnetic_susceptibility_0 = (float *)malloc(sizeof(float));
-            float *h_magnetic_susceptibility_k = (float *)malloc(sizeof(float));
-            
-            cudaMemcpy(h_magnetic_susceptibility_0, d_magnetic_susceptibility_0, sizeof(float), cudaMemcpyDeviceToHost);
-            cudaMemcpy(h_magnetic_susceptibility_k, d_magnetic_susceptibility_k, sizeof(float), cudaMemcpyDeviceToHost);
-
-            float psi = 1/(2*sin(M_PI/nx))*sqrt(*h_magnetic_susceptibility_0 / *h_magnetic_susceptibility_k - 1);
+            float psi = calc_psi(d_error_weight_0, d_error_weight_k, num_iterations_error, nx);
 
             psi_l.push_back(psi/nx);
 
-            cudaFree(d_magnetic_susceptibility_0);
-            cudaFree(d_magnetic_susceptibility_k);
             cudaFree(d_error_weight_0);
             cudaFree(d_error_weight_k);
+
+            auto t1 = std::chrono::high_resolution_clock::now();
+            double duration = (double) std::chrono::duration_cast<std::chrono::seconds>(t1-t0).count();
+
+            printf("Elapsed time for temperature loop sec %f \n", duration);
         }
 
+        // Write results
         std::ofstream f;
         f.open("lattice/psi_L_" + std::to_string(nx) + ".txt");
         if (f.is_open()) {
-            for (int i = 0; i < (int)sizeof(temp)/sizeof(temp[0]); i++) {
-                f << psi_l[i] << " " << temp[i] "\n";
+            for (int i = 0; i < num_temps+1; i++) {
+                f << psi_l[i] << " " << temp[i] << "\n";
             }
         }
         f.close();
 
         cudaFree(d_wave_vector_k);
     }
-
-
 }
+

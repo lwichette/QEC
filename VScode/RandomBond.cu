@@ -231,8 +231,8 @@ static void usage(const char *pname) {
 
 
   int main(int argc, char **argv) {
-    long nx = 1000;
-    long ny = 1000;
+    long nx = 12;
+    long ny = 12;
     int niters = 1000;
     float alpha = 1.0f;
     int nwarmup = 100;

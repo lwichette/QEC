@@ -13,8 +13,6 @@
 #	rm	-f	test
 
 
-
-
 CUDA_HOME=/usr/local/cuda
 CUDACC=$(CUDA_HOME)/bin/nvcc
 NVCC_FLAGS=-std=c++11 -O3 -lineinfo -arch=sm_70 -Xptxas=-v -I../external/cub
@@ -23,8 +21,8 @@ LDFLAGS=-lcurand
 
 all: output
 
-output: one_loop.cu
-	$(CUDACC) $(NVCC_FLAGS) one_loop.cu -o one_loop $(LDFLAGS)
+output: test2.cu
+	$(CUDACC) $(NVCC_FLAGS) test2.cu -o test2 $(LDFLAGS)
 
 clean:
-	rm -f one_loop
+	rm -f test2

@@ -432,10 +432,10 @@ int main(void){
     int num_iterations_seeds = 200;
     int num_iterations_error = 200;
 
-    int niters = 1000;
+    int niters = 5000;
     int nwarmup = 100;
     
-    int L[1] = {14};
+    int L[4] = {18, 24, 28, 36};
     
     float start_temp = 1.2f;
     float end_temp = 2.2f;

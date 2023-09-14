@@ -62,7 +62,7 @@ int main(int argc, char **argv) {
   
   cudaMemcpy(d_array, h_array, num_values*sizeof(float), cudaMemcpyHostToDevice);
 
-  float* d_res;
+  float* d_res_single;
   cudaMalloc(&d_res, num_values*sizeof(float));
   
   sum_with_index(d_array, num_values, d_res, -1);

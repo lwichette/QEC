@@ -245,6 +245,8 @@ static void usage(const char *pname) {
     // 0.5*log((1-p)/p);2.0f;
     //alpha = 0.5f
 
+    printf("Hallo");
+    
     while (1) {
         static struct option long_options[] = {
             {     "lattice-n", required_argument, 0, 'x'},

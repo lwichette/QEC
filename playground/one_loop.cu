@@ -14,11 +14,12 @@ using namespace std;
 #define THREADS 128
 
 // Write interaction bonds to file
-void write_bonds(signed char* interactions, std::string filename, long long nx, long long ny){
+void write_bonds(signed char* interactions, std::string filename, long nx, long ny){
     printf("Writing bonds to %s ...\n", filename.c_str());
-    signed char *interactions_host;
-    interactions_host = (signed char*)malloc(2*nx*ny*sizeof(*interactions_host));
-    cudaMemcpy(interactions_host,interactions, 2*nx*ny*sizeof(*interactions), cudaMemcpyDeviceToHost);
+    
+    std::vector<signed char> interactions_host(2*nx*ny);
+    
+    cudaMemcpy(interactions_host.data(),interactions, 2*nx*ny*sizeof(*interactions), cudaMemcpyDeviceToHost);
         
       std::ofstream f;
       f.open(filename);
@@ -31,7 +32,6 @@ void write_bonds(signed char* interactions, std::string filename, long long nx, 
         }
       }
       f.close();
-      free(interactions_host);
 }
 
 __global__ void init_randombond(signed char* interactions, const float* __restrict__ interaction_randvals,
@@ -201,13 +201,13 @@ __global__ void exp_beta(float *d_store_energy, float inv_temp, const int num_it
 
  void write_lattice(signed char *lattice_b, signed char *lattice_w, std::string filename, long long nx, long long ny) {
     printf("Writing lattice to %s...\n", filename.c_str());
-    signed char *lattice_h, *lattice_b_h, *lattice_w_h;
-    lattice_h = (signed char*) malloc(nx * ny * sizeof(*lattice_h));
-    lattice_b_h = (signed char*) malloc(nx * ny/2 * sizeof(*lattice_b_h));
-    lattice_w_h = (signed char*) malloc(nx * ny/2 * sizeof(*lattice_w_h));
+    
+    std::vector<signed char> lattice_h(nx*ny);
+    std::vector<signed char> lattice_w_h(nx*ny/2);
+    std::vector<signed char> lattice_b_h(nx*ny/2);
   
-    cudaMemcpy(lattice_b_h, lattice_b, nx * ny/2 * sizeof(*lattice_b), cudaMemcpyDeviceToHost);
-    cudaMemcpy(lattice_w_h, lattice_w, nx * ny/2 * sizeof(*lattice_w), cudaMemcpyDeviceToHost);
+    cudaMemcpy(lattice_b_h.data(), lattice_b, nx * ny/2 * sizeof(*lattice_b), cudaMemcpyDeviceToHost);
+    cudaMemcpy(lattice_w_h.data(), lattice_w, nx * ny/2 * sizeof(*lattice_w), cudaMemcpyDeviceToHost);
   
     for (int i = 0; i < nx; i++) {
       for (int j = 0; j < ny/2; j++) {
@@ -232,10 +232,6 @@ __global__ void exp_beta(float *d_store_energy, float inv_temp, const int num_it
       }
     }
     f.close();
-  
-    free(lattice_h);
-    free(lattice_b_h);
-    free(lattice_w_h);
 }
 
 void calculate_B2(signed char *lattice_b, signed char *lattice_w, thrust::complex<float> *d_store_sum, float *d_wave_vector, int i, const long nx, const long ny){
@@ -428,18 +424,20 @@ int main(void){
     // Initialize all possible parameters
     float p = 0.06f;
     float alpha = 1.0f;
-  
-    int num_iterations_seeds = 200;
-    int num_iterations_error = 200;
 
-    int niters = 5000;
-    int nwarmup = 100;
+    printf("Hallo");
     
-    int L[4] = {18, 24, 28, 36};
+    int num_iterations_seeds = 10;
+    int num_iterations_error = 10;
+
+    int niters = 10;
+    int nwarmup = 10;
+    
+    std::array<int, 1> L = {12};
     
     float start_temp = 1.2f;
     float end_temp = 2.2f;
-    float num_temps = 12;
+    float num_temps = 1;
     float step = (end_temp-start_temp)/num_temps;
 
     std::vector<float> temp;
@@ -459,20 +457,23 @@ int main(void){
     size_t temp_storage_bytes = 0;
         
     // Allocate the wave vectors and copy it to GPU memory
-    float wave_vector_0[2] = {0,0};
+    std::array<float, 2> wave_vector_0 = {0,0};
+
     float *d_wave_vector_0;
     cudaMalloc(&d_wave_vector_0, 2 * sizeof(*d_wave_vector_0));
-    cudaMemcpy(d_wave_vector_0, wave_vector_0, 2*sizeof(float), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_wave_vector_0, wave_vector_0.data(), 2*sizeof(float), cudaMemcpyHostToDevice);
     
-    for (int l=0; l < (int)sizeof(L)/sizeof(L[0]);l++){
-        long nx = L[l];
-        long ny = L[l];
+    for (int l=0; l < L.size(); l++){
+        const int nx = L[l];
+        const int ny = L[l];
     
         int blocks = (nx*ny*2 + THREADS -1)/THREADS;
-        float wave_vector_k[2] = {2.0*M_PI/nx,0};
+        
+        std::array<float, 2> wave_vector_k = {2.0*M_PI/nx,0};
+        
         float *d_wave_vector_k;
         cudaMalloc(&d_wave_vector_k, 2 * sizeof(*d_wave_vector_k));
-        cudaMemcpy(d_wave_vector_k, wave_vector_k, 2*sizeof(float), cudaMemcpyHostToDevice);
+        cudaMemcpy(d_wave_vector_k, wave_vector_k.data(), 2*sizeof(float), cudaMemcpyHostToDevice);
     
         std::vector<float> psi_l;
 
@@ -526,6 +527,7 @@ int main(void){
                     curandGenerator_t rng;
                     curandCreateGenerator(&rng, CURAND_RNG_PSEUDO_PHILOX4_32_10);
                     curandSetPseudoRandomGeneratorSeed(rng, seeds_spins);
+                    
                     float *randvals;
                     cudaMalloc(&randvals, nx * ny/2 * sizeof(*randvals));
 
@@ -545,7 +547,7 @@ int main(void){
                         update(lattice_b, lattice_w, randvals, rng, d_interactions, inv_temp, nx, ny,coupling_constant);
                         //if (j % 1000 == 0) printf("Completed %d/%d iterations...\n", j+1, niters);
                     }
-                    
+
                     cudaDeviceSynchronize();
                     
                     calculate_B2(lattice_b, lattice_w, d_store_sum_0, d_wave_vector_0, i, nx, ny);
@@ -576,6 +578,7 @@ int main(void){
                 // Calculate partition function
                 float *d_partition_function;
                 cudaMalloc(&d_partition_function, sizeof(float));
+                
                 cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, d_store_energy, d_partition_function, num_iterations_seeds);
                 cudaMalloc(&d_temp_storage, temp_storage_bytes);
                 cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, d_store_energy, d_partition_function, num_iterations_seeds);
@@ -610,7 +613,7 @@ int main(void){
 
         // Write results
         std::ofstream f;
-        f.open("lattice/psi_L_" + std::to_string(nx) + ".txt");
+        f.open("lattice/test_psi_L_" + std::to_string(nx) + ".txt");
         if (f.is_open()) {
             for (int i = 0; i < num_temps+1; i++) {
                 f << psi_l[i] << " " << temp[i] << "\n";

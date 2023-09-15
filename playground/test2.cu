@@ -28,7 +28,6 @@ void sum_with_index(float *d_array, int num_values, float* d_res, int i){
     cudaMalloc(&d_temp, temp_storage);
     cub::DeviceReduce::Sum(d_temp, temp_storage, d_array, &d_res[i], num_values);
   }
-  
 }
 
 float* sum_one(float *d_array, int num_values){
@@ -47,28 +46,40 @@ float* sum_one(float *d_array, int num_values){
   return d_sum;
 }
 
-int main(int argc, char **argv) {
+void create_array(int n){
+  std::vector<float> test(n);
+}
 
-  int num_values = 10;
+__global__ void initialize(float *d_test, int num_values){
   
-  float *h_array = (float *)malloc(num_values*sizeof(float));
+  const long long tid = static_cast<long long>(threadIdx.x + blockIdx.x * blockDim.x);
 
-  for (int i=0; i<num_values; i++){
-    h_array[i] = i;
-  }
+  if (tid>=num_values) return;
 
+  d_test[tid] = 3000;
+
+}
+int main(int argc, char **argv) {
+  int threads = 128;
+
+  constexpr int num_values = 10;
+
+  float *d_test;
+  cudaMalloc(&d_test, sizeof(float));
+
+  initialize<<<1,threads>>>(d_test, 1);
+
+  float *h_test = (float *)malloc(sizeof(float));
+  
+  cudaMemcpy(h_test, d_test, sizeof(float), cudaMemcpyDeviceToHost);
+
+  printf("%f", *h_test);
+
+
+  /*
   float *d_array;
   cudaMalloc(&d_array, num_values*sizeof(float));
   
   cudaMemcpy(d_array, h_array, num_values*sizeof(float), cudaMemcpyHostToDevice);
-
-  float* d_res_single;
-  cudaMalloc(&d_res, num_values*sizeof(float));
-  
-  sum_with_index(d_array, num_values, d_res, -1);
-  
-  float *h_sum = (float *)malloc(num_values*sizeof(float));
-  cudaMemcpy(h_sum, d_res, num_values*sizeof(float), cudaMemcpyDeviceToHost);
-
-  printf("%f", h_sum[0]);
+  */
 }

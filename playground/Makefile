@@ -26,3 +26,4 @@ output: test2.cu
 
 clean:
 	rm -f test2
+

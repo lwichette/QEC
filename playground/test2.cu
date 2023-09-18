@@ -6,6 +6,7 @@
 #include <cub/cub.cuh>
 #include <thrust/complex.h>
 #include <vector>
+#include <sys/stat.h>
 
 using namespace std;
 
@@ -60,26 +61,16 @@ __global__ void initialize(float *d_test, int num_values){
 
 }
 int main(int argc, char **argv) {
-  int threads = 128;
+  char* results = "results/test3";
 
-  constexpr int num_values = 10;
+  // Structure which would store the metadata
+  struct stat sb;
 
-  float *d_test;
-  cudaMalloc(&d_test, sizeof(float));
-
-  initialize<<<1,threads>>>(d_test, 1);
-
-  float *h_test = (float *)malloc(sizeof(float));
-  
-  cudaMemcpy(h_test, d_test, sizeof(float), cudaMemcpyDeviceToHost);
-
-  printf("%f", *h_test);
-
-
-  /*
-  float *d_array;
-  cudaMalloc(&d_array, num_values*sizeof(float));
-  
-  cudaMemcpy(d_array, h_array, num_values*sizeof(float), cudaMemcpyHostToDevice);
-  */
+  if (stat(results, &sb) == 0){
+      cout << "Results already exist, check file name";
+      return 0;
+  }
+  else{
+      mkdir(results, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+  }
 }

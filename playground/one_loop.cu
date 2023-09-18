@@ -8,6 +8,8 @@
 #include <cmath>
 #include <math.h>
 #include <vector>
+#include <string>
+#include <sys/stat.h>
 
 using namespace std;
 
@@ -420,24 +422,40 @@ float calc_psi(float *d_error_weight_0, float *d_error_weight_k, const int num_i
     return psi;
 }
 
+int create_results_folder(char* results){
+    struct stat sb;
+
+    if (stat(results, &sb) == 0){
+        cout << "Results already exist, check file name";
+        return 0;
+    }
+    else{
+        mkdir(results, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+        return 1;
+    }
+}
+
 int main(void){
+
+    char* results = "results/low_temperature";
+    int check = create_results_folder(results);
+    if (check == 0) return 0;
+
     // Initialize all possible parameters
     float p = 0.06f;
     float alpha = 1.0f;
-
-    printf("Hallo");
     
-    int num_iterations_seeds = 10;
-    int num_iterations_error = 10;
+    int num_iterations_seeds = 200;
+    int num_iterations_error = 200;
 
-    int niters = 10;
-    int nwarmup = 10;
+    int niters = 10000;
+    int nwarmup = 100;
     
-    std::array<int, 1> L = {12};
+    std::array<int, 3> L = {28,36,50};
     
     float start_temp = 1.2f;
-    float end_temp = 2.2f;
-    float num_temps = 1;
+    float end_temp = 1.6f;
+    float num_temps = 5;
     float step = (end_temp-start_temp)/num_temps;
 
     std::vector<float> temp;
@@ -463,6 +481,7 @@ int main(void){
     cudaMalloc(&d_wave_vector_0, 2 * sizeof(*d_wave_vector_0));
     cudaMemcpy(d_wave_vector_0, wave_vector_0.data(), 2*sizeof(float), cudaMemcpyHostToDevice);
     
+    // Loop over lattice sizes
     for (int l=0; l < L.size(); l++){
         const int nx = L[l];
         const int ny = L[l];
@@ -474,11 +493,12 @@ int main(void){
         float *d_wave_vector_k;
         cudaMalloc(&d_wave_vector_k, 2 * sizeof(*d_wave_vector_k));
         cudaMemcpy(d_wave_vector_k, wave_vector_k.data(), 2*sizeof(float), cudaMemcpyHostToDevice);
-    
+        
         std::vector<float> psi_l;
 
         printf("Started with lattice size: %u \n", L[l]);
 
+        // Loop over different temperatures
         for (int t = 0; t < num_temps+1; t++){
 
             printf("Temperature: %f \n", temp[t]);
@@ -509,9 +529,6 @@ int main(void){
                 cudaMalloc(&d_interactions, nx*ny*2*sizeof(*d_interactions));
 
                 init_interactions_with_seed(d_interactions, seeds_interactions, nx, ny, p);
-                
-                //Synchronize devices
-                cudaDeviceSynchronize();
 
                 // Loop over number of iterations
                 for (int i=0; i<num_iterations_seeds; i++){
@@ -531,33 +548,27 @@ int main(void){
                     float *randvals;
                     cudaMalloc(&randvals, nx * ny/2 * sizeof(*randvals));
 
-                    //Synchronize devices
                     cudaDeviceSynchronize();
-                    
+
                     // Warmup iterations
                     //printf("Starting warmup...\n");
                     for (int j = 0; j < nwarmup; j++) {
                         update(lattice_b, lattice_w, randvals, rng, d_interactions, inv_temp, nx, ny, coupling_constant);
                     }
-
-                    //Synchronize devices
+                    
                     cudaDeviceSynchronize();
 
                     for (int j = 0; j < niters; j++) {
                         update(lattice_b, lattice_w, randvals, rng, d_interactions, inv_temp, nx, ny,coupling_constant);
                         //if (j % 1000 == 0) printf("Completed %d/%d iterations...\n", j+1, niters);
                     }
-
-                    cudaDeviceSynchronize();
                     
+                    cudaDeviceSynchronize();
+
                     calculate_B2(lattice_b, lattice_w, d_store_sum_0, d_wave_vector_0, i, nx, ny);
                     calculate_B2(lattice_b, lattice_w, d_store_sum_k, d_wave_vector_k, i, nx, ny);
-                    
-                    cudaDeviceSynchronize();
 
                     calculate_energy(lattice_b, lattice_w, d_interactions, d_store_energy, coupling_constant, i, nx, ny);
-
-                    cudaDeviceSynchronize();
 
                     seeds_spins += 1;
 
@@ -568,7 +579,7 @@ int main(void){
                     cudaFree(randvals);
                     curandDestroyGenerator(rng);
                 }
-            
+
                 // Take absolute square + exp
                 abs_square<<<blocks, THREADS>>>(d_store_sum_0, num_iterations_seeds);
                 abs_square<<<blocks, THREADS>>>(d_store_sum_k, num_iterations_seeds);
@@ -585,8 +596,6 @@ int main(void){
 
                 calculate_weighted_energies(d_error_weight_0, d_store_energy, d_store_sum_0, d_partition_function, num_iterations_seeds, blocks, j);
                 calculate_weighted_energies(d_error_weight_k, d_store_energy, d_store_sum_k, d_partition_function, num_iterations_seeds, blocks, j);
-
-                cudaDeviceSynchronize();
 
                 seeds_interactions += 1;
 
@@ -613,7 +622,7 @@ int main(void){
 
         // Write results
         std::ofstream f;
-        f.open("lattice/test_psi_L_" + std::to_string(nx) + ".txt");
+        f.open(results + std::string("/psi_L_") + std::to_string(nx) + std::string(".txt"));
         if (f.is_open()) {
             for (int i = 0; i < num_temps+1; i++) {
                 f << psi_l[i] << " " << temp[i] << "\n";

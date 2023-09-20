@@ -10,11 +10,12 @@
 #include <vector>
 #include <string>
 #include <sys/stat.h>
+
 #include "utils.cuh"
+#include "defines.h"
 
 using namespace std;
 
-#define THREADS 128
 
 int main(void){
 
@@ -24,15 +25,15 @@ int main(void){
 
     // Initialize all possible parameters
     float alpha = 1.0f;
-    
+
     int num_iterations_seeds = 10;
     int num_iterations_error = 10;
 
     int niters = 10;
     int nwarmup = 10;
-    
+
     std::array<int, 1> L = {12};
-    
+
     float start_prob = 0.085f;
     float end_prob = 0.115;
     float num_probs = 1;
@@ -43,7 +44,7 @@ int main(void){
     for (int i=0; i < num_probs + 1; i++){
         probs.push_back(start_prob+i*step);
     }
-    
+
     float inv_temp;
     float coupling_constant;
 
@@ -53,27 +54,27 @@ int main(void){
     // Variables used for sum reduction
     void *d_temp_storage = NULL;
     size_t temp_storage_bytes = 0;
-        
+
     // Allocate the wave vectors and copy it to GPU memory
     std::array<float, 2> wave_vector_0 = {0,0};
 
     float *d_wave_vector_0;
     cudaMalloc(&d_wave_vector_0, 2 * sizeof(*d_wave_vector_0));
     cudaMemcpy(d_wave_vector_0, wave_vector_0.data(), 2*sizeof(float), cudaMemcpyHostToDevice);
-    
+
     // Loop over lattice sizes
     for (int l=0; l < L.size(); l++){
         int nx = L[l];
         int ny = L[l];
-    
+
         int blocks = (nx*ny*2 + THREADS -1)/THREADS;
-        
+
         std::array<float, 2> wave_vector_k = {2.0*M_PI/nx,0};
-        
+
         float *d_wave_vector_k;
         cudaMalloc(&d_wave_vector_k, 2 * sizeof(*d_wave_vector_k));
         cudaMemcpy(d_wave_vector_k, wave_vector_k.data(), 2*sizeof(float), cudaMemcpyHostToDevice);
-        
+
         std::vector<float> psi_l;
 
         printf("Started with lattice size: %u \n", L[l]);
@@ -82,9 +83,9 @@ int main(void){
         for (int t = 0; t < num_probs+1; t++){
 
             printf("Probability: %f \n", probs[t]);
-            
+
             auto t0 = std::chrono::high_resolution_clock::now();
-            
+
             inv_temp = 1.0f/2.0f*log((1-probs[t])/probs[t]);
             coupling_constant = inv_temp;
 
@@ -112,7 +113,7 @@ int main(void){
 
                 // Loop over number of iterations
                 for (int i=0; i<num_iterations_seeds; i++){
-                    
+
                     // Setup black and white lattice arrays on device
                     signed char *lattice_b, *lattice_w;
                     cudaMalloc(&lattice_b, nx * ny/2 * sizeof(*lattice_b));
@@ -124,7 +125,7 @@ int main(void){
                     curandGenerator_t rng;
                     curandCreateGenerator(&rng, CURAND_RNG_PSEUDO_PHILOX4_32_10);
                     curandSetPseudoRandomGeneratorSeed(rng, seeds_spins);
-                    
+
                     float *randvals;
                     cudaMalloc(&randvals, nx * ny/2 * sizeof(*randvals));
 
@@ -135,14 +136,14 @@ int main(void){
                     for (int j = 0; j < nwarmup; j++) {
                         update(lattice_b, lattice_w, randvals, rng, d_interactions, inv_temp, nx, ny, coupling_constant);
                     }
-                    
+
                     cudaDeviceSynchronize();
 
                     for (int j = 0; j < niters; j++) {
                         update(lattice_b, lattice_w, randvals, rng, d_interactions, inv_temp, nx, ny,coupling_constant);
                         //if (j % 1000 == 0) printf("Completed %d/%d iterations...\n", j+1, niters);
                     }
-                    
+
                     cudaDeviceSynchronize();
 
                     calculate_B2(lattice_b, lattice_w, d_store_sum_0, d_wave_vector_0, i, nx, ny);
@@ -163,13 +164,13 @@ int main(void){
                 // Take absolute square + exp
                 abs_square<<<blocks, THREADS>>>(d_store_sum_0, num_iterations_seeds);
                 abs_square<<<blocks, THREADS>>>(d_store_sum_k, num_iterations_seeds);
-                
+
                 exp_beta<<<blocks, THREADS>>>(d_store_energy, inv_temp, num_iterations_seeds, nx);
-                
+
                 // Calculate partition function
                 float *d_partition_function;
                 cudaMalloc(&d_partition_function, sizeof(float));
-                
+
                 cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, d_store_energy, d_partition_function, num_iterations_seeds);
                 cudaMalloc(&d_temp_storage, temp_storage_bytes);
                 cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, d_store_energy, d_partition_function, num_iterations_seeds);
@@ -213,4 +214,3 @@ int main(void){
         cudaFree(d_wave_vector_k);
     }
 }
-

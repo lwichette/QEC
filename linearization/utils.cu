@@ -1,14 +1,28 @@
-#include "utils.cuh" 
+#include <cstdlib>
+#include <fstream>
+#include <iostream>
+#include <time.h>
+#include <curand.h>
+#include <cub/cub.cuh>
+#include <thrust/complex.h>
+#include <cmath>
+#include <math.h>
+#include <vector>
+#include <string>
+#include <sys/stat.h>
+
+#include "utils.cuh"
+#include "defines.h"
 
 
 // Write interaction bonds to file
 void write_bonds(signed char* interactions, std::string filename, long nx, long ny){
     printf("Writing bonds to %s ...\n", filename.c_str());
-    
+
     std::vector<signed char> interactions_host(2*nx*ny);
-    
+
     cudaMemcpy(interactions_host.data(),interactions, 2*nx*ny*sizeof(*interactions), cudaMemcpyDeviceToHost);
-        
+
       std::ofstream f;
       f.open(filename);
       if (f.is_open()) {
@@ -24,14 +38,14 @@ void write_bonds(signed char* interactions, std::string filename, long nx, long 
 
 __global__ void init_randombond(signed char* interactions, const float* __restrict__ interaction_randvals,
     const long long nx, const long long ny, const float p){
-        
+
         const long long tid = static_cast<long long>(threadIdx.x + blockIdx.x * blockDim.x);
-        
+
         if (tid >= 2*nx*ny) return;
 
         float bondrandval = interaction_randvals[tid];
         signed char bondval = (bondrandval<p)? -1 : 1;
-        interactions[tid] = bondval;                                  
+        interactions[tid] = bondval;
 }
 
 void init_interactions_with_seed(signed char* interactions, const long long seed, const long long nx, const long long ny, const float p){
@@ -41,14 +55,14 @@ void init_interactions_with_seed(signed char* interactions, const long long seed
     curandGenerator_t interaction_rng;
     curandCreateGenerator(&interaction_rng,CURAND_RNG_PSEUDO_PHILOX4_32_10);
     curandSetPseudoRandomGeneratorSeed(interaction_rng,seed);
-    
+
     float *interaction_randvals;
     cudaMalloc(&interaction_randvals,nx*ny*2*sizeof(*interaction_randvals));
 
     curandGenerateUniform(interaction_rng,interaction_randvals,nx*ny*2);
     init_randombond<<<blocks, THREADS>>>(interactions, interaction_randvals,nx,ny,p);
-    
-    cudaFree(interaction_randvals); 
+
+    cudaFree(interaction_randvals);
     curandDestroyGenerator(interaction_rng);
 }
 
@@ -57,16 +71,16 @@ __global__ void init_spins(signed char* lattice, const float* __restrict__ randv
     const long long nx, const long long ny) {
         const long long  tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
         if (tid >= nx * ny) return;
-        
+
         float randval = randvals[tid];
         signed char val = (randval < 0.5f) ? -1 : 1;
         lattice[tid] = val;
 }
 
 void init_spins_with_seed(signed char* lattice_b, signed char* lattice_w, const long long seed, const long long nx, const long long ny){
-    
+
     int blocks = (nx*ny*2 + THREADS -1)/THREADS;
-    
+
     // Setup cuRAND generator
     curandGenerator_t rng;
     curandCreateGenerator(&rng, CURAND_RNG_PSEUDO_PHILOX4_32_10);
@@ -82,20 +96,20 @@ void init_spins_with_seed(signed char* lattice_b, signed char* lattice_w, const 
     init_spins<<<blocks, THREADS>>>(lattice_w, randvals, nx, ny/2);
 
     curandDestroyGenerator(rng);
-    cudaFree(randvals); 
+    cudaFree(randvals);
 }
 
 __global__ void B2_lattices(signed char* lattice_b, signed char* lattice_w, const float *wave_vector, thrust::complex<float> *sum,  int nx, int ny){
-    
+
     int tid = blockDim.x * blockIdx.x + threadIdx.x;
-    
+
     int i = tid/ny;
     int j = tid%ny;
 
     if (i>=nx || j >= ny) return;
 
     int b_orig_j;
-    int w_orig_j; 
+    int w_orig_j;
 
     if (i%2==0){
         b_orig_j = 2*j +1;
@@ -114,13 +128,13 @@ __global__ void B2_lattices(signed char* lattice_b, signed char* lattice_w, cons
 }
 
 template<bool is_black>
-__global__ void calc_energy(float* sum, signed char* lattice, signed char* __restrict__ op_lattice, 
+__global__ void calc_energy(float* sum, signed char* lattice, signed char* __restrict__ op_lattice,
     signed char* interactions, const long long nx, const long long ny, const float coupling_constant){
-    
+
     const long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
     const int i = tid/ny;
     const int j = tid%ny;
-  
+
     if (i>=nx || j >= ny) return;
 
         // Set up periodic boundary conditions
@@ -166,7 +180,7 @@ __global__ void calc_energy(float* sum, signed char* lattice, signed char* __res
     }
 
     // Compute sum of nearest neighbor spins times the coupling
-    sum[tid] = -1 * coupling_constant*lattice[i*ny+j]*(op_lattice[inn * ny + j]*interactions[icouplingnn] + op_lattice[i * ny + j]*interactions[2*(i*ny + j)] 
+    sum[tid] = -1 * coupling_constant*lattice[i*ny+j]*(op_lattice[inn * ny + j]*interactions[icouplingnn] + op_lattice[i * ny + j]*interactions[2*(i*ny + j)]
                + op_lattice[ipp * ny + j]*interactions[icouplingpp] + op_lattice[i * ny + joff]*interactions[jcouplingoff]);
 }
 
@@ -179,7 +193,7 @@ __global__ void abs_square(thrust::complex<float> *d_store_sum, const int num_it
 }
 
 __global__ void exp_beta(float *d_store_energy, float inv_temp, const int num_iterations, const int L){
-    
+
     const long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
 
     if (tid >= num_iterations) return;
@@ -189,14 +203,14 @@ __global__ void exp_beta(float *d_store_energy, float inv_temp, const int num_it
 
  void write_lattice(signed char *lattice_b, signed char *lattice_w, std::string filename, long long nx, long long ny) {
     printf("Writing lattice to %s...\n", filename.c_str());
-    
+
     std::vector<signed char> lattice_h(nx*ny);
     std::vector<signed char> lattice_w_h(nx*ny/2);
     std::vector<signed char> lattice_b_h(nx*ny/2);
-  
+
     cudaMemcpy(lattice_b_h.data(), lattice_b, nx * ny/2 * sizeof(*lattice_b), cudaMemcpyDeviceToHost);
     cudaMemcpy(lattice_w_h.data(), lattice_w, nx * ny/2 * sizeof(*lattice_w), cudaMemcpyDeviceToHost);
-  
+
     for (int i = 0; i < nx; i++) {
       for (int j = 0; j < ny/2; j++) {
         if (i % 2) {
@@ -208,7 +222,7 @@ __global__ void exp_beta(float *d_store_energy, float inv_temp, const int num_it
         }
       }
     }
-  
+
     std::ofstream f;
     f.open(filename);
     if (f.is_open()) {
@@ -244,7 +258,7 @@ void calculate_B2(signed char *lattice_b, signed char *lattice_w, thrust::comple
 void calculate_energy(signed char *lattice_b, signed char *lattice_w, signed char *d_interactions, float *d_store_energy, float coupling_constant, int i, long nx, long ny){
     // Calculate energy and reduce sum
     int blocks = (nx*ny*2 + THREADS -1)/THREADS;
-    
+
     float *d_energy;
     cudaMalloc(&d_energy, nx*ny/2*sizeof(*d_energy));
 
@@ -256,7 +270,7 @@ void calculate_energy(signed char *lattice_b, signed char *lattice_w, signed cha
     cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, d_energy, &d_store_energy[i], nx*ny/2);
     cudaMalloc(&d_temp_storage, temp_storage_bytes);
     cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, d_energy, &d_store_energy[i], nx*ny/2);
-    
+
     cudaFree(d_energy);
 }
 
@@ -282,7 +296,7 @@ void calculate_weighted_energies(float *d_error_weight, float *d_store_energy, t
     cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, d_weighted_energies, &d_error_weight[j], num_iterations);
     cudaMalloc(&d_temp_storage, temp_storage_bytes);
     cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, d_weighted_energies, &d_error_weight[j], num_iterations);
-    
+
     cudaFree(d_weighted_energies);
 }
 
@@ -294,7 +308,7 @@ __global__ void update_lattice(signed char* lattice, signed char* __restrict__ o
                                const float coupling_constant) {
 
     const long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
-    
+
     const int i = tid/ny;
     const int j = tid%ny;
 
@@ -342,7 +356,7 @@ __global__ void update_lattice(signed char* lattice, signed char* __restrict__ o
     }
 
     // Compute sum of nearest neighbor spins times the coupling
-    signed char nn_sum = op_lattice[inn * ny + j]*interactions[icouplingnn] + op_lattice[i * ny + j]*interactions[2*(i*ny + j)] 
+    signed char nn_sum = op_lattice[inn * ny + j]*interactions[icouplingnn] + op_lattice[i * ny + j]*interactions[2*(i*ny + j)]
                         + op_lattice[ipp * ny + j]*interactions[icouplingpp] + op_lattice[i * ny + joff]*interactions[jcouplingoff];
 
     // Compute sum of nearest neighbor spins
@@ -353,11 +367,11 @@ __global__ void update_lattice(signed char* lattice, signed char* __restrict__ o
     float acceptance_ratio = exp(-2 * coupling_constant * nn_sum * lij);
     if (randvals[i*ny + j] < acceptance_ratio) {
         lattice[i * ny + j] = -lij;
-    }  
+    }
 }
 
 void update(signed char *lattice_b, signed char *lattice_w, float* randvals, curandGenerator_t rng, signed char* interactions, float inv_temp, long long nx, long long ny, float coupling_constant) {
- 
+
     // Setup CUDA launch configuration
     int blocks = (nx * ny/2 + THREADS - 1) / THREADS;
 
@@ -371,8 +385,8 @@ void update(signed char *lattice_b, signed char *lattice_w, float* randvals, cur
 }
 
 float calc_psi(float *d_error_weight_0, float *d_error_weight_k, const int num_iterations_error, const int nx){
-    
-    // Magnetic susceptibility 
+
+    // Magnetic susceptibility
     float *d_magnetic_susceptibility_0, *d_magnetic_susceptibility_k;
     cudaMalloc(&d_magnetic_susceptibility_0, sizeof(*d_magnetic_susceptibility_0));
     cudaMalloc(&d_magnetic_susceptibility_k, sizeof(*d_magnetic_susceptibility_k));
@@ -394,7 +408,7 @@ float calc_psi(float *d_error_weight_0, float *d_error_weight_k, const int num_i
 
     float *h_magnetic_susceptibility_0 = (float *)malloc(sizeof(float));
     float *h_magnetic_susceptibility_k = (float *)malloc(sizeof(float));
-    
+
     cudaMemcpy(h_magnetic_susceptibility_0, d_magnetic_susceptibility_0, sizeof(float), cudaMemcpyDeviceToHost);
     cudaMemcpy(h_magnetic_susceptibility_k, d_magnetic_susceptibility_k, sizeof(float), cudaMemcpyDeviceToHost);
 
@@ -412,7 +426,7 @@ int create_results_folder(char* results){
     struct stat sb;
 
     if (stat(results, &sb) == 0){
-        cout << "Results already exist, check file name";
+        std::cout << "Results already exist, check file name";
         return 0;
     }
     else{

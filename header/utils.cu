@@ -137,7 +137,7 @@ __global__ void calc_energy(float* sum, signed char* lattice, signed char* __res
 
     if (i>=nx || j >= ny) return;
 
-        // Set up periodic boundary conditions
+    // Set up periodic boundary conditions
     int ipp = (i + 1 < nx) ? i + 1 : 0;
     int inn = (i - 1 >= 0) ? i - 1: nx - 1;
     int jpp = (j + 1 < ny) ? j + 1 : 0;

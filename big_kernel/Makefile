@@ -7,7 +7,7 @@ LDFLAGS=-lcurand
 all: output
 
 output: lattices.cu
-	$(CUDACC) $(NVCC_FLAGS) ../header/utils.cu lattices.cu -o test $(LDFLAGS)
+	$(CUDACC) $(NVCC_FLAGS) lattices.cu -o test $(LDFLAGS)
 
 clean:
 	rm -f test

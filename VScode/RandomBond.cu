@@ -244,8 +244,6 @@ static void usage(const char *pname) {
     const float coupling_constant = 0.5*TCRIT*log((1-p)/p);
     // 0.5*log((1-p)/p);2.0f;
     //alpha = 0.5f
-
-    printf("Hallo");
     
     while (1) {
         static struct option long_options[] = {
@@ -316,6 +314,8 @@ static void usage(const char *pname) {
     init_spins<<<blocks, THREADS>>>(lattice_b, randvals, nx, ny/2);
     curandGenerateUniform(rng, randvals, nx*ny/2);
     init_spins<<<blocks, THREADS>>>(lattice_w, randvals, nx, ny/2);
+    
+    write_lattice(lattice_b, lattice_w, "before.txt", nx, ny);
 
     //Setup cuRAND generator for the random bond sign
     curandGenerator_t interaction_rng;

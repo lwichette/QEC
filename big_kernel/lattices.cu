@@ -8,11 +8,15 @@
 #include <vector>
 #include <string>
 #include <sys/stat.h>
+#include <numbers>
 
 #include "defines.h"
 
 using namespace std;
 
+// Run sum-reduction
+void *d_temp = NULL;
+size_t temp_storage = 0;
 
 __global__ void init_randombond(signed char* interactions, const float* __restrict__ interaction_randvals,
     const long long nx, const long long ny, const int num_lattices, const float p){
@@ -242,10 +246,314 @@ void update(signed char *lattice_b, signed char *lattice_w, float* randvals, cur
     update_lattice<false><<<blocks, THREADS>>>(lattice_w, lattice_b, randvals,interactions, inv_temp, nx, ny/2, num_lattices, coupling_constant);
 }
 
+__global__ void B2_lattices(signed char* lattice_b, signed char* lattice_w, const float *wave_vector, thrust::complex<float> *sum,  int nx, int ny, int num_lattices){
+    
+    int tid = blockDim.x * blockIdx.x + threadIdx.x;
+    
+    if (tid >= nx*ny*num_lattices);
 
+    int lid = tid/(nx*ny);
+    int offset = lid*nx*ny;
+    int tid_sl = tid - offset;
+
+    int i = tid_sl/ny;
+    int j = tid_sl%ny;
+
+    int b_orig_j;
+    int w_orig_j; 
+
+    if (i%2==0){
+        b_orig_j = 2*j +1;
+        w_orig_j = 2*j;
+    }
+    else{
+        b_orig_j = 2*j;
+        w_orig_j = 2*j + 1;
+    }
+
+    thrust::complex<float> imag = thrust::complex<float>(0, 1.0f);
+
+    float dot_b = wave_vector[0]*i + wave_vector[1]*b_orig_j;
+    float dot_w = wave_vector[0]*i + wave_vector[1]*w_orig_j;
+    
+    sum[tid] = lattice_b[tid]*exp(imag*dot_b) + lattice_w[tid]*exp(imag*dot_w);
+}
+
+template<bool is_black>
+__global__ void calc_energy(float* sum, signed char* lattice, signed char* __restrict__ op_lattice,
+    signed char* interactions, const long long nx, const long long ny, const int num_lattices, const float coupling_constant){
+
+    const long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
+
+    if (tid>num_lattices*nx*ny) return;
+    
+    const int lid = tid/(nx*ny);
+    const int offset = lid*nx*ny;
+    int offset_i = lid * nx * ny * 4;
+    const int tid_sl = tid - offset;
+    const int i = tid_sl/ny;
+    const int j = tid_sl%ny;
+
+    // Set up periodic boundary conditions
+    int ipp = (i + 1 < nx) ? i + 1 : 0;
+    int inn = (i - 1 >= 0) ? i - 1: nx - 1;
+    int jpp = (j + 1 < ny) ? j + 1 : 0;
+    int jnn = (j - 1 >= 0) ? j - 1: ny - 1;
+
+    int joff;
+    int jcouplingoff;
+    int icouplingpp;
+    int icouplingnn;
+    
+    if (is_black) {
+        icouplingpp = offset_i + 2*(nx-1)*ny + 2*(ny*(i+1) + j) + (i+1)%2;
+        icouplingnn = offset_i + 2*(nx-1)*ny + 2*(ny*(inn+1) + j) + (i+1)%2;
+        
+        joff = (i % 2) ? jnn : jpp;
+
+        if (i % 2) {
+            jcouplingoff = offset_i + 2 * (i * ny + joff) + 1;
+        } else {
+            if (j + 1 >= ny) {
+                jcouplingoff = offset_i + 2 * (i * ny + j + 1) - 1;
+            } else {
+                jcouplingoff = offset_i + 2 * (i * ny + joff) - 1;
+            }
+        }
+    } else {
+        icouplingpp = offset_i + 2*(nx-1)*ny + 2*(ny*(i+1) + j) + i%2;
+        icouplingnn = offset_i + 2*(nx-1)*ny + 2*(ny*(inn+1) + j) + i%2;
+        
+        joff = (i % 2) ? jpp : jnn;
+
+        if (i % 2) {
+            if (j+1 >= ny) {
+                jcouplingoff = offset_i + 2 * (i * ny + j + 1) - 1;
+            } else {
+                jcouplingoff = offset_i + 2 * (i * ny + joff) - 1;
+            }
+        } else {
+            jcouplingoff = offset_i + 2 * (i * ny + joff) + 1;
+        }
+    }
+
+    // Compute sum of nearest neighbor spins times the coupling
+    sum[tid] = -1 * coupling_constant*lattice[offset + i*ny+j]*(op_lattice[offset + inn*ny + j]*interactions[icouplingnn] + op_lattice[offset + i*ny + j]*interactions[offset_i + 2*(i*ny + j)] 
+    + op_lattice[offset + ipp*ny + j]*interactions[icouplingpp] + op_lattice[offset + i*ny + joff]*interactions[jcouplingoff]);
+}
+
+void calculate_B2(
+    signed char *lattice_b, signed char *lattice_w, thrust::complex<float> *d_store_sum, float *d_wave_vector, 
+    int loc, const long nx, const long ny, const int num_lattices, const int num_iterations_seeds
+){
+    // Calculate B2 and reduce sum
+    int blocks = (nx*ny*2*num_lattices + THREADS -1)/THREADS;
+
+    thrust::complex<float> *d_sum;
+    cudaMalloc(&d_sum, num_lattices*nx*ny/2*sizeof(*d_sum));
+
+    B2_lattices<<<blocks, THREADS>>>(lattice_b, lattice_w, d_wave_vector, d_sum, nx, ny/2, num_lattices);
+
+    for (int i=0; i<num_lattices; i++){
+        cub::DeviceReduce::Sum(d_temp, temp_storage, d_sum + i*nx*ny/2, &d_store_sum[loc + i*num_iterations_seeds], nx*ny/2);
+        cudaMalloc(&d_temp, temp_storage);
+        cub::DeviceReduce::Sum(d_temp, temp_storage, d_sum + i*nx*ny/2, &d_store_sum[loc + i*num_iterations_seeds], nx*ny/2);
+    }
+
+    cudaFree(d_sum);
+}
+
+void calculate_energy(
+    signed char *lattice_b, signed char *lattice_w, signed char *d_interactions, float *d_store_energy, float coupling_constant, 
+    const int loc, const int nx, const int ny, const int num_lattices, const int num_iterations_seeds
+){
+    // Calculate energy and reduce sum
+    int blocks = (nx*ny*2*num_lattices + THREADS -1)/THREADS;
+
+    float *d_energy;
+    cudaMalloc(&d_energy, num_lattices*nx*ny/2*sizeof(*d_energy));
+
+    calc_energy<true><<<blocks,THREADS>>>(d_energy, lattice_b, lattice_w, d_interactions, nx, ny/2, num_lattices, coupling_constant);
+
+    for (int i=0; i<num_lattices; i++){
+        cub::DeviceReduce::Sum(d_temp, temp_storage, d_energy + i*nx*ny/2, &d_store_energy[loc + i*num_iterations_seeds], nx*ny/2);
+        cudaMalloc(&d_temp, temp_storage);
+        cub::DeviceReduce::Sum(d_temp, temp_storage, d_energy + i*nx*ny/2, &d_store_energy[loc + i*num_iterations_seeds], nx*ny/2);
+    }
+
+    cudaFree(d_energy);
+}
+
+__global__ void abs_square(thrust::complex<float> *d_store_sum, const int num_lattices, const int num_iterations){
+    const long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
+
+    if (tid >= num_lattices * num_iterations) return;
+
+    d_store_sum[tid] = thrust::abs(d_store_sum[tid]) * thrust::abs(d_store_sum[tid]);
+}
+
+__global__ void exp_beta(float *d_store_energy, float inv_temp, const int num_lattices, const int num_iterations, const int L){
+    
+    const long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
+
+    if (tid >= num_iterations*num_lattices) return;
+
+    d_store_energy[tid] = exp(-inv_temp*d_store_energy[tid]/(L*L));
+}
+
+__global__ void weighted_energies(float *d_weighted_energies, float *d_store_energy, thrust::complex<float> *d_store_sum, float *d_partition_function, const int num_lattices, const int num_iterations){
+    const long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
+
+    if (tid >= num_lattices*num_iterations) return;
+    
+    int lid = tid/num_iterations;
+    
+    d_weighted_energies[tid] = d_store_energy[tid]*d_store_sum[tid].real() / d_partition_function[lid];
+}
+
+void calculate_weighted_energies(float *d_error_weight, float *d_store_energy, thrust::complex<float> *d_store_sum, float *d_partition_function, const int num_lattices, const int num_iterations, const int blocks, const int e){
+    // Calculate energy and reduce sum
+
+    float *d_weighted_energies;
+    cudaMalloc(&d_weighted_energies, num_lattices*num_iterations*sizeof(*d_weighted_energies));
+
+    weighted_energies<<<blocks, THREADS>>>(d_weighted_energies, d_store_energy, d_store_sum, d_partition_function, num_lattices, num_iterations);
+
+    for (int i=0; i<num_lattices; i++){
+        cub::DeviceReduce::Sum(d_temp, temp_storage, d_weighted_energies + i*num_iterations, &d_error_weight[e + i*num_iterations], num_iterations);
+        cudaMalloc(&d_temp, temp_storage);
+        cub::DeviceReduce::Sum(d_temp, temp_storage, d_weighted_energies + i*num_iterations, &d_error_weight[e + i*num_iterations], num_iterations);
+    }
+}
 
 int main(int argc, char **argv) {
+    //prob
+    float p = 0.06f;
     
+    // Number iterations and how many lattices
+    int num_iterations_seeds = 10;
+    int num_iterations_error = 10;
+    int niters = 10;
+    int nwarmup = 10;
+    int num_lattices = 1;
+
+    // Lattice size
+    int L = 12;
+    
+    // Temp
+    float temp = 1.6;
+    float inv_temp = 1/temp;
+    float coupling_constant = inv_temp;
+
+    unsigned long long seeds_spins = 0ULL;
+    unsigned long long seeds_interactions = 0ULL;
+    
+    int blocks = (num_lattices*L*L*2 + THREADS -1)/THREADS;
+
+    // Allocate the wave vectors and copy it to GPU memory
+    std::array<float, 2> wave_vector_0 = {0,0};
+    std::array<float, 2> wave_vector_k = {2.0f*M_PI/L,0};
+
+    float *d_wave_vector_0, *d_wave_vector_k;
+    cudaMalloc(&d_wave_vector_0, 2 * sizeof(*d_wave_vector_0));
+    cudaMalloc(&d_wave_vector_k, 2 * sizeof(*d_wave_vector_k));
+    cudaMemcpy(d_wave_vector_0, wave_vector_0.data(), 2*sizeof(float), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_wave_vector_k, wave_vector_k.data(), 2*sizeof(float), cudaMemcpyHostToDevice);
+    
+    //Setup interaction lattice on device
+    signed char *d_interactions;
+    cudaMalloc(&d_interactions, num_lattices*L*L*2*sizeof(*d_interactions));
+
+    // Setup black and white lattice arrays on device
+    signed char *lattice_b, *lattice_w;
+    cudaMalloc(&lattice_b, num_iterations_seeds * L * L/2 * sizeof(*lattice_b));
+    cudaMalloc(&lattice_w, num_iterations_seeds * L * L/2 * sizeof(*lattice_w));
+    
+    // Randvals for update
+    float *randvals;
+    cudaMalloc(&randvals, L * L/2 * sizeof(*randvals));
+
+    // Weighted error
+    float *d_error_weight_0, *d_error_weight_k;
+    cudaMalloc(&d_error_weight_0, num_lattices*num_iterations_error*sizeof(*d_error_weight_0));
+    cudaMalloc(&d_error_weight_k, num_lattices*num_iterations_error*sizeof(*d_error_weight_k));
+
+    // Initialize arrays on the GPU to store results per spin system for energy and sum of B2
+    thrust::complex<float> *d_store_sum_0, *d_store_sum_k;
+    float *d_store_energy;
+    cudaMalloc(&d_store_sum_0, num_lattices*num_iterations_seeds*sizeof(*d_store_sum_0));
+    cudaMalloc(&d_store_sum_k, num_lattices*num_iterations_seeds*sizeof(*d_store_sum_k));
+    cudaMalloc(&d_store_energy, num_iterations_seeds*sizeof(*d_store_energy));
+
+    // Initialize array for partition function
+    float *d_partition_function;
+    cudaMalloc(&d_partition_function, num_lattices*sizeof(float));
+
+    for (int e = 0; e < num_iterations_error; e++){
+
+        init_interactions_with_seed(d_interactions, seeds_interactions, L, L, num_lattices, p);
+
+        for (int s = 0; s < num_iterations_seeds; s++){
+            
+            init_spins_with_seed(lattice_b, lattice_w, seeds_spins, L, L, num_lattices);
+
+            // Setup cuRAND generator
+            curandGenerator_t rng;
+            curandCreateGenerator(&rng, CURAND_RNG_PSEUDO_PHILOX4_32_10);
+            curandSetPseudoRandomGeneratorSeed(rng, seeds_spins);
+
+            cudaDeviceSynchronize();
+
+            // Warmup iterations
+            //printf("Starting warmup...\n");
+            for (int j = 0; j < nwarmup; j++) {
+                update(lattice_b, lattice_w, randvals, rng, d_interactions, inv_temp, L, L, num_lattices, coupling_constant);
+            }
+            
+            cudaDeviceSynchronize();
+
+            for (int j = 0; j < niters; j++) {
+                update(lattice_b, lattice_w, randvals, rng, d_interactions, inv_temp, L, L, num_lattices, coupling_constant);
+                //if (j % 1000 == 0) printf("Completed %d/%d iterations...\n", j+1, niters);
+            }
+            
+            cudaDeviceSynchronize();
+
+            calculate_B2(lattice_b, lattice_w, d_store_sum_0, d_wave_vector_0, s, L, L, num_lattices, num_iterations_seeds);
+            calculate_B2(lattice_b, lattice_w, d_store_sum_k, d_wave_vector_k, s, L, L, num_lattices, num_iterations_seeds);
+
+            calculate_energy(lattice_b, lattice_w, d_interactions, d_store_energy, coupling_constant, s, L, L, num_lattices, num_iterations_seeds);
+
+            seeds_spins += 1;
+            curandDestroyGenerator(rng);
+        }
+
+        // Take absolute square + exp
+        abs_square<<<blocks, THREADS>>>(d_store_sum_0, num_lattices, num_iterations_seeds);
+        abs_square<<<blocks, THREADS>>>(d_store_sum_k, num_lattices, num_iterations_seeds);
+        
+        exp_beta<<<blocks, THREADS>>>(d_store_energy, inv_temp, num_lattices, num_iterations_seeds, L);
+
+        for (int l=0; l<num_lattices; l++){
+            cub::DeviceReduce::Sum(d_temp, temp_storage, d_store_energy + l*num_iterations_seeds, &d_partition_function[l], num_iterations_seeds);
+            cudaMalloc(&d_temp, temp_storage);
+            cub::DeviceReduce::Sum(d_temp, temp_storage, d_store_energy + l*num_iterations_seeds, &d_partition_function[l], num_iterations_seeds);
+        }
+
+        calculate_weighted_energies(d_error_weight_0, d_store_energy, d_store_sum_0, d_partition_function, num_lattices, num_iterations_seeds, blocks, e);
+        calculate_weighted_energies(d_error_weight_k, d_store_energy, d_store_sum_k, d_partition_function, num_lattices, num_iterations_seeds, blocks, e);
+
+        seeds_interactions += 1;
+    }
+
+    std::vector<float> h_result(num_lattices*num_iterations_error);
+    cudaMemcpy(h_result.data(), d_error_weight_0, num_lattices*num_iterations_error*sizeof(float), cudaMemcpyDeviceToHost);
+
+    for (int i=0; i<num_lattices*num_iterations_error; i++){
+        cout << h_result[i] << endl;
+    }
+    
+    /*
     long nx = 1000;
     long ny = 1000;
     int niters = 10000;
@@ -297,4 +605,5 @@ int main(int argc, char **argv) {
 
     write_lattice(lattice_b, lattice_w, "lattice/final_lattice_", nx, ny, num_lattices);
     write_bonds(d_interactions, "bonds/final_bonds_", nx, ny, num_lattices);
+    */
 }

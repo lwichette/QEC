@@ -1,6 +1,6 @@
 #ifndef DEFINES_H_
 #define DEFINES_H_
 
-#define THREADS 128
+const unsigned int THREADS = 128;
 
 #endif

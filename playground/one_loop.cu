@@ -437,7 +437,7 @@ int create_results_folder(char* results){
 
 int main(void){
 
-    char* results = "results/low_temperature";
+    char* results = "results/comparison";
     int check = create_results_folder(results);
     if (check == 0) return 0;
 
@@ -448,19 +448,19 @@ int main(void){
     int num_iterations_seeds = 200;
     int num_iterations_error = 200;
 
-    int niters = 10000;
+    int niters = 1000;
     int nwarmup = 100;
     
-    std::array<int, 3> L = {28,36,50};
+    std::array<int, 1> L = {12};
     
-    float start_temp = 1.2f;
-    float end_temp = 1.6f;
-    float num_temps = 5;
-    float step = (end_temp-start_temp)/num_temps;
+    float start_temp = 1.6f;
+    float end_temp = 1.8f;
+    float num_temps = 3;
+    float step = (end_temp-start_temp)/(num_temps);
 
     std::vector<float> temp;
 
-    for (int i=0; i < num_temps+1; i++){
+    for (int i=0; i < num_temps; i++){
         temp.push_back(start_temp+i*step);
     }
     
@@ -481,6 +481,10 @@ int main(void){
     cudaMalloc(&d_wave_vector_0, 2 * sizeof(*d_wave_vector_0));
     cudaMemcpy(d_wave_vector_0, wave_vector_0.data(), 2*sizeof(float), cudaMemcpyHostToDevice);
     
+    // Setup cuRAND generator
+    curandGenerator_t rng;
+    curandCreateGenerator(&rng, CURAND_RNG_PSEUDO_PHILOX4_32_10);
+    
     // Loop over lattice sizes
     for (int l=0; l < L.size(); l++){
         const int nx = L[l];
@@ -499,7 +503,7 @@ int main(void){
         printf("Started with lattice size: %u \n", L[l]);
 
         // Loop over different temperatures
-        for (int t = 0; t < num_temps+1; t++){
+        for (int t = 0; t < num_temps; t++){
 
             printf("Temperature: %f \n", temp[t]);
             
@@ -537,14 +541,11 @@ int main(void){
                     signed char *lattice_b, *lattice_w;
                     cudaMalloc(&lattice_b, nx * ny/2 * sizeof(*lattice_b));
                     cudaMalloc(&lattice_w, nx * ny/2 * sizeof(*lattice_w));
-
-                    init_spins_with_seed(lattice_b, lattice_w, seeds_spins, nx, ny);
-
-                    // Setup cuRAND generator
-                    curandGenerator_t rng;
-                    curandCreateGenerator(&rng, CURAND_RNG_PSEUDO_PHILOX4_32_10);
+                    
                     curandSetPseudoRandomGeneratorSeed(rng, seeds_spins);
                     
+                    init_spins_with_seed(lattice_b, lattice_w, seeds_spins, nx, ny);
+
                     float *randvals;
                     cudaMalloc(&randvals, nx * ny/2 * sizeof(*randvals));
 
@@ -577,7 +578,6 @@ int main(void){
                     cudaFree(lattice_b);
                     cudaFree(lattice_w);
                     cudaFree(randvals);
-                    curandDestroyGenerator(rng);
                 }
 
                 // Take absolute square + exp
@@ -585,7 +585,7 @@ int main(void){
                 abs_square<<<blocks, THREADS>>>(d_store_sum_k, num_iterations_seeds);
                 
                 exp_beta<<<blocks, THREADS>>>(d_store_energy, inv_temp, num_iterations_seeds, nx);
-                
+
                 // Calculate partition function
                 float *d_partition_function;
                 cudaMalloc(&d_partition_function, sizeof(float));
@@ -605,8 +605,9 @@ int main(void){
                 cudaFree(d_store_energy);
                 cudaFree(d_interactions);
                 cudaFree(d_partition_function);
-            }
-
+            }   
+            
+        
             float psi = calc_psi(d_error_weight_0, d_error_weight_k, num_iterations_error, nx);
 
             psi_l.push_back(psi/nx);
@@ -624,7 +625,7 @@ int main(void){
         std::ofstream f;
         f.open(results + std::string("/psi_L_") + std::to_string(nx) + std::string(".txt"));
         if (f.is_open()) {
-            for (int i = 0; i < num_temps+1; i++) {
+            for (int i = 0; i < num_temps; i++) {
                 f << psi_l[i] << " " << temp[i] << "\n";
             }
         }

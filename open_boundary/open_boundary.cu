@@ -178,7 +178,11 @@ __global__ void update_lattice(signed char* lattice, signed char* __restrict__ o
     
     int offset = l_id * nx * ny;
     int offset_i = l_id * nx * ny * 4;
-    
+
+    int c_up = 1-inn/(nx-1);
+    int c_down = 1-(i+1)/nx;
+    int c_side;
+
     if (is_black) {
         icouplingpp = offset_i + 2*(nx-1)*ny + 2*(ny*(i+1) + j) + (i+1)%2;
         icouplingnn = offset_i + 2*(nx-1)*ny + 2*(ny*(inn+1) + j) + (i+1)%2;
@@ -187,33 +191,40 @@ __global__ void update_lattice(signed char* lattice, signed char* __restrict__ o
 
         if (i % 2) {
             jcouplingoff = offset_i + 2 * (i * ny + joff) + 1;
+            
+            c_side = 1 - jnn/(ny-1);
         } else {
+            c_side = 1 - (j+1)/ny;
+
             if (j + 1 >= ny) {
                 jcouplingoff = offset_i + 2 * (i * ny + j + 1) - 1;
             } else {
                 jcouplingoff = offset_i + 2 * (i * ny + joff) - 1;
             }
         }
-    } else {
+    } 
+    else {
         icouplingpp = offset_i + 2*(nx-1)*ny + 2*(ny*(i+1) + j) + i%2;
         icouplingnn = offset_i + 2*(nx-1)*ny + 2*(ny*(inn+1) + j) + i%2;
         
         joff = (i % 2) ? jpp : jnn;
 
         if (i % 2) {
+            c_side = 1-(j+1)/ny;
+
             if (j+1 >= ny) {
                 jcouplingoff = offset_i + 2 * (i * ny + j + 1) - 1;
             } else {
                 jcouplingoff = offset_i + 2 * (i * ny + joff) - 1;
             }
         } else {
+            c_side = 1-jnn/(ny-1);
             jcouplingoff = offset_i + 2 * (i * ny + joff) + 1;
         }
     }
 
-    // Compute sum of nearest neighbor spins times the coupling
-    signed char nn_sum = op_lattice[offset + inn*ny + j]*interactions[icouplingnn] + op_lattice[offset + i*ny + j]*interactions[offset_i + 2*(i*ny + j)] 
-                        + op_lattice[offset + ipp*ny + j]*interactions[icouplingpp] + op_lattice[offset + i*ny + joff]*interactions[jcouplingoff];
+    signed char nn_sum = op_lattice[offset + inn*ny + j]*interactions[icouplingnn]*c_up + op_lattice[offset + i*ny + j]*interactions[offset_i + 2*(i*ny + j)] 
+                        + op_lattice[offset + ipp*ny + j]*interactions[icouplingpp]*c_down + op_lattice[offset + i*ny + joff]*interactions[jcouplingoff]*c_side;
 
     // Determine whether to flip spin
     signed char lij = lattice[offset + i*ny + j];
@@ -297,6 +308,10 @@ __global__ void calc_energy(float* sum, signed char* lattice, signed char* __res
     int jcouplingoff;
     int icouplingpp;
     int icouplingnn;
+
+    int c_up = 1-inn/(nx-1);
+    int c_down = 1-(i+1)/nx;
+    int c_side;
     
     if (is_black) {
         icouplingpp = offset_i + 2*(nx-1)*ny + 2*(ny*(i+1) + j) + (i+1)%2;
@@ -306,7 +321,11 @@ __global__ void calc_energy(float* sum, signed char* lattice, signed char* __res
 
         if (i % 2) {
             jcouplingoff = offset_i + 2 * (i * ny + joff) + 1;
+            
+            c_side = 1-jnn/(ny-1);
         } else {
+            c_side = 1-(j+1)/ny;
+            
             if (j + 1 >= ny) {
                 jcouplingoff = offset_i + 2 * (i * ny + j + 1) - 1;
             } else {
@@ -320,19 +339,24 @@ __global__ void calc_energy(float* sum, signed char* lattice, signed char* __res
         joff = (i % 2) ? jpp : jnn;
 
         if (i % 2) {
+            c_side = 1-(j+1)/ny;
+
             if (j+1 >= ny) {
                 jcouplingoff = offset_i + 2 * (i * ny + j + 1) - 1;
             } else {
                 jcouplingoff = offset_i + 2 * (i * ny + joff) - 1;
             }
         } else {
+            c_side = 1-jnn/(ny-1);
+
             jcouplingoff = offset_i + 2 * (i * ny + joff) + 1;
         }
     }
 
     // Compute sum of nearest neighbor spins times the coupling
-    sum[tid] = -1 * coupling_constant[lid]*lattice[offset + i*ny+j]*(op_lattice[offset + inn*ny + j]*interactions[icouplingnn] + op_lattice[offset + i*ny + j]*interactions[offset_i + 2*(i*ny + j)] 
-    + op_lattice[offset + ipp*ny + j]*interactions[icouplingpp] + op_lattice[offset + i*ny + joff]*interactions[jcouplingoff]);
+    sum[tid] = -1 * coupling_constant[lid]*lattice[offset + i*ny+j]*(op_lattice[offset + inn*ny + j]*interactions[icouplingnn]*c_up + op_lattice[offset + i*ny + j]*interactions[offset_i + 2*(i*ny + j)] 
+    + op_lattice[offset + ipp*ny + j]*interactions[icouplingpp]*c_down + op_lattice[offset + i*ny + joff]*interactions[jcouplingoff]*c_side);
+
 }
 
 void calculate_B2(
@@ -426,28 +450,28 @@ int create_results_folder(char* results){
 
 
 int main(int argc, char **argv){
-    char *results = "results/low_temperature";
+    char *results = "results/comparison_old_results";
     //int check = create_results_folder(results);
     //if (check == 0) return 0;
     
     cout << "Started Simulation" << endl;
-
-    //prob
-    float p = 0.06f;
     
     // Number iterations and how many lattices
     int num_iterations_seeds = 200;
     int num_iterations_error = 200;
-    int niters = 100000;
+    int niters = 1000;
     int nwarmup = 100;
     int num_lattices = 11;
 
     // Lattice size
-    int L = 32;
+    int L = 18;
+
+    //prob
+    float p = 0.06f;
     
     // Temp
-    float start_temp = 0.5f;
-    float step = 0.08;
+    float start_temp = 1.2f;
+    float step = 0.1;
 
     std::vector<float> inv_temp;
     std::vector<float> coupling_constant;
@@ -542,7 +566,7 @@ int main(int argc, char **argv){
     for (int e = 0; e < num_iterations_error; e++){
         
         cout << "Error " << e << " of " << num_iterations_error << endl;
-        
+
         init_interactions_with_seed(d_interactions, seeds_interactions, interaction_rng, interaction_randvals, L, L, num_lattices, p);
 
         for (int s = 0; s < num_iterations_seeds; s++){

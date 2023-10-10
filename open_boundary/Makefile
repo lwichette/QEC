@@ -6,8 +6,8 @@ LDFLAGS=-lcurand
 
 all: output
 
-output: linearized_big.cu
-	$(CUDACC) $(NVCC_FLAGS) linearized_big.cu -o test $(LDFLAGS)
+output: open_boundary.cu
+	$(CUDACC) $(NVCC_FLAGS) open_boundary.cu -o check $(LDFLAGS)
 
 clean:
-	rm -f test 
+	rm -f check

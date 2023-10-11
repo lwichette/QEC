@@ -11,8 +11,11 @@
 #include <string>
 #include <sys/stat.h>
 
-#include "utils_big.cuh"
-#include "defines.h"
+#include "../header/defines.h"
+#include "../header/utils_big.cuh"
+
+void *d_temp = NULL;
+size_t temp_storage = 0;
 
 __global__ void init_randombond(signed char* interactions, const float* __restrict__ interaction_randvals,
     const long long nx, const long long ny, const int num_lattices, const float p){

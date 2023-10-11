@@ -7,7 +7,7 @@ LDFLAGS=-lcurand
 all: output
 
 output: open_boundary.cu
-	$(CUDACC) $(NVCC_FLAGS) open_boundary.cu -o check $(LDFLAGS)
+	$(CUDACC) $(NVCC_FLAGS) open_boundary.cu -o open_boundary $(LDFLAGS)
 
 clean:
-	rm -f check
+	rm -f open_boundary

@@ -6,8 +6,8 @@ LDFLAGS=-lcurand
 
 all: output
 
-output: linearized_big.cu
-	$(CUDACC) $(NVCC_FLAGS) linearized_big.cu -o test $(LDFLAGS)
+output: lattices.cu
+	$(CUDACC) $(NVCC_FLAGS) ../header/utils_big.cu lattices.cu -o lattices $(LDFLAGS)
 
 clean:
-	rm -f test 
+	rm -f lattices

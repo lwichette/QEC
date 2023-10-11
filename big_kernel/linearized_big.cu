@@ -430,13 +430,13 @@ int create_results_folder(char* results){
 int main(int argc, char **argv){
 
     char *results = "results/Nishimori";
-    int check = create_results_folder(results);
-    if (check == 0) return 0;
+    //int check = create_results_folder(results);
+    //if (check == 0) return 0;
     
     // Number iterations and how many lattices
     int num_iterations_seeds = 200;
     int num_iterations_error = 200;
-    int niters = 1000;
+    int niters = 200000;
     int nwarmup = 100;
     
     // Temp
@@ -661,19 +661,7 @@ int main(int argc, char **argv){
         cudaFree(d_store_sum_0);
         cudaFree(d_store_sum_k);
         cudaFree(d_store_energy);
-        cudaFree(d_wave_vector_0);
-        cudaFree(d_wave_vector_k);
-        cudaFree(d_interactions);
-        cudaFree(lattice_b);
-        cudaFree(lattice_w);
-        cudaFree(d_error_weight_0);
         cudaFree(d_sum);
-        cudaFree(d_wave_vector_0);
-        cudaFree(d_wave_vector_k);
-        cudaFree(d_interactions);
-        cudaFree(lattice_b);
-        cudaFree(lattice_w);
-        cudaFree(d_error_weight_0);
         cudaFree(d_weighted_energies);
         cudaFree(d_energy);
         cudaFree(randvals);

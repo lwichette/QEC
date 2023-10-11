@@ -39,4 +39,14 @@ void calculate_weighted_energies(float* d_weighted_energies, float *d_error_weig
 
 int create_results_folder(char* results);
 
+template<bool is_black>
+__global__ void update_lattice_ob(signed char* lattice, signed char* __restrict__ op_lattice, const float* __restrict__ randvals, signed char* interactions, const float *inv_temp, const long long nx, const long long ny, const int num_lattices, const float *coupling_constant);
+
+void update_ob(signed char *lattice_b, signed char *lattice_w, float* randvals, curandGenerator_t rng, signed char* interactions, float *inv_temp, long long nx, long long ny, const int num_lattices, float *coupling_constant);
+
+void calculate_energy_ob(float* d_energy, signed char *lattice_b, signed char *lattice_w, signed char *d_interactions, float *d_store_energy, float *coupling_constant, const int loc, const int nx, const int ny, const int num_lattices, const int num_iterations_seeds);
+
+template<bool is_black>
+__global__ void calc_energy_ob(float* sum, signed char* lattice, signed char* __restrict__ op_lattice, signed char* interactions, const long long nx, const long long ny, const int num_lattices, const float *coupling_constant);
+
 #endif

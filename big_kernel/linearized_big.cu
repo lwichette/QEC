@@ -643,7 +643,7 @@ int main(int argc, char **argv){
 
         // Write results
         std::ofstream f;
-        f.open(results + std::string("/L_") + std::to_string(L) + std::string("_ns_") + std::to_string(num_iterations_seeds) + std::string("_ne_") + std::to_string(num_iterations_error) + std::string("_ni_") + std::to_string(niters) + std::string("_nw_") + std::to_string(nwarmup) + std::string(".txt"));
+        f.open(results + std::string("/L_") + std::to_string(L) + std::string("_p_") + std::to_string(p) + std::string("_ns_") + std::to_string(num_iterations_seeds) + std::string("_ne_") + std::to_string(num_iterations_error) + std::string("_ni_") + std::to_string(niters) + std::string("_nw_") + std::to_string(nwarmup) + std::string(".txt"));
         if (f.is_open()) {
             for (int i = 0; i < num_lattices; i++) {
                 f << psi[i] << " " << 1/inv_temp[i] << "\n";

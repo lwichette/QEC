@@ -17,18 +17,18 @@
 using namespace std;
 
 int main(int argc, char **argv){
-    char *results = "results/header";
-    int check = create_results_folder(results);
-    if (check == 0) return 0;
+    char *results = "results/comparison_old_results";
+    //int check = create_results_folder(results);
+    //if (check == 0) return 0;
     
     cout << "Started Simulation" << endl;
     
     // Number iterations and how many lattices
-    int num_iterations_seeds = 10;
-    int num_iterations_error = 10;
-    int niters = 10;
-    int nwarmup = 10;
-    int num_lattices = 5;
+    int num_iterations_seeds = 200;
+    int num_iterations_error = 200;
+    int niters = 20000;
+    int nwarmup = 100;
+    int num_lattices = 11;
 
     //prob
     float p = 0.06f;
@@ -230,7 +230,7 @@ int main(int argc, char **argv){
 
         // Write results
         std::ofstream f;
-        f.open(results + std::string("/L_") + std::to_string(L) + std::string("_ns_") + std::to_string(num_iterations_seeds) + std::string("_ne_") + std::to_string(num_iterations_error) + std::string("_ni_") + std::to_string(niters) + std::string("_nw_") + std::to_string(nwarmup) + std::string(".txt"));
+        f.open(results + std::string("/L_") + std::to_string(L) + std::string("_p_") + std::to_string(p) + std::string("_ns_") + std::to_string(num_iterations_seeds) + std::string("_ne_") + std::to_string(num_iterations_error) + std::string("_ni_") + std::to_string(niters) + std::string("_nw_") + std::to_string(nwarmup) + std::string(".txt"));
         if (f.is_open()) {
             for (int i = 0; i < num_lattices; i++) {
                 f << psi[i] << " " << 1/inv_temp[i] << "\n";

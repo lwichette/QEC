@@ -49,4 +49,6 @@ void calculate_energy_ob(float* d_energy, signed char *lattice_b, signed char *l
 template<bool is_black>
 __global__ void calc_energy_ob(float* sum, signed char* lattice, signed char* __restrict__ op_lattice, signed char* interactions, const long long nx, const long long ny, const int num_lattices, const float *coupling_constant);
 
+__global__ void init_spins_up(signed char* lattice, const long long nx, const long long ny, const int num_lattices);
+
 #endif

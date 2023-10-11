@@ -17,6 +17,14 @@
 void *d_temp = NULL;
 size_t temp_storage = 0;
 
+// Initialize lattice spins
+__global__ void init_spins_up(signed char* lattice, const long long nx, const long long ny, const int num_lattices){
+    const long long  tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
+    if (tid >= nx * ny * num_lattices) return;
+        
+    lattice[tid] = 1;
+}
+
 __global__ void init_randombond(
     signed char* interactions, const float* __restrict__ interaction_randvals,
     const long long nx, const long long ny, const int num_lattices, const float p

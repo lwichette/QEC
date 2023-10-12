@@ -7,7 +7,7 @@ LDFLAGS=-lcurand
 all: output
 
 output: nishimori.cu
-	$(CUDACC) $(NVCC_FLAGS) linearized_big.cu -o test $(LDFLAGS)
+	$(CUDACC) $(NVCC_FLAGS) ../header/utils_big.cu linearized_big.cu -o test $(LDFLAGS)
 
 clean:
 	rm -f test

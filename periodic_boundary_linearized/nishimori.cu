@@ -16,36 +16,66 @@
 
 using namespace std;
 
+
+__global__ void init_randombond_lin(signed char* interactions, const float* __restrict__ interaction_randvals,
+    const long long nx, const long long ny, const int num_lattices, const float* p){
+        
+        const long long tid = static_cast<long long>(threadIdx.x + blockIdx.x * blockDim.x);
+        
+        if (tid >= 2*nx*ny*num_lattices) return;
+
+        const int lid = tid/(2*nx*ny);
+
+        float bondrandval = interaction_randvals[tid];
+        signed char bondval = (bondrandval < p[lid])? -1 : 1;
+        interactions[tid] = bondval;                                 
+}
+
+void init_interactions_with_seed_lin(
+    signed char* interactions, const long long seed, curandGenerator_t interaction_rng, float* interaction_randvals,
+    const long long nx, const long long ny, const int num_lattices, const float* p
+){
+    int blocks = (nx*ny*2*num_lattices + THREADS -1)/THREADS;
+
+    // Set Seed 
+    curandSetPseudoRandomGeneratorSeed(interaction_rng,seed);
+    
+    curandGenerateUniform(interaction_rng,interaction_randvals, num_lattices*nx*ny*2);
+    init_randombond_lin<<<blocks, THREADS>>>(interactions, interaction_randvals, nx, ny, num_lattices, p);
+}
+
+
 int main(int argc, char **argv){
-    char *results = "results/all_spins_up";
+    char *results = "results/test_Nishi";
     int check = create_results_folder(results);
     if (check == 0) return 0;
     
-    cout << "Started Simulation" << endl;
-
-    //prob
-    float p = 0.06f;
-    
     // Number iterations and how many lattices
-    int num_iterations_seeds = 200;
-    int num_iterations_error = 200;
-    int niters = 1000;
-    int nwarmup = 100;
+    int num_iterations_seeds = 10;
+    int num_iterations_error = 10;
+    int niters = 10;
+    int nwarmup = 10;
+
+    // Probabilities
+    float start_prob = 0.102f;
+    float step = 0.001;
     int num_lattices = 11;
 
-    // Temp
-    float start_temp = 0.5f;
-    float step = 0.08;
-
+    float run_probs;
+    std::vector<float> probs; 
     std::vector<float> inv_temp;
     std::vector<float> coupling_constant;
-    float run_temp;
 
     for (int i=0; i < num_lattices; i++){
-        run_temp = start_temp+i*step;
-        inv_temp.push_back(1/run_temp);
-        coupling_constant.push_back(1/run_temp);
+        run_probs = start_prob + i*step;
+        probs.push_back(run_probs);
+        inv_temp.push_back(1.0f/2.0f*log((1-run_probs)/run_probs));
+        coupling_constant.push_back(1.0f/2.0f*log((1-run_probs)/run_probs));
     }
+    
+    float *d_probs;
+    cudaMalloc(&d_probs, num_lattices*sizeof(float));
+    cudaMemcpy(d_probs, probs.data(), num_lattices*sizeof(float), cudaMemcpyHostToDevice);
 
     float *d_inv_temp, *d_coupling_constant;
     cudaMalloc(&d_inv_temp, num_lattices*sizeof(float));
@@ -54,7 +84,7 @@ int main(int argc, char **argv){
     cudaMemcpy(d_coupling_constant, coupling_constant.data(), num_lattices*sizeof(float), cudaMemcpyHostToDevice);  
 
     // Lattice size
-    std::array<int, 3> L_size = {12, 14, 18};
+    std::array<int, 1> L_size = {12};
 
     for(int ls = 0; ls < L_size.size(); ls++){
 
@@ -140,15 +170,17 @@ int main(int argc, char **argv){
             
             cout << "Error " << e << " of " << num_iterations_error << endl;
             
-            init_interactions_with_seed(d_interactions, seeds_interactions, interaction_rng, interaction_randvals, L, L, num_lattices, p);
+            init_interactions_with_seed_lin(d_interactions, seeds_interactions, interaction_rng, interaction_randvals, L, L, num_lattices, d_probs);
 
             for (int s = 0; s < num_iterations_seeds; s++){
                 
+                /*
                 // Initialize spins up
                 init_spins_up<<<blocks,THREADS>>>(lattice_b, L, L/2, num_lattices);
                 init_spins_up<<<blocks,THREADS>>>(lattice_w, L, L/2, num_lattices);
+                */
 
-                //init_spins_with_seed(lattice_b, lattice_w, seeds_spins, lattice_rng, lattice_randvals, L, L, num_lattices);
+                init_spins_with_seed(lattice_b, lattice_w, seeds_spins, lattice_rng, lattice_randvals, L, L, num_lattices);
 
                 curandSetPseudoRandomGeneratorSeed(update_rng, seeds_spins);
                 
@@ -184,13 +216,13 @@ int main(int argc, char **argv){
             abs_square<<<blocks, THREADS>>>(d_store_sum_k, num_lattices, num_iterations_seeds);
 
             exp_beta<<<blocks, THREADS>>>(d_store_energy, d_inv_temp, num_lattices, num_iterations_seeds, L);
-            
+
             for (int l=0; l<num_lattices; l++){
                 cub::DeviceReduce::Sum(d_temp, temp_storage, d_store_energy + l*num_iterations_seeds, &d_partition_function[l], num_iterations_seeds);
                 cudaMalloc(&d_temp, temp_storage);
                 cub::DeviceReduce::Sum(d_temp, temp_storage, d_store_energy + l*num_iterations_seeds, &d_partition_function[l], num_iterations_seeds);
             }
-            
+
             calculate_weighted_energies(d_weighted_energies, d_error_weight_0, d_store_energy, d_store_sum_0, d_partition_function, num_lattices, num_iterations_seeds, num_iterations_error, blocks, e);
             calculate_weighted_energies(d_weighted_energies, d_error_weight_k, d_store_energy, d_store_sum_k, d_partition_function, num_lattices, num_iterations_seeds, num_iterations_error, blocks, e);
 
@@ -234,12 +266,13 @@ int main(int argc, char **argv){
 
         // Write results
         std::ofstream f;
-        f.open(results + std::string("/L_") + std::to_string(L) + std::string("_p_") + std::to_string(p) + std::string("_ns_") + std::to_string(num_iterations_seeds) + std::string("_ne_") + std::to_string(num_iterations_error) + std::string("_ni_") + std::to_string(niters) + std::string("_nw_") + std::to_string(nwarmup) + std::string(".txt"));
+        f.open(results + std::string("/L_") + std::to_string(L) + std::string("_p_") + std::string("_ns_") + std::to_string(num_iterations_seeds) + std::string("_ne_") + std::to_string(num_iterations_error) + std::string("_ni_") + std::to_string(niters) + std::string("_nw_") + std::to_string(nwarmup) + std::string(".txt"));
         if (f.is_open()) {
             for (int i = 0; i < num_lattices; i++) {
                 f << psi[i] << " " << 1/inv_temp[i] << "\n";
             }
         }
+
         f.close();
 
         cudaFree(d_wave_vector_0);

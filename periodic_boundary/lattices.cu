@@ -17,20 +17,18 @@
 using namespace std;
 
 int main(int argc, char **argv){
-    char *results = "results/test_Nishi";
+    char *results = "results/memory2";
     int check = create_results_folder(results);
     if (check == 0) return 0;
-    
-    cout << "Started Simulation" << endl;
 
     //prob
     float p = 0.102f;
     
     // Number iterations and how many lattices
-    int num_iterations_seeds = 200;
-    int num_iterations_error = 200;
-    int niters = 200000;
-    int nwarmup = 100;
+    int num_iterations_seeds = 10;
+    int num_iterations_error = 10;
+    int niters = 10;
+    int nwarmup = 10;
     int num_lattices = 1;
 
     // Temp

@@ -219,7 +219,13 @@ int main(int argc, char **argv){
 
             for (int l=0; l<num_lattices; l++){
                 cub::DeviceReduce::Sum(d_temp, temp_storage, d_store_energy + l*num_iterations_seeds, &d_partition_function[l], num_iterations_seeds);
-                cudaMalloc(&d_temp, temp_storage);
+                
+                if (temp_storage != old_temp_storage){
+                    cudaFree(d_temp);
+                    cudaMalloc(&d_temp, temp_storage);
+                    old_temp_storage = temp_storage;
+                }
+                
                 cub::DeviceReduce::Sum(d_temp, temp_storage, d_store_energy + l*num_iterations_seeds, &d_partition_function[l], num_iterations_seeds);
             }
 
@@ -237,11 +243,15 @@ int main(int argc, char **argv){
         for (int l=0; l < num_lattices; l++){
             // Sum reduction for both
             cub::DeviceReduce::Sum(d_temp, temp_storage, d_error_weight_0 + l*num_iterations_error, &d_magnetic_susceptibility_0[l], num_iterations_error);
-            cudaMalloc(&d_temp, temp_storage);
-            cub::DeviceReduce::Sum(d_temp, temp_storage, d_error_weight_0 + l*num_iterations_error, &d_magnetic_susceptibility_0[l], num_iterations_error);
+            
+            if (temp_storage != old_temp_storage){
+                cudaFree(d_temp);
+                cudaMalloc(&d_temp, temp_storage);
+                old_temp_storage = temp_storage;
+            }
 
-            cub::DeviceReduce::Sum(d_temp, temp_storage, d_error_weight_k + l*num_iterations_error, &d_magnetic_susceptibility_k[l], num_iterations_error);
-            cudaMalloc(&d_temp, temp_storage);
+            cub::DeviceReduce::Sum(d_temp, temp_storage, d_error_weight_0 + l*num_iterations_error, &d_magnetic_susceptibility_0[l], num_iterations_error);
+            
             cub::DeviceReduce::Sum(d_temp, temp_storage, d_error_weight_k + l*num_iterations_error, &d_magnetic_susceptibility_k[l], num_iterations_error);
         }
 

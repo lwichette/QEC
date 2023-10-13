@@ -18,6 +18,7 @@ using namespace std;
 
 void *d_temp = NULL;
 size_t temp_storage = 0;
+size_t old_temp_storage = 0;
 
 // Initialize lattice spins
 __global__ void init_spins_up(signed char* lattice, const long long nx, const long long ny, const int num_lattices){
@@ -358,8 +359,15 @@ void calculate_B2(
     B2_lattices<<<blocks, THREADS>>>(lattice_b, lattice_w, d_wave_vector, d_sum, nx, ny/2, num_lattices);
 
     for (int i=0; i<num_lattices; i++){
+        
         cub::DeviceReduce::Sum(d_temp, temp_storage, d_sum + i*nx*ny/2, &d_store_sum[loc + i*num_iterations_seeds], nx*ny/2);
-        cudaMalloc(&d_temp, temp_storage);
+        
+        if (temp_storage != old_temp_storage){
+            cudaFree(d_temp);
+            cudaMalloc(&d_temp, temp_storage);
+            old_temp_storage = temp_storage;
+        }
+        
         cub::DeviceReduce::Sum(d_temp, temp_storage, d_sum + i*nx*ny/2, &d_store_sum[loc + i*num_iterations_seeds], nx*ny/2);
     }
 }
@@ -375,7 +383,13 @@ void calculate_energy(
 
     for (int i=0; i<num_lattices; i++){
         cub::DeviceReduce::Sum(d_temp, temp_storage, d_energy + i*nx*ny/2, &d_store_energy[loc + i*num_iterations_seeds], nx*ny/2);
-        cudaMalloc(&d_temp, temp_storage);
+        
+        if (temp_storage != old_temp_storage){
+            cudaFree(d_temp);
+            cudaMalloc(&d_temp, temp_storage);
+            old_temp_storage = temp_storage;
+        }
+
         cub::DeviceReduce::Sum(d_temp, temp_storage, d_energy + i*nx*ny/2, &d_store_energy[loc + i*num_iterations_seeds], nx*ny/2);
     }
 }
@@ -419,7 +433,13 @@ void calculate_weighted_energies(
 
     for (int i=0; i<num_lattices; i++){
         cub::DeviceReduce::Sum(d_temp, temp_storage, d_weighted_energies + i*num_iterations_seeds, &d_error_weight[e + i*num_iterations_error], num_iterations_seeds);
-        cudaMalloc(&d_temp, temp_storage);
+        
+        if (temp_storage != old_temp_storage){
+            cudaFree(d_temp);
+            cudaMalloc(&d_temp, temp_storage);
+            old_temp_storage = temp_storage;
+        }
+
         cub::DeviceReduce::Sum(d_temp, temp_storage, d_weighted_energies + i*num_iterations_seeds, &d_error_weight[e + i*num_iterations_error], num_iterations_seeds);
     }
 }
@@ -620,7 +640,6 @@ __global__ void calc_energy_ob(
 
 }
 
-
 void calculate_energy_ob(
     float* d_energy, signed char *lattice_b, signed char *lattice_w, signed char *d_interactions, float *d_store_energy, 
     float *coupling_constant, const int loc, const int nx, const int ny, const int num_lattices, const int num_iterations_seeds
@@ -631,9 +650,15 @@ void calculate_energy_ob(
     calc_energy_ob<true><<<blocks,THREADS>>>(d_energy, lattice_b, lattice_w, d_interactions, nx, ny/2, num_lattices, coupling_constant);
 
     for (int i=0; i<num_lattices; i++){
+        
         cub::DeviceReduce::Sum(d_temp, temp_storage, d_energy + i*nx*ny/2, &d_store_energy[loc + i*num_iterations_seeds], nx*ny/2);
-        cudaMalloc(&d_temp, temp_storage);
+        
+        if (temp_storage != old_temp_storage){
+            cudaFree(d_temp);
+            cudaMalloc(&d_temp, temp_storage);
+            old_temp_storage = temp_storage;
+        }
+
         cub::DeviceReduce::Sum(d_temp, temp_storage, d_energy + i*nx*ny/2, &d_store_energy[loc + i*num_iterations_seeds], nx*ny/2);
     }
 }
-

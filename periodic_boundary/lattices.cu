@@ -12,28 +12,28 @@
 #include <sys/stat.h>
 
 #include "../header/defines.h"
-#include "../header/utils_big.cuh"
 
 using namespace std;
 
+
 int main(int argc, char **argv){
-    char *results = "results/memory2";
+    char *results = "results/check_memory";
     int check = create_results_folder(results);
     if (check == 0) return 0;
 
     //prob
-    float p = 0.102f;
+    float p = 0.06f;
     
     // Number iterations and how many lattices
-    int num_iterations_seeds = 10;
-    int num_iterations_error = 10;
-    int niters = 10;
-    int nwarmup = 10;
-    int num_lattices = 1;
+    int num_iterations_seeds = 200;
+    int num_iterations_error = 200;
+    int niters = 1000;
+    int nwarmup = 100;
+    int num_lattices = 11;
 
     // Temp
-    float start_temp = 0.919457f;
-    float step = 0.08;
+    float start_temp = 1.2;
+    float step = 0.1;
 
     std::vector<float> inv_temp;
     std::vector<float> coupling_constant;
@@ -52,7 +52,7 @@ int main(int argc, char **argv){
     cudaMemcpy(d_coupling_constant, coupling_constant.data(), num_lattices*sizeof(float), cudaMemcpyHostToDevice);  
 
     // Lattice size
-    std::array<int, 1> L_size = {12};
+    std::array<int, 2> L_size = {12, 14};
 
     for(int ls = 0; ls < L_size.size(); ls++){
 
@@ -186,8 +186,15 @@ int main(int argc, char **argv){
             exp_beta<<<blocks, THREADS>>>(d_store_energy, d_inv_temp, num_lattices, num_iterations_seeds, L);
 
             for (int l=0; l<num_lattices; l++){
+
                 cub::DeviceReduce::Sum(d_temp, temp_storage, d_store_energy + l*num_iterations_seeds, &d_partition_function[l], num_iterations_seeds);
-                cudaMalloc(&d_temp, temp_storage);
+
+                if (temp_storage != old_temp_storage){
+                    cudaFree(d_temp);
+                    cudaMalloc(&d_temp, temp_storage);
+                    old_temp_storage = temp_storage;
+                }
+                
                 cub::DeviceReduce::Sum(d_temp, temp_storage, d_store_energy + l*num_iterations_seeds, &d_partition_function[l], num_iterations_seeds);
             }
 
@@ -205,11 +212,15 @@ int main(int argc, char **argv){
         for (int l=0; l < num_lattices; l++){
             // Sum reduction for both
             cub::DeviceReduce::Sum(d_temp, temp_storage, d_error_weight_0 + l*num_iterations_error, &d_magnetic_susceptibility_0[l], num_iterations_error);
-            cudaMalloc(&d_temp, temp_storage);
-            cub::DeviceReduce::Sum(d_temp, temp_storage, d_error_weight_0 + l*num_iterations_error, &d_magnetic_susceptibility_0[l], num_iterations_error);
+        
+            if (temp_storage != old_temp_storage){
+                cudaFree(d_temp);
+                cudaMalloc(&d_temp, temp_storage);
+                old_temp_storage = temp_storage;
+            }
 
-            cub::DeviceReduce::Sum(d_temp, temp_storage, d_error_weight_k + l*num_iterations_error, &d_magnetic_susceptibility_k[l], num_iterations_error);
-            cudaMalloc(&d_temp, temp_storage);
+            cub::DeviceReduce::Sum(d_temp, temp_storage, d_error_weight_0 + l*num_iterations_error, &d_magnetic_susceptibility_0[l], num_iterations_error);
+            
             cub::DeviceReduce::Sum(d_temp, temp_storage, d_error_weight_k + l*num_iterations_error, &d_magnetic_susceptibility_k[l], num_iterations_error);
         }
 

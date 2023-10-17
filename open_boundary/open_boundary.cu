@@ -17,11 +17,9 @@
 using namespace std;
 
 int main(int argc, char **argv){
-    char *results = "results/check_after_error";
+    char *results = "results/test";
     int check = create_results_folder(results);
     if (check == 0) return 0;
-    
-    cout << "Started Simulation" << endl;
     
     // Number iterations and how many lattices
     int num_iterations_seeds = 200;
@@ -54,7 +52,7 @@ int main(int argc, char **argv){
     cudaMemcpy(d_coupling_constant, coupling_constant.data(), num_lattices*sizeof(float), cudaMemcpyHostToDevice);  
 
     // Lattice size
-    std::array<int, 3> L_size = {12, 14, 18};
+    std::array<int, 7> L_size = {128, 36, 28, 24, 18, 14, 12};
 
     for(int ls = 0; ls < L_size.size(); ls++){
         

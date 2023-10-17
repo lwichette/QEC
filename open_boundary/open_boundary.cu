@@ -17,9 +17,9 @@
 using namespace std;
 
 int main(int argc, char **argv){
-    char *results = "results/comparison_old_results";
-    //int check = create_results_folder(results);
-    //if (check == 0) return 0;
+    char *results = "results/check_after_error";
+    int check = create_results_folder(results);
+    if (check == 0) return 0;
     
     cout << "Started Simulation" << endl;
     
@@ -28,14 +28,14 @@ int main(int argc, char **argv){
     int num_iterations_error = 200;
     int niters = 20000;
     int nwarmup = 100;
-    int num_lattices = 11;
+    int num_lattices = 22;
 
     //prob
     float p = 0.06f;
     
     // Temp
-    float start_temp = 1.2f;
-    float step = 0.1;
+    float start_temp = 0.5f;
+    float step = 0.08;
 
     std::vector<float> inv_temp;
     std::vector<float> coupling_constant;
@@ -54,7 +54,7 @@ int main(int argc, char **argv){
     cudaMemcpy(d_coupling_constant, coupling_constant.data(), num_lattices*sizeof(float), cudaMemcpyHostToDevice);  
 
     // Lattice size
-    std::array<int, 2> L_size = {28, 36};
+    std::array<int, 3> L_size = {12, 14, 18};
 
     for(int ls = 0; ls < L_size.size(); ls++){
         
@@ -118,7 +118,7 @@ int main(int argc, char **argv){
         curandGenerator_t update_rng;
         curandCreateGenerator(&update_rng, CURAND_RNG_PSEUDO_PHILOX4_32_10);
         float *randvals;
-        cudaMalloc(&randvals, L * L/2 * sizeof(*randvals));
+        cudaMalloc(&randvals, num_lattices * L * L/2 * sizeof(*randvals));
 
         // Setup cuRAND generator
         curandGenerator_t lattice_rng;
@@ -142,13 +142,19 @@ int main(int argc, char **argv){
 
             init_interactions_with_seed(d_interactions, seeds_interactions, interaction_rng, interaction_randvals, L, L, num_lattices, p);
 
+            //write_bonds(d_interactions, "bonds_", L, L, num_lattices);
+
             for (int s = 0; s < num_iterations_seeds; s++){
                 
-                init_spins_with_seed(lattice_b, lattice_w, seeds_spins, lattice_rng, lattice_randvals, L, L, num_lattices);
+                // Initialize spins up
+                init_spins_up<<<blocks,THREADS>>>(lattice_b, L, L/2, num_lattices);
+                init_spins_up<<<blocks,THREADS>>>(lattice_w, L, L/2, num_lattices);
+
+                //init_spins_with_seed(lattice_b, lattice_w, seeds_spins, lattice_rng, lattice_randvals, L, L, num_lattices);
 
                 curandSetPseudoRandomGeneratorSeed(update_rng, seeds_spins);
                 
-                //write_lattice(lattice_b, lattice_w, "lattices/lattice_"+std::to_string(e) + std::string("_") + std::to_string(s) + std::string("_"), L, L, num_lattices);
+                //write_lattice(lattice_b, lattice_w, "lattice_"+std::to_string(e) + std::string("_") + std::to_string(s) + std::string("_"), L, L, num_lattices);
 
                 cudaDeviceSynchronize();
 
@@ -164,7 +170,7 @@ int main(int argc, char **argv){
                     update_ob(lattice_b, lattice_w, randvals, update_rng, d_interactions, d_inv_temp, L, L, num_lattices, d_coupling_constant);
                     //if (j % 1000 == 0) printf("Completed %d/%d iterations...\n", j+1, niters);
                 }
-                
+
                 cudaDeviceSynchronize();
 
                 calculate_B2(d_sum, lattice_b, lattice_w, d_store_sum_0, d_wave_vector_0, s, L, L, num_lattices, num_iterations_seeds);

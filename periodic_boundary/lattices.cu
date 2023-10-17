@@ -116,7 +116,7 @@ int main(int argc, char **argv){
         curandGenerator_t update_rng;
         curandCreateGenerator(&update_rng, CURAND_RNG_PSEUDO_PHILOX4_32_10);
         float *randvals;
-        cudaMalloc(&randvals, L * L/2 * sizeof(*randvals));
+        cudaMalloc(&randvals, num_lattices * L * L/2 * sizeof(*randvals));
 
         // Setup cuRAND generator
         curandGenerator_t lattice_rng;

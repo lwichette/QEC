@@ -24,9 +24,10 @@ int main(int argc, char **argv){
     // Number iterations and how many lattices
     int num_iterations_seeds = 200;
     int num_iterations_error = 200;
-    int niters = 20000;
+    int niters = 1000;
     int nwarmup = 100;
     int num_lattices = 22;
+    int num_reps_temp = 3;
 
     //prob
     float p = 0.06f;
@@ -34,25 +35,29 @@ int main(int argc, char **argv){
     // Temp
     float start_temp = 0.5f;
     float step = 0.08;
+    
+    // Lattice size
+    std::vector<int> L_size{12, 14, 18};
 
     std::vector<float> inv_temp;
     std::vector<float> coupling_constant;
     float run_temp;
 
-    for (int i=0; i < num_lattices; i++){
-        run_temp = start_temp+i*step;
-        inv_temp.push_back(1/run_temp);
-        coupling_constant.push_back(1/run_temp);
+    for (int j=0; j < num_reps_temp; j++){
+        for (int i=0; i < num_lattices; i++){
+            run_temp = start_temp+i*step;
+            inv_temp.push_back(1/run_temp);
+            coupling_constant.push_back(1/run_temp);
+        }
     }
+
+    num_lattices = num_lattices * num_reps_temp;
 
     float *d_inv_temp, *d_coupling_constant;
     cudaMalloc(&d_inv_temp, num_lattices*sizeof(float));
     cudaMalloc(&d_coupling_constant, num_lattices*sizeof(float));
     cudaMemcpy(d_inv_temp, inv_temp.data(), num_lattices*sizeof(float), cudaMemcpyHostToDevice);
     cudaMemcpy(d_coupling_constant, coupling_constant.data(), num_lattices*sizeof(float), cudaMemcpyHostToDevice);  
-
-    // Lattice size
-    std::array<int, 7> L_size = {128, 36, 28, 24, 18, 14, 12};
 
     for(int ls = 0; ls < L_size.size(); ls++){
         

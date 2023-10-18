@@ -6,11 +6,8 @@ LDFLAGS=-lcurand
 
 all: output
 
-#output: lattices.cu
-#	$(CUDACC) $(NVCC_FLAGS) ../header/utils_big.cu lattices.cu -o check $(LDFLAGS)
-
-output: check_memory.cu
-	$(CUDACC) $(NVCC_FLAGS)  check_memory.cu -o check $(LDFLAGS)
+output: lattices.cu
+	$(CUDACC) $(NVCC_FLAGS) ../header/utils_big.cu lattices.cu -o lattices $(LDFLAGS)
 
 clean:
-	rm -f check
+	rm -f lattices

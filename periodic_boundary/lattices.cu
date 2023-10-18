@@ -12,12 +12,14 @@
 #include <sys/stat.h>
 
 #include "../header/defines.h"
+#include "../header/utils_big.cuh"
 
 using namespace std;
 
 
 int main(int argc, char **argv){
-    char *results = "results/check_memory";
+
+    char *results = "results/reps";
     int check = create_results_folder(results);
     if (check == 0) return 0;
 
@@ -28,31 +30,37 @@ int main(int argc, char **argv){
     int num_iterations_seeds = 200;
     int num_iterations_error = 200;
     int niters = 1000;
+    int iters_large = 5000;
     int nwarmup = 100;
     int num_lattices = 11;
+    int num_reps_temp = 3;
 
     // Temp
     float start_temp = 1.2;
     float step = 0.1;
 
+    // Lattice size
+    std::vector<int> L_size{14, 18, 24, 28, 36};
+
     std::vector<float> inv_temp;
     std::vector<float> coupling_constant;
     float run_temp;
 
-    for (int i=0; i < num_lattices; i++){
-        run_temp = start_temp+i*step;
-        inv_temp.push_back(1/run_temp);
-        coupling_constant.push_back(1/run_temp);
+    for (int j=0; j < num_reps_temp; j++){
+        for (int i=0; i < num_lattices; i++){
+            run_temp = start_temp+i*step;
+            inv_temp.push_back(1/run_temp);
+            coupling_constant.push_back(1/run_temp);
+        }
     }
+
+    num_lattices = num_lattices * num_reps_temp;
 
     float *d_inv_temp, *d_coupling_constant;
     cudaMalloc(&d_inv_temp, num_lattices*sizeof(float));
     cudaMalloc(&d_coupling_constant, num_lattices*sizeof(float));
     cudaMemcpy(d_inv_temp, inv_temp.data(), num_lattices*sizeof(float), cudaMemcpyHostToDevice);
     cudaMemcpy(d_coupling_constant, coupling_constant.data(), num_lattices*sizeof(float), cudaMemcpyHostToDevice);  
-
-    // Lattice size
-    std::array<int, 2> L_size = {12, 14};
 
     for(int ls = 0; ls < L_size.size(); ls++){
 

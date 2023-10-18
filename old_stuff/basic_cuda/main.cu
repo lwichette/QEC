@@ -191,7 +191,7 @@ int main(int argc, char **argv) {
     static struct option long_options[] = {
         {     "lattice-n", required_argument, 0, 'x'},
         {     "lattice-m", required_argument, 0, 'y'},
-        {         "alpha", required_argument, 0, 'y'},
+        {         "alpha", required_argument, 0, 'a'},
         {          "seed", required_argument, 0, 's'},
         {       "nwarmup", required_argument, 0, 'w'},
         {        "niters", required_argument, 0, 'n'},

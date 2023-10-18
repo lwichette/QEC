@@ -19,7 +19,7 @@ using namespace std;
 
 int main(int argc, char **argv){
 
-    char *results = "results/reps";
+    char *results = "results/test_cluster";
     int check = create_results_folder(results);
     if (check == 0) return 0;
 
@@ -27,20 +27,20 @@ int main(int argc, char **argv){
     float p = 0.06f;
     
     // Number iterations and how many lattices
-    int num_iterations_seeds = 200;
-    int num_iterations_error = 200;
-    int niters = 1000;
-    int iters_large = 5000;
-    int nwarmup = 100;
+    int num_iterations_seeds = 10;
+    int num_iterations_error = 10;
+    int niters = 10;
+    int iters_large = 10;
+    int nwarmup = 10;
     int num_lattices = 11;
-    int num_reps_temp = 3;
+    int num_reps_temp = 1;
 
     // Temp
     float start_temp = 1.2;
     float step = 0.1;
 
     // Lattice size
-    std::vector<int> L_size{14, 18, 24, 28, 36};
+    std::vector<int> L_size{14, 18};
 
     std::vector<float> inv_temp;
     std::vector<float> coupling_constant;

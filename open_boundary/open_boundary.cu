@@ -17,27 +17,27 @@
 using namespace std;
 
 int main(int argc, char **argv){
-    char *results = "results/test";
-    int check = create_results_folder(results);
-    if (check == 0) return 0;
+    char *results = "results/all_spins_up";
+    //int check = create_results_folder(results);
+    //if (check == 0) return 0;
     
     // Number iterations and how many lattices
     int num_iterations_seeds = 200;
     int num_iterations_error = 200;
-    int niters = 1000;
+    int niters = 100000;
     int nwarmup = 100;
-    int num_lattices = 22;
+    int num_lattices = 16;
     int num_reps_temp = 3;
 
     //prob
     float p = 0.06f;
     
     // Temp
-    float start_temp = 0.5f;
+    float start_temp = 0.98f;
     float step = 0.08;
     
     // Lattice size
-    std::vector<int> L_size{12, 14, 18};
+    std::vector<int> L_size{512};
 
     std::vector<float> inv_temp;
     std::vector<float> coupling_constant;

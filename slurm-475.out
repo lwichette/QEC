@@ -1,4 +1,4 @@
-/usr/local/cuda/bin/nvcc -std=c++17 -O3 -lineinfo -arch=sm_70 -Xptxas=-v -I ../external/cub -I ../header ../header/utils_big.cu lattices.cu -o lattices -lcurand
+/usr/local/cuda/bin/nvcc -std=c++17 -O3 -lineinfo -arch=sm_70 -Xptxas=-v  -I ../header ../header/utils_big.cu open_boundary.cu -o open_boundary -lcurand
 ptxas info    : 35 bytes gmem
 ptxas info    : Compiling entry function '_ZN3cub18DeviceReduceKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_EEvT0_T1_T2_NS_13GridEvenShareIS8_EET3_' for 'sm_70'
 ptxas info    : Function properties for _ZN3cub18DeviceReduceKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_EEvT0_T1_T2_NS_13GridEvenShareIS8_EET3_
@@ -72,9 +72,7 @@ ptxas info    : Compiling entry function '_Z13init_spins_upPaxxi' for 'sm_70'
 ptxas info    : Function properties for _Z13init_spins_upPaxxi
     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
 ptxas info    : Used 10 registers, 380 bytes cmem[0]
-lattices.cu(22): warning: conversion from a string literal to "char *" is deprecated
-
-lattices.cu(33): warning: variable "iters_large" was declared but never referenced
+open_boundary.cu(20): warning: conversion from a string literal to "char *" is deprecated
 
 ptxas info    : 11 bytes gmem
 ptxas info    : Compiling entry function '_ZN3cub18DeviceReduceKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_EEvT0_T1_T2_NS_13GridEvenShareIS8_EET3_' for 'sm_70'
@@ -89,29 +87,7 @@ ptxas info    : Compiling entry function '_ZN3cub11EmptyKernelIvEEvv' for 'sm_70
 ptxas info    : Function properties for _ZN3cub11EmptyKernelIvEEvv
     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
 ptxas info    : Used 4 registers, 352 bytes cmem[0]
-lattices.cu(22): warning: conversion from a string literal to "char *" is deprecated
+open_boundary.cu(20): warning: conversion from a string literal to "char *" is deprecated
 
-Started Simulation of Lattice 14
-Error 0 of 10
-Error 1 of 10
-Error 2 of 10
-Error 3 of 10
-Error 4 of 10
-Error 5 of 10
-Error 6 of 10
-Error 7 of 10
-Error 8 of 10
-Error 9 of 10
-Elapsed time for temperature loop min 0.000000 
-Started Simulation of Lattice 18
-Error 0 of 10
-Error 1 of 10
-Error 2 of 10
-Error 3 of 10
-Error 4 of 10
-Error 5 of 10
-Error 6 of 10
-Error 7 of 10
-Error 8 of 10
-Error 9 of 10
-Elapsed time for temperature loop min 0.000000 
+Started Simulation of Lattice 512
+Error 0 of 200

@@ -17,27 +17,27 @@
 using namespace std;
 
 int main(int argc, char **argv){
-    char *results = "results/all_spins_up";
-    //int check = create_results_folder(results);
-    //if (check == 0) return 0;
+    char *results = "results/check_cluster";
+    int check = create_results_folder(results);
+    if (check == 0) return 0;
     
     // Number iterations and how many lattices
     int num_iterations_seeds = 200;
     int num_iterations_error = 200;
-    int niters = 100000;
+    int niters = 1000;
     int nwarmup = 100;
-    int num_lattices = 16;
-    int num_reps_temp = 3;
+    int num_lattices = 11;
+    int num_reps_temp = 1;
 
     //prob
     float p = 0.06f;
     
     // Temp
-    float start_temp = 0.98f;
-    float step = 0.08;
+    float start_temp = 1.2f;
+    float step = 0.1;
     
     // Lattice size
-    std::vector<int> L_size{512};
+    std::vector<int> L_size{12};
 
     std::vector<float> inv_temp;
     std::vector<float> coupling_constant;
@@ -52,6 +52,8 @@ int main(int argc, char **argv){
     }
 
     num_lattices = num_lattices * num_reps_temp;
+
+    cout << num_lattices << endl;
 
     float *d_inv_temp, *d_coupling_constant;
     cudaMalloc(&d_inv_temp, num_lattices*sizeof(float));

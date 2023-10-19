@@ -4,6 +4,7 @@
 #SBATCH --partition=qc
 #SBATCH --account=quxki
 
+#SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=marius.beuerle@dfki.de
 
 #SBATCH --time=0-02:00:00

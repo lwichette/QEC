@@ -10,37 +10,83 @@
 #include <vector>
 #include <string>
 #include <sys/stat.h>
+#include <filesystem>
+#include <boost/program_options.hpp>
 
 #include "../header/defines.h"
 #include "../header/utils_big.cuh"
 
 using namespace std;
 
+namespace po = boost::program_options;
 
 int main(int argc, char **argv){
 
-    char *results = "results/test_cluster";
-    int check = create_results_folder(results);
-    if (check == 0) return 0;
+    float p, start_temp, step;
+    int num_iterations_error, num_iterations_seeds, niters, nwarmup, num_lattices, num_reps_temp;
+    vector<int> L_size;
+    std::string folderName;
 
-    //prob
-    float p = 0.06f;
-    
-    // Number iterations and how many lattices
-    int num_iterations_seeds = 10;
-    int num_iterations_error = 10;
-    int niters = 10;
-    int iters_large = 10;
-    int nwarmup = 10;
-    int num_lattices = 11;
-    int num_reps_temp = 1;
+    // Declare the supported options.
+    po::options_description desc("Allowed options");
+    desc.add_options()
+      ("p", po::value<float>(), "probability")
+      ("temp", po::value<float>(), "start_temp")
+      ("step", po::value<float>(), "step size temperature")
+      ("nie", po::value<int>(), "num iterations error")
+      ("nis", po::value<int>(), "num iterations seeds")
+      ("nit", po::value<int>(), "niters updates")
+      ("nw", po::value<int>(), "nwarmup updates")
+      ("nl", po::value<int>(), "num lattices")
+      ("nrt", po::value<int>(), "num reps temp")
+      ("L", po::value<std::vector<int>>()->multitoken(), "Lattice")
+      ("folder", po::value<std::string>(), "folder")
+    ;
+  
+    po::variables_map vm;
+    po::store(po::parse_command_line(argc, argv, desc), vm);
+    po::notify(vm);    
+  
+    if (vm.count("p")) {
+        p = vm["p"].as<float>();
+    }
+    if (vm.count("temp")) {
+        start_temp = vm["temp"].as<float>();
+    }
+    if (vm.count("step")) {
+        step = vm["step"].as<float>();
+    }
+    if (vm.count("nie")) {
+        num_iterations_error = vm["nie"].as<int>();
+    }
+    if (vm.count("nis")) {
+        num_iterations_seeds = vm["nis"].as<int>();
+    }
+    if (vm.count("nit")) {
+        niters = vm["nit"].as<int>();
+    }
+    if (vm.count("nw")) {
+        nwarmup = vm["nw"].as<int>();
+    }
+    if (vm.count("nl")) {
+        num_lattices = vm["nl"].as<int>();
+    }
+    if (vm.count("nrt")) {
+        num_reps_temp = vm["nrt"].as<int>();
+    }
+    if (vm.count("L")){
+      L_size = vm["L"].as<vector<int>>();
+    }
+    if (vm.count("folder")) {
+        folderName = vm["folder"].as<std::string>();
+    }
 
-    // Temp
-    float start_temp = 1.2;
-    float step = 0.1;
-
-    // Lattice size
-    std::vector<int> L_size{14, 18};
+    if (std::filesystem::create_directory("results/" + folderName)) {
+        std::cout << "Folder created successfully: " << folderName << std::endl;
+    } else {
+        std::cerr << "Failed to create folder: " << folderName << std::endl;
+        return 0;
+    }
 
     std::vector<float> inv_temp;
     std::vector<float> coupling_constant;
@@ -253,7 +299,7 @@ int main(int argc, char **argv){
 
         // Write results
         std::ofstream f;
-        f.open(results + std::string("/L_") + std::to_string(L) + std::string("_p_") + std::to_string(p) + std::string("_ns_") + std::to_string(num_iterations_seeds) + std::string("_ne_") + std::to_string(num_iterations_error) + std::string("_ni_") + std::to_string(niters) + std::string("_nw_") + std::to_string(nwarmup) + std::string(".txt"));
+        f.open("results/" + folderName + std::string("/L_") + std::to_string(L) + std::string("_p_") + std::to_string(p) + std::string("_ns_") + std::to_string(num_iterations_seeds) + std::string("_ne_") + std::to_string(num_iterations_error) + std::string("_ni_") + std::to_string(niters) + std::string("_nw_") + std::to_string(nwarmup) + std::string(".txt"));
         if (f.is_open()) {
             for (int i = 0; i < num_lattices; i++) {
                 f << psi[i] << " " << 1/inv_temp[i] << "\n";

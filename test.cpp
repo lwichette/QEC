@@ -1,44 +1,38 @@
+#include <boost/program_options.hpp>
 #include <iostream>
-#include <getopt.h>
+#include <vector>
 
 using namespace std;
 
-int main(int argc, char* argv[]){
+namespace po = boost::program_options;
 
-  long long nx, ny;
-  int nwarmup = 100;
-  int niters = 1000;
+int main(int argc, const char *argv[]){
+  
+  int nx;
+  vector<int> L;
 
-  while (1) {
-    static struct option long_options[] = {
-      {     "lattice-n", required_argument, 0, 'x'},
-      {     "lattice-m", required_argument, 0, 'y'},
-      {       "nwarmup", required_argument, 0, 'w'},
-      {        "niters", required_argument, 0, 'n'},
-    };
-    
-    int option_index = 0;
-    int ch = getopt_long(argc, argv, "x:y:w:n", long_options, &option_index);
-    if (ch == -1) break;
+  // Declare the supported options.
+  po::options_description desc("Allowed options");
+  desc.add_options()
+    ("nx", po::value<int>(), "set lattice size")
+    ("L", po::value<std::vector<int>>()->multitoken(), "Lattice")
+  ;
 
-    switch(ch) {
-      case 0:
-        break;
-      case 'x':
-        nx = atoll(optarg); break;
-      case 'y':
-        ny = atoll(optarg); break;
-      case 'w':
-        nwarmup = atoi(optarg); break;
-      case 'n':
-        niters = atoi(optarg); break;
-      case '?':
-        exit(EXIT_FAILURE);
-      default:
-        fprintf(stderr, "unknown option: %c\n", ch);
-        exit(EXIT_FAILURE);
-    }
+  po::variables_map vm;
+  po::store(po::parse_command_line(argc, argv, desc), vm);
+  po::notify(vm);    
+
+  if (vm.count("nx")) {
+    nx = vm["nx"].as<int>();
+  }
+  
+  if (vm.count("L")){
+    L = vm["L"].as<vector<int>>();
   }
 
-  printf("%lli \n", nx);
+  cout << nx << endl;
+
+  for (int l=0; l<L.size(); l++){
+    cout << L[l] << endl;
+  }
 }

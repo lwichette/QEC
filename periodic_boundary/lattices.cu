@@ -333,7 +333,7 @@ int main(int argc, char **argv){
         cudaFree(d_temp_nx);
         d_temp_nie = NULL;
         d_temp_nis = NULL;
-        d_temp_nie = NULL;
+        d_temp_nx = NULL;
         temp_storage_nie = 0;
         temp_storage_nis = 0;
         temp_storage_nx = 0;

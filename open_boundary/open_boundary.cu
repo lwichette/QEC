@@ -17,7 +17,11 @@
 using namespace std;
 
 int main(int argc, char **argv){
+<<<<<<< HEAD
     char *results = "results/512";
+=======
+    char *results = "results/cluster_workstation_6";
+>>>>>>> 451f2fef3163c418ddbfda2ac36274aee14d3283
     int check = create_results_folder(results);
     if (check == 0) return 0;
     

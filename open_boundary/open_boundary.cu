@@ -17,7 +17,7 @@
 using namespace std;
 
 int main(int argc, char **argv){
-    char *results = "results/check_cluster";
+    char *results = "results/cluster_workstation_6";
     int check = create_results_folder(results);
     if (check == 0) return 0;
     
@@ -26,7 +26,7 @@ int main(int argc, char **argv){
     int num_iterations_error = 200;
     int niters = 1000;
     int nwarmup = 100;
-    int num_lattices = 11;
+    int num_lattices = 6;
     int num_reps_temp = 1;
 
     //prob
@@ -37,7 +37,7 @@ int main(int argc, char **argv){
     float step = 0.1;
     
     // Lattice size
-    std::vector<int> L_size{12};
+    std::vector<int> L_size{512};
 
     std::vector<float> inv_temp;
     std::vector<float> coupling_constant;

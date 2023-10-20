@@ -89,8 +89,8 @@ ptxas info    : Function properties for _ZN3cub11EmptyKernelIvEEvv
 ptxas info    : Used 4 registers, 352 bytes cmem[0]
 open_boundary.cu(20): warning: conversion from a string literal to "char *" is deprecated
 
-11
-Started Simulation of Lattice 12
+5
+Started Simulation of Lattice 512
 Error 0 of 200
 Error 1 of 200
 Error 2 of 200
@@ -291,4 +291,4 @@ Error 196 of 200
 Error 197 of 200
 Error 198 of 200
 Error 199 of 200
-Elapsed time for temperature loop min 11.166667 
+Elapsed time for temperature loop min 39.033333 

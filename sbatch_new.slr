@@ -11,7 +11,7 @@
 
 #SBATCH -N 1
 #SBATCH --mem=256G
-#SBATCH --cpus-per-task=32
+#SBATCH --cpus-per-task=1
 #SBATCH --gres=gpu:1
 
 #SBATCH -D /mnt/beegfs/data/QuDA-KI/qec

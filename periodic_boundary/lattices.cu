@@ -26,13 +26,16 @@ int main(int argc, char **argv){
     int num_iterations_error, num_iterations_seeds, niters, nwarmup, num_lattices, num_reps_temp;
     vector<int> L_size;
     std::string folderName;
+    bool up;
 
     // Declare the supported options.
     po::options_description desc("Allowed options");
     desc.add_options()
+      ("help", "produce help options")
       ("p", po::value<float>(), "probability")
       ("temp", po::value<float>(), "start_temp")
       ("step", po::value<float>(), "step size temperature")
+      ("up", po::value<bool>(), "spins up or random")
       ("nie", po::value<int>(), "num iterations error")
       ("nis", po::value<int>(), "num iterations seeds")
       ("nit", po::value<int>(), "niters updates")
@@ -55,6 +58,9 @@ int main(int argc, char **argv){
     }
     if (vm.count("step")) {
         step = vm["step"].as<float>();
+    }
+    if (vm.count("up")) {
+        up = vm["up"].as<bool>();
     }
     if (vm.count("nie")) {
         num_iterations_error = vm["nie"].as<int>();
@@ -196,13 +202,14 @@ int main(int argc, char **argv){
 
             for (int s = 0; s < num_iterations_seeds; s++){
                 
-                /*
-                // Initialize spins up
-                init_spins_up<<<blocks,THREADS>>>(lattice_b, L, L/2, num_lattices);
-                init_spins_up<<<blocks,THREADS>>>(lattice_w, L, L/2, num_lattices);
-                */
-
-                init_spins_with_seed(lattice_b, lattice_w, seeds_spins, lattice_rng, lattice_randvals, L, L, num_lattices);
+                if (up){
+                    // Initialize spins up
+                    init_spins_up<<<blocks,THREADS>>>(lattice_b, L, L/2, num_lattices);
+                    init_spins_up<<<blocks,THREADS>>>(lattice_w, L, L/2, num_lattices);
+                }
+                else{
+                    init_spins_with_seed(lattice_b, lattice_w, seeds_spins, lattice_rng, lattice_randvals, L, L, num_lattices);
+                }
 
                 curandSetPseudoRandomGeneratorSeed(update_rng, seeds_spins);
                 
@@ -240,16 +247,12 @@ int main(int argc, char **argv){
             exp_beta<<<blocks, THREADS>>>(d_store_energy, d_inv_temp, num_lattices, num_iterations_seeds, L);
 
             for (int l=0; l<num_lattices; l++){
-
-                cub::DeviceReduce::Sum(d_temp, temp_storage, d_store_energy + l*num_iterations_seeds, &d_partition_function[l], num_iterations_seeds);
-
-                if (temp_storage != old_temp_storage){
-                    cudaFree(d_temp);
-                    cudaMalloc(&d_temp, temp_storage);
-                    old_temp_storage = temp_storage;
+                if(temp_storage_nis == 0){
+                    cub::DeviceReduce::Sum(d_temp_nis, temp_storage_nis, d_store_energy + l*num_iterations_seeds, &d_partition_function[l], num_iterations_seeds);
+                    cudaMalloc(&d_temp_nis, temp_storage_nis);
                 }
                 
-                cub::DeviceReduce::Sum(d_temp, temp_storage, d_store_energy + l*num_iterations_seeds, &d_partition_function[l], num_iterations_seeds);
+                cub::DeviceReduce::Sum(d_temp_nis, temp_storage_nis, d_store_energy + l*num_iterations_seeds, &d_partition_function[l], num_iterations_seeds);
             }
 
             calculate_weighted_energies(d_weighted_energies, d_error_weight_0, d_store_energy, d_store_sum_0, d_partition_function, num_lattices, num_iterations_seeds, num_iterations_error, blocks, e);
@@ -264,18 +267,15 @@ int main(int argc, char **argv){
         cudaMalloc(&d_magnetic_susceptibility_k, num_lattices*sizeof(*d_magnetic_susceptibility_k));
 
         for (int l=0; l < num_lattices; l++){
+            
             // Sum reduction for both
-            cub::DeviceReduce::Sum(d_temp, temp_storage, d_error_weight_0 + l*num_iterations_error, &d_magnetic_susceptibility_0[l], num_iterations_error);
-        
-            if (temp_storage != old_temp_storage){
-                cudaFree(d_temp);
-                cudaMalloc(&d_temp, temp_storage);
-                old_temp_storage = temp_storage;
+            if (temp_storage_nie==0){
+                cub::DeviceReduce::Sum(d_temp_nie, temp_storage_nie, d_error_weight_0 + l*num_iterations_error, &d_magnetic_susceptibility_0[l], num_iterations_error);
+                cudaMalloc(&d_temp_nie, temp_storage_nie);
             }
 
-            cub::DeviceReduce::Sum(d_temp, temp_storage, d_error_weight_0 + l*num_iterations_error, &d_magnetic_susceptibility_0[l], num_iterations_error);
-            
-            cub::DeviceReduce::Sum(d_temp, temp_storage, d_error_weight_k + l*num_iterations_error, &d_magnetic_susceptibility_k[l], num_iterations_error);
+            cub::DeviceReduce::Sum(d_temp_nie, temp_storage_nie, d_error_weight_0 + l*num_iterations_error, &d_magnetic_susceptibility_0[l], num_iterations_error);
+            cub::DeviceReduce::Sum(d_temp_nie, temp_storage_nie, d_error_weight_k + l*num_iterations_error, &d_magnetic_susceptibility_k[l], num_iterations_error);
         }
 
         cudaDeviceSynchronize();
@@ -327,6 +327,16 @@ int main(int argc, char **argv){
         cudaFree(d_partition_function);
         cudaFree(d_magnetic_susceptibility_0);
         cudaFree(d_magnetic_susceptibility_k);
+
+        cudaFree(d_temp_nie);
+        cudaFree(d_temp_nis);
+        cudaFree(d_temp_nx);
+        d_temp_nie = NULL;
+        d_temp_nis = NULL;
+        d_temp_nie = NULL;
+        temp_storage_nie = 0;
+        temp_storage_nis = 0;
+        temp_storage_nx = 0;
 
         curandDestroyGenerator(update_rng);
         curandDestroyGenerator(interaction_rng);

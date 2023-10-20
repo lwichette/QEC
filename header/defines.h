@@ -3,8 +3,12 @@
 
 const unsigned int THREADS = 512;
 
-extern void *d_temp;
-extern size_t temp_storage;
-extern size_t old_temp_storage;
+extern void *d_temp_nx;
+extern size_t temp_storage_nx;
+extern void *d_temp_nie;
+extern size_t temp_storage_nie;
+extern void *d_temp_nis;
+extern size_t temp_storage_nis;
+
 
 #endif

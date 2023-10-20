@@ -10,40 +10,90 @@
 #include <vector>
 #include <string>
 #include <sys/stat.h>
+#include <filesystem>
+#include <boost/program_options.hpp>
 
 #include "../header/defines.h"
 #include "../header/utils_big.cuh"
 
 using namespace std;
 
-int main(int argc, char **argv){
-<<<<<<< HEAD
-    char *results = "results/512";
-=======
-    char *results = "results/cluster_workstation_6";
->>>>>>> 451f2fef3163c418ddbfda2ac36274aee14d3283
-    int check = create_results_folder(results);
-    if (check == 0) return 0;
-    
-    // Number iterations and how many lattices
-    int num_iterations_seeds = 200;
-    int num_iterations_error = 200;
-    int niters = 100000;
-    int nwarmup = 100;
-    int num_lattices = 6;
-    int num_reps_temp = 1;
+namespace po = boost::program_options;
 
-    cout << niters << endl;
-    
-    //prob
-    float p = 0.06f;
-    
-    // Temp
-    float start_temp = 1.2f;
-    float step = 0.1;
-    
-    // Lattice size
-    std::vector<int> L_size{512};
+int main(int argc, char **argv){
+
+    float p, start_temp, step;
+    int num_iterations_error, num_iterations_seeds, niters, nwarmup, num_lattices, num_reps_temp;
+    vector<int> L_size;
+    std::string folderName;
+    bool up;
+
+    // Declare the supported options.
+    po::options_description desc("Allowed options");
+    desc.add_options()
+      ("help", "produce help options")
+      ("p", po::value<float>(), "probability")
+      ("temp", po::value<float>(), "start_temp")
+      ("step", po::value<float>(), "step size temperature")
+      ("up", po::value<bool>(), "step size temperature")
+      ("nie", po::value<int>(), "num iterations error")
+      ("nis", po::value<int>(), "num iterations seeds")
+      ("nit", po::value<int>(), "niters updates")
+      ("nw", po::value<int>(), "nwarmup updates")
+      ("nl", po::value<int>(), "num lattices")
+      ("nrt", po::value<int>(), "num reps temp")
+      ("L", po::value<std::vector<int>>()->multitoken(), "Lattice")
+      ("folder", po::value<std::string>(), "folder")
+    ;
+  
+    po::variables_map vm;
+    po::store(po::parse_command_line(argc, argv, desc), vm);
+    po::notify(vm);    
+  
+    if (vm.count("p")) {
+        p = vm["p"].as<float>();
+    }
+    if (vm.count("temp")) {
+        start_temp = vm["temp"].as<float>();
+    }
+    if (vm.count("step")) {
+        step = vm["step"].as<float>();
+    }
+    if (vm.count("up")) {
+        up = vm["up"].as<bool>();
+    }
+    if (vm.count("nie")) {
+        num_iterations_error = vm["nie"].as<int>();
+    }
+    if (vm.count("nis")) {
+        num_iterations_seeds = vm["nis"].as<int>();
+    }
+    if (vm.count("nit")) {
+        niters = vm["nit"].as<int>();
+    }
+    if (vm.count("nw")) {
+        nwarmup = vm["nw"].as<int>();
+    }
+    if (vm.count("nl")) {
+        num_lattices = vm["nl"].as<int>();
+    }
+    if (vm.count("nrt")) {
+        num_reps_temp = vm["nrt"].as<int>();
+    }
+    if (vm.count("L")){
+      L_size = vm["L"].as<vector<int>>();
+    }
+    if (vm.count("folder")) {
+        folderName = vm["folder"].as<std::string>();
+    }
+
+    if (std::filesystem::create_directory("results/" + folderName)) {
+        std::cout << "Folder created successfully: " << folderName << std::endl;
+    } else {
+        std::cerr << "Failed to create folder: " << folderName << std::endl;
+        return 0;
+    }
+
 
     std::vector<float> inv_temp;
     std::vector<float> coupling_constant;
@@ -155,11 +205,14 @@ int main(int argc, char **argv){
 
             for (int s = 0; s < num_iterations_seeds; s++){
                 
-                // Initialize spins up
-                init_spins_up<<<blocks,THREADS>>>(lattice_b, L, L/2, num_lattices);
-                init_spins_up<<<blocks,THREADS>>>(lattice_w, L, L/2, num_lattices);
-
-                //init_spins_with_seed(lattice_b, lattice_w, seeds_spins, lattice_rng, lattice_randvals, L, L, num_lattices);
+                if (up){
+                    // Initialize spins up
+                    init_spins_up<<<blocks,THREADS>>>(lattice_b, L, L/2, num_lattices);
+                    init_spins_up<<<blocks,THREADS>>>(lattice_w, L, L/2, num_lattices);
+                }
+                else{
+                    init_spins_with_seed(lattice_b, lattice_w, seeds_spins, lattice_rng, lattice_randvals, L, L, num_lattices);
+                }
 
                 curandSetPseudoRandomGeneratorSeed(update_rng, seeds_spins);
                 
@@ -172,10 +225,10 @@ int main(int argc, char **argv){
                 for (int j = 0; j < nwarmup; j++) {
                     update_ob(lattice_b, lattice_w, randvals, update_rng, d_interactions, d_inv_temp, L, L, num_lattices, d_coupling_constant);
                 }
-                
+
                 cudaDeviceSynchronize();
 
-                for (int j = 0; j < niters; j++) {
+                for (int j = 0; j < niters; j++){
                     update_ob(lattice_b, lattice_w, randvals, update_rng, d_interactions, d_inv_temp, L, L, num_lattices, d_coupling_constant);
                     //if (j % 1000 == 0) printf("Completed %d/%d iterations...\n", j+1, niters);
                 }
@@ -197,15 +250,12 @@ int main(int argc, char **argv){
             exp_beta<<<blocks, THREADS>>>(d_store_energy, d_inv_temp, num_lattices, num_iterations_seeds, L);
             
             for (int l=0; l<num_lattices; l++){
-                cub::DeviceReduce::Sum(d_temp, temp_storage, d_store_energy + l*num_iterations_seeds, &d_partition_function[l], num_iterations_seeds);
-
-                if (temp_storage != old_temp_storage){
-                    cudaFree(d_temp);
-                    cudaMalloc(&d_temp, temp_storage);
-                    old_temp_storage = temp_storage;
+                if (temp_storage_nis == 0){
+                    cub::DeviceReduce::Sum(d_temp_nis, temp_storage_nis, d_store_energy + l*num_iterations_seeds, &d_partition_function[l], num_iterations_seeds);
+                    cudaMalloc(&d_temp_nis, temp_storage_nis);
                 }
                 
-                cub::DeviceReduce::Sum(d_temp, temp_storage, d_store_energy + l*num_iterations_seeds, &d_partition_function[l], num_iterations_seeds);
+                cub::DeviceReduce::Sum(d_temp_nis, temp_storage_nis, d_store_energy + l*num_iterations_seeds, &d_partition_function[l], num_iterations_seeds);
             }
             
             calculate_weighted_energies(d_weighted_energies, d_error_weight_0, d_store_energy, d_store_sum_0, d_partition_function, num_lattices, num_iterations_seeds, num_iterations_error, blocks, e);
@@ -221,17 +271,13 @@ int main(int argc, char **argv){
 
         for (int l=0; l < num_lattices; l++){
             // Sum reduction for both
-            cub::DeviceReduce::Sum(d_temp, temp_storage, d_error_weight_0 + l*num_iterations_error, &d_magnetic_susceptibility_0[l], num_iterations_error);
-                    
-            if (temp_storage != old_temp_storage){
-                cudaFree(d_temp);
-                cudaMalloc(&d_temp, temp_storage);
-                old_temp_storage = temp_storage;
+            if (temp_storage_nie == 0){
+                cub::DeviceReduce::Sum(d_temp_nie, temp_storage_nie, d_error_weight_0 + l*num_iterations_error, &d_magnetic_susceptibility_0[l], num_iterations_error);
+                cudaMalloc(&d_temp_nie, temp_storage_nie);
             }
 
-            cub::DeviceReduce::Sum(d_temp, temp_storage, d_error_weight_0 + l*num_iterations_error, &d_magnetic_susceptibility_0[l], num_iterations_error);
-
-            cub::DeviceReduce::Sum(d_temp, temp_storage, d_error_weight_k + l*num_iterations_error, &d_magnetic_susceptibility_k[l], num_iterations_error);
+            cub::DeviceReduce::Sum(d_temp_nie, temp_storage_nie, d_error_weight_0 + l*num_iterations_error, &d_magnetic_susceptibility_0[l], num_iterations_error);
+            cub::DeviceReduce::Sum(d_temp_nie, temp_storage_nie, d_error_weight_k + l*num_iterations_error, &d_magnetic_susceptibility_k[l], num_iterations_error);
         }
 
         cudaDeviceSynchronize();
@@ -255,7 +301,7 @@ int main(int argc, char **argv){
 
         // Write results
         std::ofstream f;
-        f.open(results + std::string("/L_") + std::to_string(L) + std::string("_p_") + std::to_string(p) + std::string("_ns_") + std::to_string(num_iterations_seeds) + std::string("_ne_") + std::to_string(num_iterations_error) + std::string("_ni_") + std::to_string(niters) + std::string("_nw_") + std::to_string(nwarmup) + std::string(".txt"));
+        f.open("results/" + folderName + std::string("/L_") + std::to_string(L) + std::string("_p_") + std::to_string(p) + std::string("_ns_") + std::to_string(num_iterations_seeds) + std::string("_ne_") + std::to_string(num_iterations_error) + std::string("_ni_") + std::to_string(niters) + std::string("_nw_") + std::to_string(nwarmup) + std::string(".txt"));
         if (f.is_open()) {
             for (int i = 0; i < num_lattices; i++) {
                 f << psi[i] << " " << 1/inv_temp[i] << "\n";
@@ -283,6 +329,18 @@ int main(int argc, char **argv){
         cudaFree(d_magnetic_susceptibility_0);
         cudaFree(d_magnetic_susceptibility_k);
 
+        cudaFree(d_temp_nie);
+        cudaFree(d_temp_nis);
+        cudaFree(d_temp_nx);
+
+        d_temp_nie = NULL;
+        d_temp_nis = NULL;
+        d_temp_nie = NULL;
+        
+        temp_storage_nie = 0;
+        temp_storage_nis = 0;
+        temp_storage_nx = 0;
+        
         curandDestroyGenerator(update_rng);
         curandDestroyGenerator(interaction_rng);
         curandDestroyGenerator(lattice_rng);

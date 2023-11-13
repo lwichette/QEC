@@ -26,7 +26,7 @@ int main(int argc, char **argv){
     int num_iterations_error, num_iterations_seeds, niters, nwarmup, num_lattices, num_reps_temp;
     vector<int> L_size;
     std::string folderName;
-    bool up;
+    bool up, open;
 
     // Declare the supported options.
     po::options_description desc("Allowed options");
@@ -35,7 +35,8 @@ int main(int argc, char **argv){
       ("p", po::value<float>(), "probability")
       ("temp", po::value<float>(), "start_temp")
       ("step", po::value<float>(), "step size temperature")
-      ("up", po::value<bool>(), "step size temperature")
+      ("open", po::value<bool>(), "open boundary conditions")
+      ("up", po::value<bool>(), "all spins up")
       ("nie", po::value<int>(), "num iterations error")
       ("nis", po::value<int>(), "num iterations seeds")
       ("nit", po::value<int>(), "niters updates")
@@ -58,6 +59,9 @@ int main(int argc, char **argv){
     }
     if (vm.count("step")) {
         step = vm["step"].as<float>();
+    }
+    if (vm.count("open")) {
+        open = vm["open"].as<bool>();
     }
     if (vm.count("up")) {
         up = vm["up"].as<bool>();
@@ -87,13 +91,22 @@ int main(int argc, char **argv){
         folderName = vm["folder"].as<std::string>();
     }
 
+    std::string boundary;
+    
+    if (open){
+        boundary = "open_boundary/";
+    }
+    else{
+        boundary = "periodic_boundary";
+    }
+
+    // Into utils
     if (std::filesystem::create_directory("results/" + folderName)) {
         std::cout << "Folder created successfully: " << folderName << std::endl;
     } else {
         std::cerr << "Failed to create folder: " << folderName << std::endl;
         return 0;
     }
-
 
     std::vector<float> inv_temp;
     std::vector<float> coupling_constant;
@@ -222,7 +235,7 @@ int main(int argc, char **argv){
 
                 // Warmup iterations
                 //printf("Starting warmup...\n");
-                for (int j = 0; j < nwarmup; j++) {
+                for (int j = 0; j < nwarmup; j++){
                     update_ob(lattice_b, lattice_w, randvals, update_rng, d_interactions, d_inv_temp, L, L, num_lattices, d_coupling_constant);
                 }
 

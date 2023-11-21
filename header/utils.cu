@@ -66,9 +66,9 @@ void init_interactions_with_seed(
     int blocks = (nx*ny*2*num_lattices + THREADS -1)/THREADS;
 
     // Set Seed 
-    curandSetPseudoRandomGeneratorSeed(interaction_rng,seed);
+    CHECK_CURAND(curandSetPseudoRandomGeneratorSeed(interaction_rng,seed));
     
-    curandGenerateUniform(interaction_rng,interaction_randvals, num_lattices*nx*ny*2);
+    CHECK_CURAND(curandGenerateUniform(interaction_rng,interaction_randvals, num_lattices*nx*ny*2));
     init_randombond<<<blocks, THREADS>>>(interactions, interaction_randvals, nx, ny, num_lattices, p);
 }
 
@@ -80,13 +80,13 @@ void init_spins_with_seed(
     int blocks = (nx*ny*2*num_lattices + THREADS -1)/THREADS;
     
     // Set seed
-    curandSetPseudoRandomGeneratorSeed(lattice_rng, seed);
+    CHECK_CURAND(curandSetPseudoRandomGeneratorSeed(lattice_rng, seed));
 
     //Initialize the arrays for white and black lattice
-    curandGenerateUniform(lattice_rng, lattice_randvals, nx*ny/2*num_lattices);
+    CHECK_CURAND(curandGenerateUniform(lattice_rng, lattice_randvals, nx*ny/2*num_lattices));
     init_spins<<<blocks, THREADS>>>(lattice_b, lattice_randvals, nx, ny/2, num_lattices);
 
-    curandGenerateUniform(lattice_rng, lattice_randvals, nx*ny/2*num_lattices);
+    CHECK_CURAND(curandGenerateUniform(lattice_rng, lattice_randvals, nx*ny/2*num_lattices));
     init_spins<<<blocks, THREADS>>>(lattice_w, lattice_randvals, nx, ny/2, num_lattices);
 }
 
@@ -97,8 +97,8 @@ void write_lattice(signed char *lattice_b, signed char *lattice_w, std::string f
     std::vector<signed char> lattice_w_h(nx*ny/2*num_lattices);
     std::vector<signed char> lattice_b_h(nx*ny/2*num_lattices);
 
-    cudaMemcpy(lattice_b_h.data(), lattice_b, num_lattices * nx * ny/2 * sizeof(*lattice_b), cudaMemcpyDeviceToHost);
-    cudaMemcpy(lattice_w_h.data(), lattice_w, num_lattices * nx * ny/2 * sizeof(*lattice_w), cudaMemcpyDeviceToHost);
+    CHECK_CUDA(cudaMemcpy(lattice_b_h.data(), lattice_b, num_lattices * nx * ny/2 * sizeof(*lattice_b), cudaMemcpyDeviceToHost));
+    CHECK_CUDA(cudaMemcpy(lattice_w_h.data(), lattice_w, num_lattices * nx * ny/2 * sizeof(*lattice_w), cudaMemcpyDeviceToHost));
 
     int offset; 
 
@@ -139,7 +139,7 @@ void write_bonds(signed char* interactions, std::string filename, long nx, long 
     
     std::vector<signed char> interactions_host(2*nx*ny*num_lattices);
     
-    cudaMemcpy(interactions_host.data(),interactions, 2*num_lattices*nx*ny*sizeof(*interactions), cudaMemcpyDeviceToHost);
+    CHECK_CUDA(cudaMemcpy(interactions_host.data(),interactions, 2*num_lattices*nx*ny*sizeof(*interactions), cudaMemcpyDeviceToHost));
     
     int offset;
 
@@ -247,26 +247,29 @@ void update(
     int blocks = (nx * ny/2 * num_lattices + THREADS - 1) / THREADS;
 
     // Update black
-    curandGenerateUniform(rng, randvals, num_lattices*nx*ny/2);
+    CHECK_CURAND(curandGenerateUniform(rng, randvals, num_lattices*nx*ny/2));
     update_lattice<true><<<blocks, THREADS>>>(lattice_b, lattice_w, randvals,interactions, inv_temp, nx, ny/2, num_lattices, coupling_constant);
 
     // Update white
-    curandGenerateUniform(rng, randvals, num_lattices*nx*ny/2);
+    CHECK_CURAND(curandGenerateUniform(rng, randvals, num_lattices*nx*ny/2));
     update_lattice<false><<<blocks, THREADS>>>(lattice_w, lattice_b, randvals,interactions, inv_temp, nx, ny/2, num_lattices, coupling_constant);
 }
 
-__global__ void B2_lattices(signed char* lattice_b, signed char* lattice_w, const float *wave_vector, thrust::complex<float> *sum,  int nx, int ny, int num_lattices){
+__global__ void B2_lattices(
+    signed char *lattice_b, signed char *lattice_w, const float *wave_vector, 
+    thrust::complex<float> *sum, int nx, int ny, int num_lattices
+){
     
     int tid = blockDim.x * blockIdx.x + threadIdx.x;
     
-    if (tid >= nx*ny*num_lattices);
+    if (tid >= nx*ny*num_lattices) return;
 
-    int lid = tid/(nx*ny);
-    int offset = lid*nx*ny;
-    int tid_sl = tid - offset;
+    int lattice_id = tid/(nx*ny);
+    int offset = lattice_id*nx*ny;
+    int tid_single_lattice = tid - offset;
 
-    int i = tid_sl/ny;
-    int j = tid_sl%ny;
+    int i = tid_single_lattice/ny;
+    int j = tid_single_lattice%ny;
 
     int b_orig_j;
     int w_orig_j; 
@@ -275,6 +278,7 @@ __global__ void B2_lattices(signed char* lattice_b, signed char* lattice_w, cons
         b_orig_j = 2*j +1;
         w_orig_j = 2*j;
     }
+
     else{
         b_orig_j = 2*j;
         w_orig_j = 2*j + 1;
@@ -296,7 +300,7 @@ __global__ void calc_energy(
 
     const long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
 
-    if (tid>num_lattices*nx*ny) return;
+    if (tid >= num_lattices*nx*ny) return;
     
     const int lid = tid/(nx*ny);
     const int offset = lid*nx*ny;
@@ -365,11 +369,11 @@ void calculate_B2(
     for (int i=0; i<num_lattices; i++){
         
         if (temp_storage_nx == 0){
-            cub::DeviceReduce::Sum(d_temp_nx, temp_storage_nx, d_sum + i*nx*ny/2, &d_store_sum[loc + i*num_iterations_seeds], nx*ny/2);
-            cudaMalloc(&d_temp_nx, temp_storage_nx);
+            CHECK_CUDA(cub::DeviceReduce::Sum(d_temp_nx, temp_storage_nx, d_sum + i*nx*ny/2, &d_store_sum[loc + i*num_iterations_seeds], nx*ny/2));
+            CHECK_CUDA(cudaMalloc(&d_temp_nx, temp_storage_nx));
         }
         
-        cub::DeviceReduce::Sum(d_temp_nx, temp_storage_nx, d_sum + i*nx*ny/2, &d_store_sum[loc + i*num_iterations_seeds], nx*ny/2);
+        CHECK_CUDA(cub::DeviceReduce::Sum(d_temp_nx, temp_storage_nx, d_sum + i*nx*ny/2, &d_store_sum[loc + i*num_iterations_seeds], nx*ny/2));
     }
 }
 
@@ -385,11 +389,11 @@ void calculate_energy(
     for (int i=0; i<num_lattices; i++){
 
         if (temp_storage_nx == 0){
-            cub::DeviceReduce::Sum(d_temp_nx, temp_storage_nx, d_energy + i*nx*ny/2, &d_store_energy[loc + i*num_iterations_seeds], nx*ny/2);
-            cudaMalloc(&d_temp_nx, temp_storage_nx);
+            CHECK_CUDA(cub::DeviceReduce::Sum(d_temp_nx, temp_storage_nx, d_energy + i*nx*ny/2, &d_store_energy[loc + i*num_iterations_seeds], nx*ny/2));
+            CHECK_CUDA(cudaMalloc(&d_temp_nx, temp_storage_nx));
         }
 
-        cub::DeviceReduce::Sum(d_temp_nx, temp_storage_nx, d_energy + i*nx*ny/2, &d_store_energy[loc + i*num_iterations_seeds], nx*ny/2);
+        CHECK_CUDA(cub::DeviceReduce::Sum(d_temp_nx, temp_storage_nx, d_energy + i*nx*ny/2, &d_store_energy[loc + i*num_iterations_seeds], nx*ny/2));
     }
 }
 
@@ -433,11 +437,11 @@ void calculate_weighted_energies(
     for (int i=0; i<num_lattices; i++){
 
         if (temp_storage_nis == 0){
-            cub::DeviceReduce::Sum(d_temp_nis, temp_storage_nis, d_weighted_energies + i*num_iterations_seeds, &d_error_weight[e + i*num_iterations_error], num_iterations_seeds);
-            cudaMalloc(&d_temp_nis, temp_storage_nis);
+            CHECK_CUDA(cub::DeviceReduce::Sum(d_temp_nis, temp_storage_nis, d_weighted_energies + i*num_iterations_seeds, &d_error_weight[e + i*num_iterations_error], num_iterations_seeds));
+            CHECK_CUDA(cudaMalloc(&d_temp_nis, temp_storage_nis));
         }
 
-        cub::DeviceReduce::Sum(d_temp_nis, temp_storage_nis, d_weighted_energies + i*num_iterations_seeds, &d_error_weight[e + i*num_iterations_error], num_iterations_seeds);
+        CHECK_CUDA(cub::DeviceReduce::Sum(d_temp_nis, temp_storage_nis, d_weighted_energies + i*num_iterations_seeds, &d_error_weight[e + i*num_iterations_error], num_iterations_seeds));
     }
 }
 
@@ -552,11 +556,11 @@ void update_ob(
 
     // Update black
     CHECK_CURAND(curandGenerateUniform(rng, randvals, num_lattices*nx*ny/2));
-    update_lattice_ob<true><<<blocks, THREADS>>>(lattice_b, lattice_w, randvals,interactions, inv_temp, nx, ny/2, num_lattices, coupling_constant);
+    update_lattice_ob<true><<<blocks, THREADS>>>(lattice_b, lattice_w, randvals, interactions, inv_temp, nx, ny/2, num_lattices, coupling_constant);
 
     // Update white
     CHECK_CURAND(curandGenerateUniform(rng, randvals, num_lattices*nx*ny/2));
-    update_lattice_ob<false><<<blocks, THREADS>>>(lattice_w, lattice_b, randvals,interactions, inv_temp, nx, ny/2, num_lattices, coupling_constant);
+    update_lattice_ob<false><<<blocks, THREADS>>>(lattice_w, lattice_b, randvals, interactions, inv_temp, nx, ny/2, num_lattices, coupling_constant);
 }
 
 template<bool is_black>
@@ -567,7 +571,7 @@ __global__ void calc_energy_ob(
 
     const long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
 
-    if (tid>num_lattices*nx*ny) return;
+    if (tid >= num_lattices*nx*ny) return;
     
     const int lid = tid/(nx*ny);
     const int offset = lid*nx*ny;
@@ -650,10 +654,10 @@ void calculate_energy_ob(
     for (int i=0; i<num_lattices; i++){
         
         if (temp_storage_nx==0){
-            cub::DeviceReduce::Sum(d_temp_nx, temp_storage_nx, d_energy + i*nx*ny/2, &d_store_energy[loc + i*num_iterations_seeds], nx*ny/2);
-            cudaMalloc(&d_temp_nx, temp_storage_nx);
+            CHECK_CUDA(cub::DeviceReduce::Sum(d_temp_nx, temp_storage_nx, d_energy + i*nx*ny/2, &d_store_energy[loc + i*num_iterations_seeds], nx*ny/2));
+            CHECK_CUDA(cudaMalloc(&d_temp_nx, temp_storage_nx));
         }
 
-        cub::DeviceReduce::Sum(d_temp_nx, temp_storage_nx, d_energy + i*nx*ny/2, &d_store_energy[loc + i*num_iterations_seeds], nx*ny/2);
+        CHECK_CUDA(cub::DeviceReduce::Sum(d_temp_nx, temp_storage_nx, d_energy + i*nx*ny/2, &d_store_energy[loc + i*num_iterations_seeds], nx*ny/2));
     }
 }

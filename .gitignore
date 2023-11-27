@@ -1,4 +1,4 @@
-
-.nv
-.ipynb_checkpoints
+*.log
+.nv/
+*.ipynb_checkpoints
 

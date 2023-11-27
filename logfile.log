@@ -149,4 +149,44 @@ Untracked files:
 	[31mscreenlog.0[m
 
 no changes added to commit (use "git add" and/or "git commit -a")
-[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec[00m$ 
+[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec[00m$ git add logfile.log
+[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec[00m$ git add open_boundary/Makefile 
+[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec[00m$ git add t[Kopen_boundary/test
+[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec[00m$ git commit -m "Merge"
+[main 93a6f7d] Merge
+[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec[00m$ #[Kgit pull origin
+Username for 'https://git.hb.dfki.de': mbeuerle
+Password for 'https://mbeuerle@git.hb.dfki.de': 
+Already up to date.
+[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec[00m$ git push origin
+Username for 'https://git.hb.dfki.de': mbeuerle
+Password for 'https://mbeuerle@git.hb.dfki.de': 
+Enumerating objects: 41, done.
+Counting objects:   2% (1/38)Counting objects:   5% (2/38)Counting objects:   7% (3/38)Counting objects:  10% (4/38)Counting objects:  13% (5/38)Counting objects:  15% (6/38)Counting objects:  18% (7/38)Counting objects:  21% (8/38)Counting objects:  23% (9/38)Counting objects:  26% (10/38)Counting objects:  28% (11/38)Counting objects:  31% (12/38)Counting objects:  34% (13/38)Counting objects:  36% (14/38)Counting objects:  39% (15/38)Counting objects:  42% (16/38)Counting objects:  44% (17/38)Counting objects:  47% (18/38)Counting objects:  50% (19/38)Counting objects:  52% (20/38)Counting objects:  55% (21/38)Counting objects:  57% (22/38)Counting objects:  60% (23/38)Counting objects:  63% (24/38)Counting objects:  65% (25/38)Counting objects:  68% (26/38)Counting objects:  71% (27/38)Counting objects:  73% (28/38)Counting objects:  76% (29/38)Counting objects:  78% (30/38)Counting objects:  81% (31/38)Counting objects:  84% (32/38)Counting objects:  86% (33/38)Counting objects:  89% (34/38)Counting objects:  92% (35/38)Counting objects:  94% (36/38)Counting objects:  97% (37/38)Counting objects: 100% (38/38)Counting objects: 100% (38/38), done.
+Delta compression using up to 64 threads
+Compressing objects:   4% (1/23)Compressing objects:   8% (2/23)Compressing objects:  13% (3/23)Compressing objects:  17% (4/23)Compressing objects:  21% (5/23)Compressing objects:  26% (6/23)Compressing objects:  30% (7/23)Compressing objects:  34% (8/23)Compressing objects:  39% (9/23)Compressing objects:  43% (10/23)Compressing objects:  47% (11/23)Compressing objects:  52% (12/23)Compressing objects:  56% (13/23)Compressing objects:  60% (14/23)Compressing objects:  65% (15/23)Compressing objects:  69% (16/23)Compressing objects:  73% (17/23)Compressing objects:  78% (18/23)Compressing objects:  82% (19/23)Compressing objects:  86% (20/23)Compressing objects:  91% (21/23)Compressing objects:  95% (22/23)Compressing objects: 100% (23/23)Compressing objects: 100% (23/23), done.
+Writing objects:   4% (1/23)Writing objects:   8% (2/23)Writing objects:  13% (3/23)Writing objects:  17% (4/23)Writing objects:  21% (5/23)Writing objects:  26% (6/23)Writing objects:  30% (7/23)Writing objects:  39% (9/23)Writing objects:  43% (10/23)Writing objects:  47% (11/23)Writing objects:  52% (12/23)Writing objects:  56% (13/23)Writing objects:  60% (14/23)Writing objects:  65% (15/23)Writing objects:  69% (16/23)Writing objects:  73% (17/23)Writing objects:  78% (18/23)Writing objects:  82% (19/23)Writing objects:  86% (20/23)Writing objects:  91% (21/23)Writing objects:  95% (22/23)Writing objects: 100% (23/23)Writing objects: 100% (23/23), 140.84 KiB | 1.22 MiB/s, done.
+Total 23 (delta 18), reused 0 (delta 0)
+To https://git.hb.dfki.de/quantum/quantum-error-correction/statmech/qec.git
+   3e705ad..93a6f7d  main -> main
+[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec[00m$ git commi[K[K[K[K[Kstatus
+On branch main
+Your branch is up to date with 'origin/main'.
+
+Changes not staged for commit:
+  (use "git add/rm <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	[31mmodified:   .gitignore[m
+	[31mmodified:   .nv/ComputeCache/index[m
+	[31mmodified:   logfile.log[m
+	[31mdeleted:    open_boundary/results/12_cluster/L_12_p_0.060000_ns_200_ne_200_ni_1000_nw_100.txt[m
+	[31mmodified:   sbatch_new.slr[m
+	[31mdeleted:    slurm-499.out[m
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	[31mlogfile.log~3e705ade48a2f9f1d382acbf6d9a91bb8b3a15dc[m
+	[31mscreenlog.0[m
+
+no changes added to commit (use "git add" and/or "git commit -a")
+[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec[00m$ git 

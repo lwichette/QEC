@@ -20,6 +20,7 @@
 using namespace std;
 
 namespace po = boost::program_options;
+namespace fs = std::filesystem;
 
 int main(int argc, char **argv){
 
@@ -88,11 +89,14 @@ int main(int argc, char **argv){
         folderName = vm["folder"].as<std::string>();
     }
 
-    if (std::filesystem::create_directory("results/" + folderName)) {
-        std::cout << "Folder created successfully: " << folderName << std::endl;
-    } else {
-        std::cerr << "Failed to create folder: " << folderName << std::endl;
-        return 0;
+    std::string folderPath = "results/" + folderName;
+
+    if (!fs::exists(folderPath)) { 
+        if (fs::create_directory(folderPath)) {
+            std::cout << "Directory created successfully." << std::endl;
+        } else {
+            std::cout << "Failed to create directory." << std::endl;
+        }
     }
 
     std::vector<float> inv_temp;
@@ -118,6 +122,16 @@ int main(int argc, char **argv){
     for(int ls = 0; ls < L_size.size(); ls++){
         
         int L = L_size[ls];
+        
+        std::string result_name = std::string("L_") + std::to_string(L) + std::string("_p_") + std::to_string(p) + std::string("_ns_") + std::to_string(num_iterations_seeds) + std::string("_ne_") + std::to_string(num_iterations_error) + std::string("_ni_") + std::to_string(niters) + std::string("_nw_") + std::to_string(nwarmup) + std::string(".txt");
+
+        cout << result_name << endl;
+
+        if (fs::exists(folderPath + "/" + result_name)){
+            cout << "Results already exist" << result_name << std::endl;
+            cout << "Continuing with next lattice size" << endl;
+            continue;
+        }
 
         cout << "Started Simulation of Lattice " << L << endl;
         
@@ -328,7 +342,7 @@ int main(int argc, char **argv){
         printf("Elapsed time for temperature loop min %f \n", duration/60);
 
         std::ofstream f;
-        f.open("results/" + folderName + std::string("/L_") + std::to_string(L) + std::string("_p_") + std::to_string(p) + std::string("_ns_") + std::to_string(num_iterations_seeds) + std::string("_ne_") + std::to_string(num_iterations_error) + std::string("_ni_") + std::to_string(niters) + std::string("_nw_") + std::to_string(nwarmup) + std::string(".txt"));
+        f.open(folderPath + "/" + result_name);
         if (f.is_open()) {
             for (int i = 0; i < num_lattices; i++) {
                 f << psi[i] << " " << 1/inv_temp[i] << "\n";

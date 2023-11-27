@@ -12534,4 +12534,1283 @@ Frac0.0315346
 4.67811e+08
 Frac0.0145092
 Elapsed time for temperature loop min 2297.916667 
+[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ [K[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ ./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 50000 --nw 100 --nl 22 --nrt 1 --L 256 --folder 256_all_spins_50k
+Failed to create folder: 256_all_spins_50k
+[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ ^C
+[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ ./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 50000 --nw 100 --nl 22 --nrt 1 --L 256 --folder 256_all_spins_50k[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ make[K
+[K[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C
+/usr/local/cuda/bin/nvcc -std=c++17 -O3 -lineinfo -arch=sm_70 -Xptxas=-v  -I ../header -I /usr/share/doc ../header/utils.cu test.cu -o test -lcurand -lboost_program_options
+ptxas info    : 35 bytes gmem
+ptxas info    : Compiling entry function '_ZN3cub18DeviceReduceKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_EEvT0_T1_T2_NS_13GridEvenShareIS8_EET3_' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub18DeviceReduceKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_EEvT0_T1_T2_NS_13GridEvenShareIS8_EET3_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 40 registers, 44 bytes smem, 413 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN3cub28DeviceReduceSingleTileKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_fEEvT0_T1_T2_T3_T4_' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub28DeviceReduceSingleTileKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_fEEvT0_T1_T2_T3_T4_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 47 registers, 44 bytes smem, 380 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN3cub18DeviceReduceKernelINS_18DeviceReducePolicyIN6thrust7complexIfEES4_iNS_3SumEE9Policy600EPS4_S8_iS5_EEvT0_T1_T2_NS_13GridEvenShareISB_EET3_' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub18DeviceReduceKernelINS_18DeviceReducePolicyIN6thrust7complexIfEES4_iNS_3SumEE9Policy600EPS4_S8_iS5_EEvT0_T1_T2_NS_13GridEvenShareISB_EET3_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 32 registers, 80 bytes smem, 413 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN3cub28DeviceReduceSingleTileKernelINS_18DeviceReducePolicyIN6thrust7complexIfEES4_iNS_3SumEE9Policy600EPS4_S8_iS5_S4_EEvT0_T1_T2_T3_T4_' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub28DeviceReduceSingleTileKernelINS_18DeviceReducePolicyIN6thrust7complexIfEES4_iNS_3SumEE9Policy600EPS4_S8_iS5_S4_EEvT0_T1_T2_T3_T4_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 48 registers, 80 bytes smem, 384 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN3cub11EmptyKernelIvEEvv' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub11EmptyKernelIvEEvv
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 4 registers, 352 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z14calc_energy_obILb1EEvPfPaS1_S1_xxiPKf' for 'sm_70'
+ptxas info    : Function properties for _Z14calc_energy_obILb1EEvPfPaS1_S1_xxiPKf
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 42 registers, 416 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z17update_lattice_obILb0EEvPaS0_PKfS0_S2_xxiS2_' for 'sm_70'
+ptxas info    : Function properties for _Z17update_lattice_obILb0EEvPaS0_PKfS0_S2_xxiS2_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 38 registers, 424 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z17update_lattice_obILb1EEvPaS0_PKfS0_S2_xxiS2_' for 'sm_70'
+ptxas info    : Function properties for _Z17update_lattice_obILb1EEvPaS0_PKfS0_S2_xxiS2_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 38 registers, 424 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z17weighted_energiesPfS_PN6thrust7complexIfEES_ii' for 'sm_70'
+ptxas info    : Function properties for _Z17weighted_energiesPfS_PN6thrust7complexIfEES_ii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 20 registers, 392 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z8exp_betaPfS_iii' for 'sm_70'
+ptxas info    : Function properties for _Z8exp_betaPfS_iii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 20 registers, 380 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z10abs_squarePN6thrust7complexIfEEii' for 'sm_70'
+ptxas info    : Function properties for _Z10abs_squarePN6thrust7complexIfEEii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 15 registers, 368 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z11calc_energyILb1EEvPfPaS1_S1_xxiPKf' for 'sm_70'
+ptxas info    : Function properties for _Z11calc_energyILb1EEvPfPaS1_S1_xxiPKf
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 32 registers, 416 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z11B2_latticesPaS_PKfPN6thrust7complexIfEEiii' for 'sm_70'
+ptxas info    : Function properties for _Z11B2_latticesPaS_PKfPN6thrust7complexIfEEiii
+    32 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 32 registers, 396 bytes cmem[0], 8 bytes cmem[2]
+ptxas info    : Compiling entry function '_Z14update_latticeILb0EEvPaS0_PKfS0_S2_xxiS2_' for 'sm_70'
+ptxas info    : Function properties for _Z14update_latticeILb0EEvPaS0_PKfS0_S2_xxiS2_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 30 registers, 424 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z14update_latticeILb1EEvPaS0_PKfS0_S2_xxiS2_' for 'sm_70'
+ptxas info    : Function properties for _Z14update_latticeILb1EEvPaS0_PKfS0_S2_xxiS2_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 31 registers, 424 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z10init_spinsPaPKfxxi' for 'sm_70'
+ptxas info    : Function properties for _Z10init_spinsPaPKfxxi
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 10 registers, 388 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z15init_randombondPaPKfxxif' for 'sm_70'
+ptxas info    : Function properties for _Z15init_randombondPaPKfxxif
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 12 registers, 392 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z13init_spins_upPaxxi' for 'sm_70'
+ptxas info    : Function properties for _Z13init_spins_upPaxxi
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 10 registers, 380 bytes cmem[0]
+ptxas info    : 15 bytes gmem
+ptxas info    : Compiling entry function '_ZN6thrust8cuda_cub4core13_kernel_agentINS0_14__parallel_for16ParallelForAgentINS0_11__transform17unary_transform_fIPiS7_NS5_14no_stencil_tagENS_8identityIiEENS5_21always_true_predicateEEElEESC_lEEvT0_T1_' for 'sm_70'
+ptxas info    : Function properties for _ZN6thrust8cuda_cub4core13_kernel_agentINS0_14__parallel_for16ParallelForAgentINS0_11__transform17unary_transform_fIPiS7_NS5_14no_stencil_tagENS_8identityIiEENS5_21always_true_predicateEEElEESC_lEEvT0_T1_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 12 registers, 384 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN6thrust8cuda_cub4core13_kernel_agentINS0_15__reduce_by_key16ReduceByKeyAgentIPiS5_S5_S5_NS_8equal_toIiEENS_4plusIiEES5_iEES5_S5_S5_S5_S5_N3cub24ReduceByKeyScanTileStateIiiLb1EEES7_S9_iiEEvT0_T1_T2_T3_T4_T5_T6_T7_T8_T9_' for 'sm_70'
+ptxas info    : Function properties for _ZN6thrust8cuda_cub4core13_kernel_agentINS0_15__reduce_by_key16ReduceByKeyAgentIPiS5_S5_S5_NS_8equal_toIiEENS_4plusIiEES5_iEES5_S5_S5_S5_S5_N3cub24ReduceByKeyScanTileStateIiiLb1EEES7_S9_iiEEvT0_T1_T2_T3_T4_T5_T6_T7_T8_T9_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 62 registers, 412 bytes cmem[0], 8 bytes cmem[2]
+ptxas info    : Compiling entry function '_ZN6thrust8cuda_cub4core13_kernel_agentINS0_15__reduce_by_key9InitAgentIN3cub24ReduceByKeyScanTileStateIiiLb1EEEiPiEES7_iS8_EEvT0_T1_T2_' for 'sm_70'
+ptxas info    : Function properties for _ZN6thrust8cuda_cub4core13_kernel_agentINS0_15__reduce_by_key9InitAgentIN3cub24ReduceByKeyScanTileStateIiiLb1EEEiPiEES7_iS8_EEvT0_T1_T2_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 14 registers, 376 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN3cub11EmptyKernelIvEEvv' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub11EmptyKernelIvEEvv
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 4 registers, 352 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z9init_keysPiiii' for 'sm_70'
+ptxas info    : Function properties for _Z9init_keysPiiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 22 registers, 372 bytes cmem[0]
+[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ make
+/usr/local/cuda/bin/nvcc -std=c++17 -O3 -lineinfo -arch=sm_70 -Xptxas=-v  -I ../header -I /usr/share/doc ../header/utils.cu test.cu -o test -lcurand -lboost_program_options
+ptxas info    : 35 bytes gmem
+ptxas info    : Compiling entry function '_ZN3cub18DeviceReduceKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_EEvT0_T1_T2_NS_13GridEvenShareIS8_EET3_' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub18DeviceReduceKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_EEvT0_T1_T2_NS_13GridEvenShareIS8_EET3_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 40 registers, 44 bytes smem, 413 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN3cub28DeviceReduceSingleTileKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_fEEvT0_T1_T2_T3_T4_' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub28DeviceReduceSingleTileKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_fEEvT0_T1_T2_T3_T4_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 47 registers, 44 bytes smem, 380 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN3cub18DeviceReduceKernelINS_18DeviceReducePolicyIN6thrust7complexIfEES4_iNS_3SumEE9Policy600EPS4_S8_iS5_EEvT0_T1_T2_NS_13GridEvenShareISB_EET3_' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub18DeviceReduceKernelINS_18DeviceReducePolicyIN6thrust7complexIfEES4_iNS_3SumEE9Policy600EPS4_S8_iS5_EEvT0_T1_T2_NS_13GridEvenShareISB_EET3_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 32 registers, 80 bytes smem, 413 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN3cub28DeviceReduceSingleTileKernelINS_18DeviceReducePolicyIN6thrust7complexIfEES4_iNS_3SumEE9Policy600EPS4_S8_iS5_S4_EEvT0_T1_T2_T3_T4_' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub28DeviceReduceSingleTileKernelINS_18DeviceReducePolicyIN6thrust7complexIfEES4_iNS_3SumEE9Policy600EPS4_S8_iS5_S4_EEvT0_T1_T2_T3_T4_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 48 registers, 80 bytes smem, 384 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN3cub11EmptyKernelIvEEvv' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub11EmptyKernelIvEEvv
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 4 registers, 352 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z14calc_energy_obILb1EEvPfPaS1_S1_xxiPKf' for 'sm_70'
+ptxas info    : Function properties for _Z14calc_energy_obILb1EEvPfPaS1_S1_xxiPKf
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 42 registers, 416 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z17update_lattice_obILb0EEvPaS0_PKfS0_S2_xxiS2_' for 'sm_70'
+ptxas info    : Function properties for _Z17update_lattice_obILb0EEvPaS0_PKfS0_S2_xxiS2_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 38 registers, 424 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z17update_lattice_obILb1EEvPaS0_PKfS0_S2_xxiS2_' for 'sm_70'
+ptxas info    : Function properties for _Z17update_lattice_obILb1EEvPaS0_PKfS0_S2_xxiS2_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 38 registers, 424 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z17weighted_energiesPfS_PN6thrust7complexIfEES_ii' for 'sm_70'
+ptxas info    : Function properties for _Z17weighted_energiesPfS_PN6thrust7complexIfEES_ii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 20 registers, 392 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z8exp_betaPfS_iii' for 'sm_70'
+ptxas info    : Function properties for _Z8exp_betaPfS_iii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 20 registers, 380 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z10abs_squarePN6thrust7complexIfEEii' for 'sm_70'
+ptxas info    : Function properties for _Z10abs_squarePN6thrust7complexIfEEii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 15 registers, 368 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z11calc_energyILb1EEvPfPaS1_S1_xxiPKf' for 'sm_70'
+ptxas info    : Function properties for _Z11calc_energyILb1EEvPfPaS1_S1_xxiPKf
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 32 registers, 416 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z11B2_latticesPaS_PKfPN6thrust7complexIfEEiii' for 'sm_70'
+ptxas info    : Function properties for _Z11B2_latticesPaS_PKfPN6thrust7complexIfEEiii
+    32 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 32 registers, 396 bytes cmem[0], 8 bytes cmem[2]
+ptxas info    : Compiling entry function '_Z14update_latticeILb0EEvPaS0_PKfS0_S2_xxiS2_' for 'sm_70'
+ptxas info    : Function properties for _Z14update_latticeILb0EEvPaS0_PKfS0_S2_xxiS2_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 30 registers, 424 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z14update_latticeILb1EEvPaS0_PKfS0_S2_xxiS2_' for 'sm_70'
+ptxas info    : Function properties for _Z14update_latticeILb1EEvPaS0_PKfS0_S2_xxiS2_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 31 registers, 424 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z10init_spinsPaPKfxxi' for 'sm_70'
+ptxas info    : Function properties for _Z10init_spinsPaPKfxxi
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 10 registers, 388 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z15init_randombondPaPKfxxif' for 'sm_70'
+ptxas info    : Function properties for _Z15init_randombondPaPKfxxif
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 12 registers, 392 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z13init_spins_upPaxxi' for 'sm_70'
+ptxas info    : Function properties for _Z13init_spins_upPaxxi
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 10 registers, 380 bytes cmem[0]
+ptxas info    : 15 bytes gmem
+ptxas info    : Compiling entry function '_ZN6thrust8cuda_cub4core13_kernel_agentINS0_14__parallel_for16ParallelForAgentINS0_11__transform17unary_transform_fIPiS7_NS5_14no_stencil_tagENS_8identityIiEENS5_21always_true_predicateEEElEESC_lEEvT0_T1_' for 'sm_70'
+ptxas info    : Function properties for _ZN6thrust8cuda_cub4core13_kernel_agentINS0_14__parallel_for16ParallelForAgentINS0_11__transform17unary_transform_fIPiS7_NS5_14no_stencil_tagENS_8identityIiEENS5_21always_true_predicateEEElEESC_lEEvT0_T1_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 12 registers, 384 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN6thrust8cuda_cub4core13_kernel_agentINS0_15__reduce_by_key16ReduceByKeyAgentIPiS5_S5_S5_NS_8equal_toIiEENS_4plusIiEES5_iEES5_S5_S5_S5_S5_N3cub24ReduceByKeyScanTileStateIiiLb1EEES7_S9_iiEEvT0_T1_T2_T3_T4_T5_T6_T7_T8_T9_' for 'sm_70'
+ptxas info    : Function properties for _ZN6thrust8cuda_cub4core13_kernel_agentINS0_15__reduce_by_key16ReduceByKeyAgentIPiS5_S5_S5_NS_8equal_toIiEENS_4plusIiEES5_iEES5_S5_S5_S5_S5_N3cub24ReduceByKeyScanTileStateIiiLb1EEES7_S9_iiEEvT0_T1_T2_T3_T4_T5_T6_T7_T8_T9_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 62 registers, 412 bytes cmem[0], 8 bytes cmem[2]
+ptxas info    : Compiling entry function '_ZN6thrust8cuda_cub4core13_kernel_agentINS0_15__reduce_by_key9InitAgentIN3cub24ReduceByKeyScanTileStateIiiLb1EEEiPiEES7_iS8_EEvT0_T1_T2_' for 'sm_70'
+ptxas info    : Function properties for _ZN6thrust8cuda_cub4core13_kernel_agentINS0_15__reduce_by_key9InitAgentIN3cub24ReduceByKeyScanTileStateIiiLb1EEEiPiEES7_iS8_EEvT0_T1_T2_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 14 registers, 376 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN3cub11EmptyKernelIvEEvv' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub11EmptyKernelIvEEvv
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 4 registers, 352 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z9init_keysPiiii' for 'sm_70'
+ptxas info    : Function properties for _Z9init_keysPiiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 22 registers, 372 bytes cmem[0]
+[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ make./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 50000 --nw 100 --nl 22 --nrt 1 --L 256 --folder 256_all_spins_50k
+Failed to create folder: 256_all_spins_50k
+[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ v[Kls
+[0m[01;32mIndice_openboundary.ipynb[0m  [01;34mlattice[0m  [01;32mMakefile[0m  [01;32mopen_boundary[0m  [01;32mopen_boundary.cu[0m  [01;32mopen_boundary.ipynb[0m  [01;34mresults[0m  [01;32mtest[0m  [01;32mtest.cu[0m
+[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ vim Makefile 
+[?1049h[22;0;0t[>4;2m[?1h=[?2004h[1;55r[?12h[?12l[22;2t[22;1t[27m[29m[m[H[2J[?25l[55;1H"Makefile" 19L, 555C[2;1H▽[6n[2;1H  [1;1H[>c]10;?]11;?[1;1H[36mCUDA_HOME [m= /usr/local/cuda
+[36mCUDACC[m= [36m$(CUDA_HOME)[m/bin/nvcc
+[36mNVCC_FLAGS[m=-std=c++17 -O3 -lineinfo -arch=sm_70 -Xptxas=-v  -I ../header -I /usr/share/doc
+[36mLD[m=[36m$(CUDACC)
+LDFLAGS[m=-lcurand
+[36mLBOOSTFLAGS[m=-lboost_program_options
+[36mVALGRIND [m= valgrind
+[36mVALGRIND_FLAGS [m= --tool=memcheck --leak-check=full --track-origins=yes --error-limit=no
+
+[36mall:[m output
+
+[36moutput:[m open_boundary.cu
+[31m        [m[36m$(CUDACC)[m[31m [m[36m$(NVCC_FLAGS)[m[31m ../header/utils.cu open_boundary.cu -o open_boundary [m[36m$(LDFLAGS)[m[31m [m[36m$(LBOOSTFLAGS)
+
+run:[m output
+[31m        [m[36m$(VALGRIND)[m[31m [m[36m$(VALGRIND_FLAGS)[m[31m ./open_boundary[m
+
+[36mclean:[m
+[31m        rm -f open_boundary[m
+[94m~                                                                                                                                                                                                                  [21;1H~                                                                                                                                                                                                                  [22;1H~                                                                                                                                                                                                                  [23;1H~                                                                                                                                                                                                                  [24;1H~                                                                                                                                                                                                                  [25;1H~                                                                                                                                                                                                                  [26;1H~                                                                                                                                                                                                                  [27;1H~                                                                                                                                                                                                                  [28;1H~                                                                                                                                                                                                                  [29;1H~                                                                                                                                                                                                                  [30;1H~                                                                                                                                                                                                                  [31;1H~                                                                                                                                                                                                                  [32;1H~                                                                                                                                                                                                                  [33;1H~                                                                                                                                                                                                                  [34;1H~                                                                                                                                                                                                                  [35;1H~                                                                                                                                                                                                                  [36;1H~                                                                                                                                                                                                                  [37;1H~                                                                                                                                                                                                                  [38;1H~                                                                                                                                                                                                                  [39;1H~                                                                                                                                                                                                                  [40;1H~                                                                                                                                                                                                                  [41;1H~                                                                                                                                                                                                                  [42;1H~                                                                                                                                                                                                                  [43;1H~                                                                                                                                                                                                                  [44;1H~                                                                                                                                                                                                                  [45;1H~                                                                                                                                                                                                                  [46;1H~                                                                                                                                                                                                                  [47;1H~                                                                                                                                                                                                                  [48;1H~                                                                                                                                                                                                                  [49;1H~                                                                                                                                                                                                                  [50;1H~                                                                                                                                                                                                                  [51;1H~                                                                                                                                                                                                                  [52;1H~                                                                                                                                                                                                                  [53;1H~                                                                                                                                                                                                                  [54;1H~                                                                                                                                                                                                                  [m[55;194H1,1[11CAll[1;1H[?25h[27m[29m[m[H[2J[?25l[1;1H[1m[96mCUDA_HOME [m= /usr/local/cuda
+[1m[96mCUDACC[m= [1m[96m$(CUDA_HOME)[m/bin/nvcc
+[1m[96mNVCC_FLAGS[m=-std=c++17 -O3 -lineinfo -arch=sm_70 -Xptxas=-v  -I ../header -I /usr/share/doc
+[1m[96mLD[m=[1m[96m$(CUDACC)
+LDFLAGS[m=-lcurand
+[1m[96mLBOOSTFLAGS[m=-lboost_program_options
+[1m[96mVALGRIND [m= valgrind
+[1m[96mVALGRIND_FLAGS [m= --tool=memcheck --leak-check=full --track-origins=yes --error-limit=no
+
+[1m[96mall:[m output
+
+[1m[96moutput:[m open_boundary.cu
+[95m        [m[1m[96m$(CUDACC)[m[95m [m[1m[96m$(NVCC_FLAGS)[m[95m ../header/utils.cu open_boundary.cu -o open_boundary [m[1m[96m$(LDFLAGS)[m[95m [m[1m[96m$(LBOOSTFLAGS)
+
+run:[m output
+[95m        [m[1m[96m$(VALGRIND)[m[95m [m[1m[96m$(VALGRIND_FLAGS)[m[95m ./open_boundary[m
+
+[1m[96mclean:[m
+[95m        rm -f open_boundary[m
+[94m~                                                                                                                                                                                                                  [21;1H~                                                                                                                                                                                                                  [22;1H~                                                                                                                                                                                                                  [23;1H~                                                                                                                                                                                                                  [24;1H~                                                                                                                                                                                                                  [25;1H~                                                                                                                                                                                                                  [26;1H~                                                                                                                                                                                                                  [27;1H~                                                                                                                                                                                                                  [28;1H~                                                                                                                                                                                                                  [29;1H~                                                                                                                                                                                                                  [30;1H~                                                                                                                                                                                                                  [31;1H~                                                                                                                                                                                                                  [32;1H~                                                                                                                                                                                                                  [33;1H~                                                                                                                                                                                                                  [34;1H~                                                                                                                                                                                                                  [35;1H~                                                                                                                                                                                                                  [36;1H~                                                                                                                                                                                                                  [37;1H~                                                                                                                                                                                                                  [38;1H~                                                                                                                                                                                                                  [39;1H~                                                                                                                                                                                                                  [40;1H~                                                                                                                                                                                                                  [41;1H~                                                                                                                                                                                                                  [42;1H~                                                                                                                                                                                                                  [43;1H~                                                                                                                                                                                                                  [44;1H~                                                                                                                                                                                                                  [45;1H~                                                                                                                                                                                                                  [46;1H~                                                                                                                                                                                                                  [47;1H~                                                                                                                                                                                                                  [48;1H~                                                                                                                                                                                                                  [49;1H~                                                                                                                                                                                                                  [50;1H~                                                                                                                                                                                                                  [51;1H~                                                                                                                                                                                                                  [52;1H~                                                                                                                                                                                                                  [53;1H~                                                                                                                                                                                                                  [54;1H~                                                                                                                                                                                                                  [m[55;194H1,1[11CAll"Makefile" 19L, 555C[1;1H[?25h[?25l[55;184H^[[1;1H[55;184H  [1;1H[55;184H^[[1;1H[55;184H  [1;1H[?25h[?25l[55;184H:[1;1H[55;1H[K[55;1H:[?2004h[?25hq[?25l[?2004l[23;2t[23;1t[55;1H[K[55;1H[?2004l[?1l>[?25h[>4;m[?1049l[23;0;0t[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ vim Makefile ls[K
+[0m[01;32mIndice_openboundary.ipynb[0m  [01;34mlattice[0m  [01;32mMakefile[0m  [01;32mopen_boundary[0m  [01;32mopen_boundary.cu[0m  [01;32mopen_boundary.ipynb[0m  [01;34mresults[0m  [01;32mtest[0m  [01;32mtest.cu[0m
+[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ [K[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ [K[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ [K[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ [K[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ lsvim Makefile ls[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 50000 --nw 100 --nl 22 --nrt 1 --L 256 --folder 256_all_spins_50k[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C
+[C[C[C[C[C[C[C[C[C[K[K[K[K[K[K[K[K[K[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[K
+[K[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[K[K[K[K[K[K[Kcomparis on_old_results[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C --folder comparison[1P_old_results[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ [C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C --folder comparison_[1Pold_results[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ [C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C --folder comparison_o[1Pld_results[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ [C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C1 --folder comparison_old_results[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ [C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C2 --folder comparison_old_results[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ [C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C --folder comparison_old_results[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ [C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C2 --folder comparison_old_results[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ [C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C4 --folder comparison_old_results[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ [C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C --nw 100 --nl 22 --nrt 1 --L 12 24 --folder comparis[1Pon_old_results[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ [C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C000 --nw 100 --nl 22 --nrt 1 --L 12 24 --folder compariso[1Pn_old_results[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ [C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C1000 --nw 100 --nl 22 --nrt 1 --L 12 24 --folder comparison_old_results[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ [C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C
+
+Started Simulation of Lattice 12
+Error 0 of 200
+Error 1 of 200
+^C
+[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ ./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 1000 --nw 100 --nl 22 --nrt 1 --L 12 24 --folder comparison_old_results[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ ls[K
+[K[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cvim Makefile ls[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 50000 --nw 100 --nl 22 --nrt 1 --L 256 --folder 256_all_spins_50k[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ make[K
+[K[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C
+/usr/local/cuda/bin/nvcc -std=c++17 -O3 -lineinfo -arch=sm_70 -Xptxas=-v  -I ../header -I /usr/share/doc ../header/utils.cu open_boundary.cu -o open_boundary -lcurand -lboost_program_options
+ptxas info    : 35 bytes gmem
+ptxas info    : Compiling entry function '_ZN3cub18DeviceReduceKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_EEvT0_T1_T2_NS_13GridEvenShareIS8_EET3_' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub18DeviceReduceKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_EEvT0_T1_T2_NS_13GridEvenShareIS8_EET3_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 40 registers, 44 bytes smem, 413 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN3cub28DeviceReduceSingleTileKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_fEEvT0_T1_T2_T3_T4_' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub28DeviceReduceSingleTileKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_fEEvT0_T1_T2_T3_T4_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 47 registers, 44 bytes smem, 380 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN3cub18DeviceReduceKernelINS_18DeviceReducePolicyIN6thrust7complexIfEES4_iNS_3SumEE9Policy600EPS4_S8_iS5_EEvT0_T1_T2_NS_13GridEvenShareISB_EET3_' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub18DeviceReduceKernelINS_18DeviceReducePolicyIN6thrust7complexIfEES4_iNS_3SumEE9Policy600EPS4_S8_iS5_EEvT0_T1_T2_NS_13GridEvenShareISB_EET3_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 32 registers, 80 bytes smem, 413 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN3cub28DeviceReduceSingleTileKernelINS_18DeviceReducePolicyIN6thrust7complexIfEES4_iNS_3SumEE9Policy600EPS4_S8_iS5_S4_EEvT0_T1_T2_T3_T4_' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub28DeviceReduceSingleTileKernelINS_18DeviceReducePolicyIN6thrust7complexIfEES4_iNS_3SumEE9Policy600EPS4_S8_iS5_S4_EEvT0_T1_T2_T3_T4_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 48 registers, 80 bytes smem, 384 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN3cub11EmptyKernelIvEEvv' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub11EmptyKernelIvEEvv
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 4 registers, 352 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z14calc_energy_obILb1EEvPfPaS1_S1_xxiPKf' for 'sm_70'
+ptxas info    : Function properties for _Z14calc_energy_obILb1EEvPfPaS1_S1_xxiPKf
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 42 registers, 416 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z17update_lattice_obILb0EEvPaS0_PKfS0_S2_xxiS2_' for 'sm_70'
+ptxas info    : Function properties for _Z17update_lattice_obILb0EEvPaS0_PKfS0_S2_xxiS2_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 38 registers, 424 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z17update_lattice_obILb1EEvPaS0_PKfS0_S2_xxiS2_' for 'sm_70'
+ptxas info    : Function properties for _Z17update_lattice_obILb1EEvPaS0_PKfS0_S2_xxiS2_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 38 registers, 424 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z17weighted_energiesPfS_PN6thrust7complexIfEES_ii' for 'sm_70'
+ptxas info    : Function properties for _Z17weighted_energiesPfS_PN6thrust7complexIfEES_ii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 20 registers, 392 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z8exp_betaPfS_iii' for 'sm_70'
+ptxas info    : Function properties for _Z8exp_betaPfS_iii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 20 registers, 380 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z10abs_squarePN6thrust7complexIfEEii' for 'sm_70'
+ptxas info    : Function properties for _Z10abs_squarePN6thrust7complexIfEEii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 15 registers, 368 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z11calc_energyILb1EEvPfPaS1_S1_xxiPKf' for 'sm_70'
+ptxas info    : Function properties for _Z11calc_energyILb1EEvPfPaS1_S1_xxiPKf
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 32 registers, 416 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z11B2_latticesPaS_PKfPN6thrust7complexIfEEiii' for 'sm_70'
+ptxas info    : Function properties for _Z11B2_latticesPaS_PKfPN6thrust7complexIfEEiii
+    32 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 32 registers, 396 bytes cmem[0], 8 bytes cmem[2]
+ptxas info    : Compiling entry function '_Z14update_latticeILb0EEvPaS0_PKfS0_S2_xxiS2_' for 'sm_70'
+ptxas info    : Function properties for _Z14update_latticeILb0EEvPaS0_PKfS0_S2_xxiS2_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 30 registers, 424 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z14update_latticeILb1EEvPaS0_PKfS0_S2_xxiS2_' for 'sm_70'
+ptxas info    : Function properties for _Z14update_latticeILb1EEvPaS0_PKfS0_S2_xxiS2_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 31 registers, 424 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z10init_spinsPaPKfxxi' for 'sm_70'
+ptxas info    : Function properties for _Z10init_spinsPaPKfxxi
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 10 registers, 388 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z15init_randombondPaPKfxxif' for 'sm_70'
+ptxas info    : Function properties for _Z15init_randombondPaPKfxxif
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 12 registers, 392 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z13init_spins_upPaxxi' for 'sm_70'
+ptxas info    : Function properties for _Z13init_spins_upPaxxi
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 10 registers, 380 bytes cmem[0]
+ptxas info    : 11 bytes gmem
+ptxas info    : Compiling entry function '_ZN3cub18DeviceReduceKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_EEvT0_T1_T2_NS_13GridEvenShareIS8_EET3_' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub18DeviceReduceKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_EEvT0_T1_T2_NS_13GridEvenShareIS8_EET3_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 40 registers, 44 bytes smem, 413 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN3cub28DeviceReduceSingleTileKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_fEEvT0_T1_T2_T3_T4_' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub28DeviceReduceSingleTileKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_fEEvT0_T1_T2_T3_T4_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 47 registers, 44 bytes smem, 380 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN3cub11EmptyKernelIvEEvv' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub11EmptyKernelIvEEvv
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 4 registers, 352 bytes cmem[0]
+[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ make./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 1000 --nw 100 --nl 22 --nrt 1 --L 12 24 --folder comparison_old_results[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ ls[K
+[K[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cvim Makefile ls[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 1000 --nw 100 --nl 22 --nrt 1 --L 12 24 --folder comparison_old_results[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ make[K
+[K[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C
+/usr/local/cuda/bin/nvcc -std=c++17 -O3 -lineinfo -arch=sm_70 -Xptxas=-v  -I ../header -I /usr/share/doc ../header/utils.cu open_boundary.cu -o open_boundary -lcurand -lboost_program_options
+ptxas info    : 35 bytes gmem
+ptxas info    : Compiling entry function '_ZN3cub18DeviceReduceKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_EEvT0_T1_T2_NS_13GridEvenShareIS8_EET3_' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub18DeviceReduceKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_EEvT0_T1_T2_NS_13GridEvenShareIS8_EET3_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 40 registers, 44 bytes smem, 413 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN3cub28DeviceReduceSingleTileKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_fEEvT0_T1_T2_T3_T4_' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub28DeviceReduceSingleTileKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_fEEvT0_T1_T2_T3_T4_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 47 registers, 44 bytes smem, 380 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN3cub18DeviceReduceKernelINS_18DeviceReducePolicyIN6thrust7complexIfEES4_iNS_3SumEE9Policy600EPS4_S8_iS5_EEvT0_T1_T2_NS_13GridEvenShareISB_EET3_' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub18DeviceReduceKernelINS_18DeviceReducePolicyIN6thrust7complexIfEES4_iNS_3SumEE9Policy600EPS4_S8_iS5_EEvT0_T1_T2_NS_13GridEvenShareISB_EET3_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 32 registers, 80 bytes smem, 413 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN3cub28DeviceReduceSingleTileKernelINS_18DeviceReducePolicyIN6thrust7complexIfEES4_iNS_3SumEE9Policy600EPS4_S8_iS5_S4_EEvT0_T1_T2_T3_T4_' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub28DeviceReduceSingleTileKernelINS_18DeviceReducePolicyIN6thrust7complexIfEES4_iNS_3SumEE9Policy600EPS4_S8_iS5_S4_EEvT0_T1_T2_T3_T4_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 48 registers, 80 bytes smem, 384 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN3cub11EmptyKernelIvEEvv' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub11EmptyKernelIvEEvv
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 4 registers, 352 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z14calc_energy_obILb1EEvPfPaS1_S1_xxiPKf' for 'sm_70'
+ptxas info    : Function properties for _Z14calc_energy_obILb1EEvPfPaS1_S1_xxiPKf
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 42 registers, 416 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z17update_lattice_obILb0EEvPaS0_PKfS0_S2_xxiS2_' for 'sm_70'
+ptxas info    : Function properties for _Z17update_lattice_obILb0EEvPaS0_PKfS0_S2_xxiS2_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 38 registers, 424 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z17update_lattice_obILb1EEvPaS0_PKfS0_S2_xxiS2_' for 'sm_70'
+ptxas info    : Function properties for _Z17update_lattice_obILb1EEvPaS0_PKfS0_S2_xxiS2_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 38 registers, 424 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z17weighted_energiesPfS_PN6thrust7complexIfEES_ii' for 'sm_70'
+ptxas info    : Function properties for _Z17weighted_energiesPfS_PN6thrust7complexIfEES_ii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 20 registers, 392 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z8exp_betaPfS_iii' for 'sm_70'
+ptxas info    : Function properties for _Z8exp_betaPfS_iii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 20 registers, 380 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z10abs_squarePN6thrust7complexIfEEii' for 'sm_70'
+ptxas info    : Function properties for _Z10abs_squarePN6thrust7complexIfEEii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 15 registers, 368 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z11calc_energyILb1EEvPfPaS1_S1_xxiPKf' for 'sm_70'
+ptxas info    : Function properties for _Z11calc_energyILb1EEvPfPaS1_S1_xxiPKf
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 32 registers, 416 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z11B2_latticesPaS_PKfPN6thrust7complexIfEEiii' for 'sm_70'
+ptxas info    : Function properties for _Z11B2_latticesPaS_PKfPN6thrust7complexIfEEiii
+    32 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 32 registers, 396 bytes cmem[0], 8 bytes cmem[2]
+ptxas info    : Compiling entry function '_Z14update_latticeILb0EEvPaS0_PKfS0_S2_xxiS2_' for 'sm_70'
+ptxas info    : Function properties for _Z14update_latticeILb0EEvPaS0_PKfS0_S2_xxiS2_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 30 registers, 424 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z14update_latticeILb1EEvPaS0_PKfS0_S2_xxiS2_' for 'sm_70'
+ptxas info    : Function properties for _Z14update_latticeILb1EEvPaS0_PKfS0_S2_xxiS2_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 31 registers, 424 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z10init_spinsPaPKfxxi' for 'sm_70'
+ptxas info    : Function properties for _Z10init_spinsPaPKfxxi
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 10 registers, 388 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z15init_randombondPaPKfxxif' for 'sm_70'
+ptxas info    : Function properties for _Z15init_randombondPaPKfxxif
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 12 registers, 392 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z13init_spins_upPaxxi' for 'sm_70'
+ptxas info    : Function properties for _Z13init_spins_upPaxxi
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 10 registers, 380 bytes cmem[0]
+ptxas info    : 11 bytes gmem
+ptxas info    : Compiling entry function '_ZN3cub18DeviceReduceKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_EEvT0_T1_T2_NS_13GridEvenShareIS8_EET3_' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub18DeviceReduceKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_EEvT0_T1_T2_NS_13GridEvenShareIS8_EET3_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 40 registers, 44 bytes smem, 413 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN3cub28DeviceReduceSingleTileKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_fEEvT0_T1_T2_T3_T4_' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub28DeviceReduceSingleTileKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_fEEvT0_T1_T2_T3_T4_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 47 registers, 44 bytes smem, 380 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN3cub11EmptyKernelIvEEvv' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub11EmptyKernelIvEEvv
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 4 registers, 352 bytes cmem[0]
+[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ make./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 1000 --nw 100 --nl 22 --nrt 1 --L 12 24 --folder comparison_old_results
+/L_12_p_0.060000_ns_200_ne_200_ni_1000_nw_100.txt
+Started Simulation of Lattice 12
+Error 0 of 200
+Error 1 of 200
+^C
+[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ ./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 1000 --nw 100 --nl 22 --nrt 1 --L 12 24 --folder comparison_old_results[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ make[K
+[K[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C
+/usr/local/cuda/bin/nvcc -std=c++17 -O3 -lineinfo -arch=sm_70 -Xptxas=-v  -I ../header -I /usr/share/doc ../header/utils.cu open_boundary.cu -o open_boundary -lcurand -lboost_program_options
+ptxas info    : 35 bytes gmem
+ptxas info    : Compiling entry function '_ZN3cub18DeviceReduceKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_EEvT0_T1_T2_NS_13GridEvenShareIS8_EET3_' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub18DeviceReduceKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_EEvT0_T1_T2_NS_13GridEvenShareIS8_EET3_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 40 registers, 44 bytes smem, 413 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN3cub28DeviceReduceSingleTileKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_fEEvT0_T1_T2_T3_T4_' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub28DeviceReduceSingleTileKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_fEEvT0_T1_T2_T3_T4_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 47 registers, 44 bytes smem, 380 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN3cub18DeviceReduceKernelINS_18DeviceReducePolicyIN6thrust7complexIfEES4_iNS_3SumEE9Policy600EPS4_S8_iS5_EEvT0_T1_T2_NS_13GridEvenShareISB_EET3_' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub18DeviceReduceKernelINS_18DeviceReducePolicyIN6thrust7complexIfEES4_iNS_3SumEE9Policy600EPS4_S8_iS5_EEvT0_T1_T2_NS_13GridEvenShareISB_EET3_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 32 registers, 80 bytes smem, 413 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN3cub28DeviceReduceSingleTileKernelINS_18DeviceReducePolicyIN6thrust7complexIfEES4_iNS_3SumEE9Policy600EPS4_S8_iS5_S4_EEvT0_T1_T2_T3_T4_' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub28DeviceReduceSingleTileKernelINS_18DeviceReducePolicyIN6thrust7complexIfEES4_iNS_3SumEE9Policy600EPS4_S8_iS5_S4_EEvT0_T1_T2_T3_T4_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 48 registers, 80 bytes smem, 384 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN3cub11EmptyKernelIvEEvv' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub11EmptyKernelIvEEvv
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 4 registers, 352 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z14calc_energy_obILb1EEvPfPaS1_S1_xxiPKf' for 'sm_70'
+ptxas info    : Function properties for _Z14calc_energy_obILb1EEvPfPaS1_S1_xxiPKf
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 42 registers, 416 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z17update_lattice_obILb0EEvPaS0_PKfS0_S2_xxiS2_' for 'sm_70'
+ptxas info    : Function properties for _Z17update_lattice_obILb0EEvPaS0_PKfS0_S2_xxiS2_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 38 registers, 424 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z17update_lattice_obILb1EEvPaS0_PKfS0_S2_xxiS2_' for 'sm_70'
+ptxas info    : Function properties for _Z17update_lattice_obILb1EEvPaS0_PKfS0_S2_xxiS2_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 38 registers, 424 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z17weighted_energiesPfS_PN6thrust7complexIfEES_ii' for 'sm_70'
+ptxas info    : Function properties for _Z17weighted_energiesPfS_PN6thrust7complexIfEES_ii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 20 registers, 392 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z8exp_betaPfS_iii' for 'sm_70'
+ptxas info    : Function properties for _Z8exp_betaPfS_iii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 20 registers, 380 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z10abs_squarePN6thrust7complexIfEEii' for 'sm_70'
+ptxas info    : Function properties for _Z10abs_squarePN6thrust7complexIfEEii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 15 registers, 368 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z11calc_energyILb1EEvPfPaS1_S1_xxiPKf' for 'sm_70'
+ptxas info    : Function properties for _Z11calc_energyILb1EEvPfPaS1_S1_xxiPKf
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 32 registers, 416 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z11B2_latticesPaS_PKfPN6thrust7complexIfEEiii' for 'sm_70'
+ptxas info    : Function properties for _Z11B2_latticesPaS_PKfPN6thrust7complexIfEEiii
+    32 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 32 registers, 396 bytes cmem[0], 8 bytes cmem[2]
+ptxas info    : Compiling entry function '_Z14update_latticeILb0EEvPaS0_PKfS0_S2_xxiS2_' for 'sm_70'
+ptxas info    : Function properties for _Z14update_latticeILb0EEvPaS0_PKfS0_S2_xxiS2_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 30 registers, 424 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z14update_latticeILb1EEvPaS0_PKfS0_S2_xxiS2_' for 'sm_70'
+ptxas info    : Function properties for _Z14update_latticeILb1EEvPaS0_PKfS0_S2_xxiS2_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 31 registers, 424 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z10init_spinsPaPKfxxi' for 'sm_70'
+ptxas info    : Function properties for _Z10init_spinsPaPKfxxi
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 10 registers, 388 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z15init_randombondPaPKfxxif' for 'sm_70'
+ptxas info    : Function properties for _Z15init_randombondPaPKfxxif
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 12 registers, 392 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z13init_spins_upPaxxi' for 'sm_70'
+ptxas info    : Function properties for _Z13init_spins_upPaxxi
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 10 registers, 380 bytes cmem[0]
+ptxas info    : 11 bytes gmem
+ptxas info    : Compiling entry function '_ZN3cub18DeviceReduceKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_EEvT0_T1_T2_NS_13GridEvenShareIS8_EET3_' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub18DeviceReduceKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_EEvT0_T1_T2_NS_13GridEvenShareIS8_EET3_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 40 registers, 44 bytes smem, 413 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN3cub28DeviceReduceSingleTileKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_fEEvT0_T1_T2_T3_T4_' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub28DeviceReduceSingleTileKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_fEEvT0_T1_T2_T3_T4_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 47 registers, 44 bytes smem, 380 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN3cub11EmptyKernelIvEEvv' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub11EmptyKernelIvEEvv
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 4 registers, 352 bytes cmem[0]
+[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ make./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 1000 --nw 100 --nl 22 --nrt 1 --L 12 24 --folder comparison_old_results
+L_12_p_0.060000_ns_200_ne_200_ni_1000_nw_100.txt
+Started Simulation of Lattice 12
+Error 0 of 200
+Error 1 of 200
+Error 2 of 200
+Error 3 of 200
+^C
+[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ ./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 1000 --nw 100 --nl 22 --nrt 1 --L 12 24 --folder comparison_old_results[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[K
+[K[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[K[K[K[K[K[Kall_spi ns_up[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C --folder all_spins[1P_up[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ [C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C --folder all_spins_[1Pup[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ [C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C2 --folder all_spins_up[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ [C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C0 --folder all_spins_up[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ [C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C000 --nw 100 --nl 22 --nrt 1 --L 12 20 --folder all_spins[1P_up[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ [C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C2000 --nw 100 --nl 22 --nrt 1 --L 12 20 --folder all_spins_up[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ [C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C0 --nw 100 --nl 22 --nrt 1 --L 12 20 --folder all_spins_up[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ [C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C
+
+L_12_p_0.060000_ns_200_ne_200_ni_20000_nw_100.txt
+Results already existL_12_p_0.060000_ns_200_ne_200_ni_20000_nw_100.txt
+Continuing with next lattice size
+L_20_p_0.060000_ns_200_ne_200_ni_20000_nw_100.txt
+Started Simulation of Lattice 20
+Error 0 of 200
+^C
+[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ ./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 20000 --nw 100 --nl 22 --nrt 1 --L 12 20 --folder all_spins_up[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ [C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C1000 --nw 100 --nl 22 --nrt 1 --L 12 24 --folder comparison_old_results[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ make[K
+[K[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C
+/usr/local/cuda/bin/nvcc -std=c++17 -O3 -lineinfo -arch=sm_70 -Xptxas=-v  -I ../header -I /usr/share/doc ../header/utils.cu open_boundary.cu -o open_boundary -lcurand -lboost_program_options
+ptxas info    : 35 bytes gmem
+ptxas info    : Compiling entry function '_ZN3cub18DeviceReduceKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_EEvT0_T1_T2_NS_13GridEvenShareIS8_EET3_' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub18DeviceReduceKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_EEvT0_T1_T2_NS_13GridEvenShareIS8_EET3_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 40 registers, 44 bytes smem, 413 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN3cub28DeviceReduceSingleTileKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_fEEvT0_T1_T2_T3_T4_' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub28DeviceReduceSingleTileKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_fEEvT0_T1_T2_T3_T4_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 47 registers, 44 bytes smem, 380 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN3cub18DeviceReduceKernelINS_18DeviceReducePolicyIN6thrust7complexIfEES4_iNS_3SumEE9Policy600EPS4_S8_iS5_EEvT0_T1_T2_NS_13GridEvenShareISB_EET3_' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub18DeviceReduceKernelINS_18DeviceReducePolicyIN6thrust7complexIfEES4_iNS_3SumEE9Policy600EPS4_S8_iS5_EEvT0_T1_T2_NS_13GridEvenShareISB_EET3_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 32 registers, 80 bytes smem, 413 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN3cub28DeviceReduceSingleTileKernelINS_18DeviceReducePolicyIN6thrust7complexIfEES4_iNS_3SumEE9Policy600EPS4_S8_iS5_S4_EEvT0_T1_T2_T3_T4_' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub28DeviceReduceSingleTileKernelINS_18DeviceReducePolicyIN6thrust7complexIfEES4_iNS_3SumEE9Policy600EPS4_S8_iS5_S4_EEvT0_T1_T2_T3_T4_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 48 registers, 80 bytes smem, 384 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN3cub11EmptyKernelIvEEvv' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub11EmptyKernelIvEEvv
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 4 registers, 352 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z14calc_energy_obILb1EEvPfPaS1_S1_xxiPKf' for 'sm_70'
+ptxas info    : Function properties for _Z14calc_energy_obILb1EEvPfPaS1_S1_xxiPKf
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 42 registers, 416 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z17update_lattice_obILb0EEvPaS0_PKfS0_S2_xxiS2_' for 'sm_70'
+ptxas info    : Function properties for _Z17update_lattice_obILb0EEvPaS0_PKfS0_S2_xxiS2_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 38 registers, 424 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z17update_lattice_obILb1EEvPaS0_PKfS0_S2_xxiS2_' for 'sm_70'
+ptxas info    : Function properties for _Z17update_lattice_obILb1EEvPaS0_PKfS0_S2_xxiS2_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 38 registers, 424 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z17weighted_energiesPfS_PN6thrust7complexIfEES_ii' for 'sm_70'
+ptxas info    : Function properties for _Z17weighted_energiesPfS_PN6thrust7complexIfEES_ii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 20 registers, 392 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z8exp_betaPfS_iii' for 'sm_70'
+ptxas info    : Function properties for _Z8exp_betaPfS_iii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 20 registers, 380 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z10abs_squarePN6thrust7complexIfEEii' for 'sm_70'
+ptxas info    : Function properties for _Z10abs_squarePN6thrust7complexIfEEii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 15 registers, 368 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z11calc_energyILb1EEvPfPaS1_S1_xxiPKf' for 'sm_70'
+ptxas info    : Function properties for _Z11calc_energyILb1EEvPfPaS1_S1_xxiPKf
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 32 registers, 416 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z11B2_latticesPaS_PKfPN6thrust7complexIfEEiii' for 'sm_70'
+ptxas info    : Function properties for _Z11B2_latticesPaS_PKfPN6thrust7complexIfEEiii
+    32 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 32 registers, 396 bytes cmem[0], 8 bytes cmem[2]
+ptxas info    : Compiling entry function '_Z14update_latticeILb0EEvPaS0_PKfS0_S2_xxiS2_' for 'sm_70'
+ptxas info    : Function properties for _Z14update_latticeILb0EEvPaS0_PKfS0_S2_xxiS2_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 30 registers, 424 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z14update_latticeILb1EEvPaS0_PKfS0_S2_xxiS2_' for 'sm_70'
+ptxas info    : Function properties for _Z14update_latticeILb1EEvPaS0_PKfS0_S2_xxiS2_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 31 registers, 424 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z10init_spinsPaPKfxxi' for 'sm_70'
+ptxas info    : Function properties for _Z10init_spinsPaPKfxxi
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 10 registers, 388 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z15init_randombondPaPKfxxif' for 'sm_70'
+ptxas info    : Function properties for _Z15init_randombondPaPKfxxif
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 12 registers, 392 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z13init_spins_upPaxxi' for 'sm_70'
+ptxas info    : Function properties for _Z13init_spins_upPaxxi
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 10 registers, 380 bytes cmem[0]
+ptxas info    : 11 bytes gmem
+ptxas info    : Compiling entry function '_ZN3cub18DeviceReduceKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_EEvT0_T1_T2_NS_13GridEvenShareIS8_EET3_' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub18DeviceReduceKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_EEvT0_T1_T2_NS_13GridEvenShareIS8_EET3_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 40 registers, 44 bytes smem, 413 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN3cub28DeviceReduceSingleTileKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_fEEvT0_T1_T2_T3_T4_' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub28DeviceReduceSingleTileKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_fEEvT0_T1_T2_T3_T4_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 47 registers, 44 bytes smem, 380 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN3cub11EmptyKernelIvEEvv' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub11EmptyKernelIvEEvv
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 4 registers, 352 bytes cmem[0]
+[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ make./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 20000 --nw 100 --nl 22 --nrt 1 --L 12 20 --folder all_spins_up[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ [C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C1000 --nw 100 --nl 22 --nrt 1 --L 12 24 --folder comparison_old_results[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ make[K
+[K[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 1000 --nw 100 --nl 22 --nrt 1 --L 12 24 --folder comparison_old_results[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ make[K
+[K[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 1000 --nw 100 --nl 22 --nrt 1 --L 12 24 --folder comparison_old_results[K[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ ./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 1000 --nw 100 --nl 22 --nrt 1 --L 12 24 --folder comparison_old_results[K[A[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ ./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 1000 --nw 100 --nl 22 --nrt 1 --L 12 24 --folder comparison_old_results[K[A[A[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ ./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 1000 --nw 100 --nl 22 --nrt 1 --L 12 24 --folder comparison_old_results[K[A[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ ./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 1000 --nw 100 --nl 22 --nrt 1 --L 12 24 --folder comparison_old_results[K[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ ./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 1000 --nw 100 --nl 22 --nrt 1 --L 12 24 --folder comparison_old_results[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ make[K
+[K[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake
+makemake: command not found
 [01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ 
+[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ 
+[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ 
+[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ asdmakemakenlogout[K[K[K[K[K[K[K[K[K[K[K[K[K[K[Kmake
+/usr/local/cuda/bin/nvcc -std=c++17 -O3 -lineinfo -arch=sm_70 -Xptxas=-v  -I ../header -I /usr/share/doc ../header/utils.cu open_boundary.cu -o open_boundary -lcurand -lboost_program_options
+ptxas info    : 35 bytes gmem
+ptxas info    : Compiling entry function '_ZN3cub18DeviceReduceKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_EEvT0_T1_T2_NS_13GridEvenShareIS8_EET3_' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub18DeviceReduceKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_EEvT0_T1_T2_NS_13GridEvenShareIS8_EET3_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 40 registers, 44 bytes smem, 413 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN3cub28DeviceReduceSingleTileKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_fEEvT0_T1_T2_T3_T4_' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub28DeviceReduceSingleTileKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_fEEvT0_T1_T2_T3_T4_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 47 registers, 44 bytes smem, 380 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN3cub18DeviceReduceKernelINS_18DeviceReducePolicyIN6thrust7complexIfEES4_iNS_3SumEE9Policy600EPS4_S8_iS5_EEvT0_T1_T2_NS_13GridEvenShareISB_EET3_' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub18DeviceReduceKernelINS_18DeviceReducePolicyIN6thrust7complexIfEES4_iNS_3SumEE9Policy600EPS4_S8_iS5_EEvT0_T1_T2_NS_13GridEvenShareISB_EET3_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 32 registers, 80 bytes smem, 413 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN3cub28DeviceReduceSingleTileKernelINS_18DeviceReducePolicyIN6thrust7complexIfEES4_iNS_3SumEE9Policy600EPS4_S8_iS5_S4_EEvT0_T1_T2_T3_T4_' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub28DeviceReduceSingleTileKernelINS_18DeviceReducePolicyIN6thrust7complexIfEES4_iNS_3SumEE9Policy600EPS4_S8_iS5_S4_EEvT0_T1_T2_T3_T4_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 48 registers, 80 bytes smem, 384 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN3cub11EmptyKernelIvEEvv' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub11EmptyKernelIvEEvv
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 4 registers, 352 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z14calc_energy_obILb1EEvPfPaS1_S1_xxiPKf' for 'sm_70'
+ptxas info    : Function properties for _Z14calc_energy_obILb1EEvPfPaS1_S1_xxiPKf
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 42 registers, 416 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z17update_lattice_obILb0EEvPaS0_PKfS0_S2_xxiS2_' for 'sm_70'
+ptxas info    : Function properties for _Z17update_lattice_obILb0EEvPaS0_PKfS0_S2_xxiS2_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 38 registers, 424 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z17update_lattice_obILb1EEvPaS0_PKfS0_S2_xxiS2_' for 'sm_70'
+ptxas info    : Function properties for _Z17update_lattice_obILb1EEvPaS0_PKfS0_S2_xxiS2_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 38 registers, 424 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z17weighted_energiesPfS_PN6thrust7complexIfEES_ii' for 'sm_70'
+ptxas info    : Function properties for _Z17weighted_energiesPfS_PN6thrust7complexIfEES_ii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 20 registers, 392 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z8exp_betaPfS_iii' for 'sm_70'
+ptxas info    : Function properties for _Z8exp_betaPfS_iii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 20 registers, 380 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z10abs_squarePN6thrust7complexIfEEii' for 'sm_70'
+ptxas info    : Function properties for _Z10abs_squarePN6thrust7complexIfEEii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 15 registers, 368 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z11calc_energyILb1EEvPfPaS1_S1_xxiPKf' for 'sm_70'
+ptxas info    : Function properties for _Z11calc_energyILb1EEvPfPaS1_S1_xxiPKf
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 32 registers, 416 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z11B2_latticesPaS_PKfPN6thrust7complexIfEEiii' for 'sm_70'
+ptxas info    : Function properties for _Z11B2_latticesPaS_PKfPN6thrust7complexIfEEiii
+    32 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 32 registers, 396 bytes cmem[0], 8 bytes cmem[2]
+ptxas info    : Compiling entry function '_Z14update_latticeILb0EEvPaS0_PKfS0_S2_xxiS2_' for 'sm_70'
+ptxas info    : Function properties for _Z14update_latticeILb0EEvPaS0_PKfS0_S2_xxiS2_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 30 registers, 424 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z14update_latticeILb1EEvPaS0_PKfS0_S2_xxiS2_' for 'sm_70'
+ptxas info    : Function properties for _Z14update_latticeILb1EEvPaS0_PKfS0_S2_xxiS2_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 31 registers, 424 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z10init_spinsPaPKfxxi' for 'sm_70'
+ptxas info    : Function properties for _Z10init_spinsPaPKfxxi
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 10 registers, 388 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z15init_randombondPaPKfxxif' for 'sm_70'
+ptxas info    : Function properties for _Z15init_randombondPaPKfxxif
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 12 registers, 392 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z13init_spins_upPaxxi' for 'sm_70'
+ptxas info    : Function properties for _Z13init_spins_upPaxxi
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 10 registers, 380 bytes cmem[0]
+ptxas info    : 11 bytes gmem
+ptxas info    : Compiling entry function '_ZN3cub18DeviceReduceKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_EEvT0_T1_T2_NS_13GridEvenShareIS8_EET3_' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub18DeviceReduceKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_EEvT0_T1_T2_NS_13GridEvenShareIS8_EET3_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 40 registers, 44 bytes smem, 413 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN3cub28DeviceReduceSingleTileKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_fEEvT0_T1_T2_T3_T4_' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub28DeviceReduceSingleTileKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_fEEvT0_T1_T2_T3_T4_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 47 registers, 44 bytes smem, 380 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN3cub11EmptyKernelIvEEvv' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub11EmptyKernelIvEEvv
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 4 registers, 352 bytes cmem[0]
+[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ makemake[Kmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 20000 --nw 100 --nl 22 --nrt 1 --L 12 20 --folder all_spins_up[K[K[K[K[K[K[K[K[K[K[K[Ktest_new[C[1P[1P[1@2[1P[1@1[1@4[C[1P[1P[1P[1P[1P[1@1[1@0[1@0
+Directory created successfully.
+L_12_p_0.060000_ns_200_ne_200_ni_100_nw_100.txt
+Started Simulation of Lattice 12
+Error 0 of 200
+Error 1 of 200
+Error 2 of 200
+Error 3 of 200
+Error 4 of 200
+Error 5 of 200
+Error 6 of 200
+Error 7 of 200
+Error 8 of 200
+Error 9 of 200
+Error 10 of 200
+Error 11 of 200
+Error 12 of 200
+Error 13 of 200
+Error 14 of 200
+Error 15 of 200
+Error 16 of 200
+Error 17 of 200
+Error 18 of 200
+Error 19 of 200
+Error 20 of 200
+Error 21 of 200
+Error 22 of 200
+Error 23 of 200
+Error 24 of 200
+Error 25 of 200
+Error 26 of 200
+Error 27 of 200
+Error 28 of 200
+Error 29 of 200
+Error 30 of 200
+Error 31 of 200
+Error 32 of 200
+Error 33 of 200
+Error 34 of 200
+Error 35 of 200
+Error 36 of 200
+Error 37 of 200
+Error 38 of 200
+Error 39 of 200
+Error 40 of 200
+Error 41 of 200
+Error 42 of 200
+Error 43 of 200
+Error 44 of 200
+Error 45 of 200
+Error 46 of 200
+Error 47 of 200
+Error 48 of 200
+Error 49 of 200
+Error 50 of 200
+Error 51 of 200
+Error 52 of 200
+Error 53 of 200
+Error 54 of 200
+Error 55 of 200
+Error 56 of 200
+Error 57 of 200
+Error 58 of 200
+Error 59 of 200
+Error 60 of 200
+Error 61 of 200
+Error 62 of 200
+Error 63 of 200
+Error 64 of 200
+Error 65 of 200
+Error 66 of 200
+Error 67 of 200
+Error 68 of 200
+Error 69 of 200
+Error 70 of 200
+Error 71 of 200
+Error 72 of 200
+Error 73 of 200
+Error 74 of 200
+Error 75 of 200
+Error 76 of 200
+Error 77 of 200
+Error 78 of 200
+Error 79 of 200
+Error 80 of 200
+Error 81 of 200
+Error 82 of 200
+Error 83 of 200
+Error 84 of 200
+Error 85 of 200
+Error 86 of 200
+Error 87 of 200
+Error 88 of 200
+Error 89 of 200
+Error 90 of 200
+Error 91 of 200
+Error 92 of 200
+Error 93 of 200
+Error 94 of 200
+Error 95 of 200
+Error 96 of 200
+Error 97 of 200
+Error 98 of 200
+Error 99 of 200
+Error 100 of 200
+Error 101 of 200
+Error 102 of 200
+Error 103 of 200
+Error 104 of 200
+Error 105 of 200
+Error 106 of 200
+Error 107 of 200
+Error 108 of 200
+Error 109 of 200
+Error 110 of 200
+Error 111 of 200
+Error 112 of 200
+Error 113 of 200
+Error 114 of 200
+Error 115 of 200
+Error 116 of 200
+Error 117 of 200
+Error 118 of 200
+Error 119 of 200
+Error 120 of 200
+Error 121 of 200
+Error 122 of 200
+Error 123 of 200
+Error 124 of 200
+Error 125 of 200
+Error 126 of 200
+Error 127 of 200
+Error 128 of 200
+Error 129 of 200
+Error 130 of 200
+Error 131 of 200
+Error 132 of 200
+Error 133 of 200
+Error 134 of 200
+Error 135 of 200
+Error 136 of 200
+Error 137 of 200
+Error 138 of 200
+Error 139 of 200
+Error 140 of 200
+Error 141 of 200
+Error 142 of 200
+Error 143 of 200
+Error 144 of 200
+Error 145 of 200
+Error 146 of 200
+Error 147 of 200
+Error 148 of 200
+Error 149 of 200
+Error 150 of 200
+Error 151 of 200
+Error 152 of 200
+Error 153 of 200
+Error 154 of 200
+Error 155 of 200
+Error 156 of 200
+Error 157 of 200
+Error 158 of 200
+Error 159 of 200
+Error 160 of 200
+Error 161 of 200
+Error 162 of 200
+Error 163 of 200
+Error 164 of 200
+Error 165 of 200
+Error 166 of 200
+Error 167 of 200
+Error 168 of 200
+Error 169 of 200
+Error 170 of 200
+Error 171 of 200
+Error 172 of 200
+Error 173 of 200
+Error 174 of 200
+Error 175 of 200
+Error 176 of 200
+Error 177 of 200
+Error 178 of 200
+Error 179 of 200
+Error 180 of 200
+Error 181 of 200
+Error 182 of 200
+Error 183 of 200
+Error 184 of 200
+Error 185 of 200
+Error 186 of 200
+Error 187 of 200
+Error 188 of 200
+Error 189 of 200
+Error 190 of 200
+Error 191 of 200
+Error 192 of 200
+Error 193 of 200
+Error 194 of 200
+Error 195 of 200
+Error 196 of 200
+Error 197 of 200
+Error 198 of 200
+Error 199 of 200
+Magnetic susceptibility
+3.76796e+06
+7968.05
+Frac471.884
+3.75433e+06
+8083.62
+Frac463.437
+3.72731e+06
+9364.05
+Frac397.045
+3.63604e+06
+13840.3
+Frac261.714
+3.55015e+06
+17280.2
+Frac204.446
+3.50377e+06
+20384.7
+Frac170.883
+3.41383e+06
+27490.5
+Frac123.182
+3.25322e+06
+33967.3
+Frac94.775
+3.10973e+06
+45775.7
+Frac66.9341
+2.92974e+06
+57359.9
+Frac50.0764
+2.6467e+06
+78740.5
+Frac32.6129
+2.37551e+06
+103451
+Frac21.9626
+2.15501e+06
+120057
+Frac16.95
+1.86344e+06
+136203
+Frac12.6814
+1.56852e+06
+163114
+Frac8.61612
+1.37269e+06
+169010
+Frac7.12198
+1.12363e+06
+178565
+Frac5.29253
+913966
+187375
+Frac3.87775
+766529
+188548
+Frac3.06543
+620032
+184471
+Frac2.36113
+519228
+178438
+Frac1.90986
+421221
+171008
+Frac1.46316
+Elapsed time for temperature loop min 1.683333 
+L_14_p_0.060000_ns_200_ne_200_ni_100_nw_100.txt
+Started Simulation of Lattice 14
+Error 0 of 200
+Error 1 of 200
+Error 2 of 200
+Error 3 of 200
+Error 4 of 200
+Error 5 of 200
+Error 6 of 200
+Error 7 of 200
+Error 8 of 200
+Error 9 of 200
+Error 10 of 200
+Error 11 of 200
+Error 12 of 200
+Error 13 of 200
+Error 14 of 200
+Error 15 of 200
+Error 16 of 200
+Error 17 of 200
+Error 18 of 200
+Error 19 of 200
+Error 20 of 200
+Error 21 of 200
+Error 22 of 200
+Error 23 of 200
+Error 24 of 200
+Error 25 of 200
+Error 26 of 200
+Error 27 of 200
+Error 28 of 200
+Error 29 of 200
+Error 30 of 200
+Error 31 of 200
+Error 32 of 200
+Error 33 of 200
+Error 34 of 200
+Error 35 of 200
+Error 36 of 200
+Error 37 of 200
+Error 38 of 200
+Error 39 of 200
+Error 40 of 200
+Error 41 of 200
+Error 42 of 200
+Error 43 of 200
+Error 44 of 200
+Error 45 of 200
+Error 46 of 200
+Error 47 of 200
+Error 48 of 200
+Error 49 of 200
+Error 50 of 200
+Error 51 of 200
+Error 52 of 200
+Error 53 of 200
+Error 54 of 200
+Error 55 of 200
+Error 56 of 200
+Error 57 of 200
+Error 58 of 200
+Error 59 of 200
+Error 60 of 200
+Error 61 of 200
+Error 62 of 200
+Error 63 of 200
+Error 64 of 200
+Error 65 of 200
+Error 66 of 200
+Error 67 of 200
+Error 68 of 200
+Error 69 of 200
+Error 70 of 200
+Error 71 of 200
+Error 72 of 200
+Error 73 of 200
+Error 74 of 200
+Error 75 of 200
+Error 76 of 200
+Error 77 of 200
+Error 78 of 200
+Error 79 of 200
+Error 80 of 200
+Error 81 of 200
+Error 82 of 200
+Error 83 of 200
+Error 84 of 200
+Error 85 of 200
+Error 86 of 200
+Error 87 of 200
+Error 88 of 200
+Error 89 of 200
+Error 90 of 200
+Error 91 of 200
+Error 92 of 200
+Error 93 of 200
+Error 94 of 200
+Error 95 of 200
+Error 96 of 200
+Error 97 of 200
+Error 98 of 200
+Error 99 of 200
+Error 100 of 200
+Error 101 of 200
+Error 102 of 200
+Error 103 of 200
+Error 104 of 200
+Error 105 of 200
+Error 106 of 200
+Error 107 of 200
+Error 108 of 200
+Error 109 of 200
+Error 110 of 200
+Error 111 of 200
+Error 112 of 200
+Error 113 of 200
+Error 114 of 200
+Error 115 of 200
+Error 116 of 200
+Error 117 of 200
+Error 118 of 200
+Error 119 of 200
+Error 120 of 200
+Error 121 of 200
+Error 122 of 200
+Error 123 of 200
+Error 124 of 200
+Error 125 of 200
+Error 126 of 200
+Error 127 of 200
+Error 128 of 200
+Error 129 of 200
+Error 130 of 200
+Error 131 of 200
+Error 132 of 200
+Error 133 of 200
+Error 134 of 200
+Error 135 of 200
+Error 136 of 200
+Error 137 of 200
+Error 138 of 200
+Error 139 of 200
+Error 140 of 200
+Error 141 of 200
+Error 142 of 200
+Error 143 of 200
+Error 144 of 200
+Error 145 of 200
+Error 146 of 200
+Error 147 of 200
+Error 148 of 200
+Error 149 of 200
+Error 150 of 200
+Error 151 of 200
+Error 152 of 200
+Error 153 of 200
+Error 154 of 200
+Error 155 of 200
+Error 156 of 200
+Error 157 of 200
+Error 158 of 200
+Error 159 of 200
+Error 160 of 200
+Error 161 of 200
+Error 162 of 200
+Error 163 of 200
+Error 164 of 200
+Error 165 of 200
+Error 166 of 200
+Error 167 of 200
+Error 168 of 200
+Error 169 of 200
+Error 170 of 200
+Error 171 of 200
+Error 172 of 200
+Error 173 of 200
+Error 174 of 200
+Error 175 of 200
+Error 176 of 200
+Error 177 of 200
+Error 178 of 200
+Error 179 of 200
+Error 180 of 200
+Error 181 of 200
+Error 182 of 200
+Error 183 of 200
+Error 184 of 200
+Error 185 of 200
+Error 186 of 200
+Error 187 of 200
+Error 188 of 200
+Error 189 of 200
+Error 190 of 200
+Error 191 of 200
+Error 192 of 200
+Error 193 of 200
+Error 194 of 200
+Error 195 of 200
+Error 196 of 200
+Error 197 of 200
+Error 198 of 200
+Error 199 of 200
+Magnetic susceptibility
+7.11016e+06
+8974.66
+Frac791.249
+7.00515e+06
+11252.3
+Frac621.554
+6.88769e+06
+14006.2
+Frac490.76
+6.78459e+06
+17857
+Frac378.939
+6.60696e+06
+25694.7
+Frac256.134
+6.54418e+06
+28970.6
+Frac224.891
+6.39151e+06
+33544.5
+Frac189.538
+6.19593e+06
+41624.4
+Frac147.853
+5.94068e+06
+59145.7
+Frac99.4415
+5.58351e+06
+80879.5
+Frac68.035
+5.19587e+06
+107639
+Frac47.2711
+4.66514e+06
+149495
+Frac30.206
+4.23232e+06
+175894
+Frac23.0618
+3.49837e+06
+233426
+Frac13.9871
+3.02667e+06
+269101
+Frac10.2473
+2.36673e+06
+303168
+Frac6.80665
+2.02528e+06
+317386
+Frac5.38112
+1.55364e+06
+331749
+Frac3.68318
+1.25517e+06
+324614
+Frac2.86667
+942733
+316998
+Frac1.97394
+790043
+301147
+Frac1.62345
+672728
+288504
+Frac1.33178
+Elapsed time for temperature loop min 1.716667 
+[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ ./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 100 --nw 100 --nl 22 --nrt 1 --L 12 14 --folder test_new[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[Kmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 20000 --nw 100 --nl 22 --nrt 1 --L 12 20 --folder all_spins_up1000 --nw 100 --nl 22 --nrt 1 --L 12 24 --folder comparison_old_results[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ make[K
+[K[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 1000 --nw 100 --nl 22 --nrt 1 --L 12 24 --folder comparison_old_results[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ make[K
+[K[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 1000 --nw 100 --nl 22 --nrt 1 --L 12 24 --folder comparison_old_results[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ ls[K
+[K[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cvim Makefile ls[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 50000 --nw 100 --nl 22 --nrt 1 --L 256 --folder 256_all_spins_50k[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ make[K
+[K[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 50000 --nw 100 --nl 22 --nrt 1 --L 256 --folder 256_all_spins_50k[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ make[K
+[K[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 50000 --nw 100 --nl 22 --nrt 1 --L 512 --folder 512_all_spins_50k[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ make[K
+[K[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 20000 --nw 100 --nl 22 --nrt 1 --L 512 --folder 512_all_spins_up [A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C100000 --nw 100 --nl 22 --nrt 1 --L 512 --folder 512_all_spins_up[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ make[K
+[K[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C./open_boundary --p 0.06 --temp 2.1 --step 0.08 --up true --nie 1 --nis 5 --nit 1000 --nw 100 --nl 1 --nrt 1 --L 512 --folder 512_errors[2P12 --folder 12_errors[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 2.1 --step 0.08 --up true --nie 1 --nis 5 --nit 1000 --nw 100 --nl 1 --nrt 1 --L 12 --folder 12_errors200 --nis 200 --nit 1000 --nw 100 --nl 2 --nrt 1 --L 12 --folder 12_error_checks[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 2.1 --step 0.08 --up true --nie 200 --nis 200 --nit 1000 --nw 100 --nl 2 --nrt 1 --L 12 --folder 12_error_checks[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 2.1 --step 0.08 --up true --nie 200 --nis 200 --nit 1000 --nw 100 --nl 2 --nrt 1 --L 12 --folder 12_error_checks512 --folder 512_error_checks[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 2.1 --step 0.08 --up true --nie 200 --nis 200 --nit 1000 --nw 100 --nl 2 --nrt 1 --L 512 --folder 512_error_real[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 2.1 --step 0.08 --up true --nie 200 --nis 200 --nit 1000 --nw 100 --nl 2 --nrt 1 --L 512 --folder 512_error_real[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 2.1 --step 0.08 --up true --nie 200 --nis 200 --nit 1000 --nw 100 --nl 1 --nrt 1 --L 512 --folder 512_error[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[Kcd open_boundary/[9Pmake run./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 1000 --nw 100 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 1000 --nw 100 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 1000 --nw 100 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 1000 --nw 100 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake run[Kcd open_boundary/make[K./open_boundary --p 0.06 --temp 2.1 --step 0.08 --up true --nie 200 --nis 200 --nit 1000 --nw 100 --nl 1 --nrt 1 --L 512 --folder 512_error[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 2.1 --step 0.08 --up true --nie 200 --nis 200 --nit 1000 --nw 100 --nl 2 --nrt 1 --L 512 --folder 512_error_real[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 2.1 --step 0.08 --up true --nie 200 --nis 200 --nit 1000 --nw 100 --nl 2 --nrt 1 --L 512 --folder 512_error_real[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 2.1 --step 0.08 --up true --nie 200 --nis 200 --nit 1000 --nw 100 --nl 2 --nrt 1 --L 512 --folder 512_error_checks[2P12 --folder 12_error_checks[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 2.1 --step 0.08 --up true --nie 200 --nis 200 --nit 1000 --nw 100 --nl 2 --nrt 1 --L 12 --folder 12_error_checks[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 2.1 --step 0.08 --up true --nie 200 --nis 200 --nit 1000 --nw 100 --nl 2 --nrt 1 --L 12 --folder 12_error_checks[10P1 --nis 5 --nit 1000 --nw 100 --nl 1 --nrt 1 --L 12 --folder 12_errors[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 2.1 --step 0.08 --up true --nie 1 --nis 5 --nit 1000 --nw 100 --nl 1 --nrt 1 --L 12 --folder 12_errors512 --folder 512_errors[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 100000 --nw 100 --nl 22 --nrt 1 --L 512 --folder 512_all_spins_up[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ [C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C20000 --nw 100 --nl 22 --nrt 1 --L 512 --folder 512_all_spins_up [K[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K
+[K[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 50000 --nw 100 --nl 22 --nrt 1 --L 512 --folder 512_all_spins_50k[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ make[K
+[K[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 20000 --nw 100 --nl 22 --nrt 1 --L 512 --folder 512_all_spins_up [A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C100000 --nw 100 --nl 22 --nrt 1 --L 512 --folder 512_all_spins_up[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ make[K
+[K[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C./open_boundary --p 0.06 --temp 2.1 --step 0.08 --up true --nie 1 --nis 5 --nit 1000 --nw 100 --nl 1 --nrt 1 --L 512 --folder 512_errors[2P12 --folder 12_errors

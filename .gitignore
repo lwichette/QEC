@@ -2,3 +2,4 @@
 **/.nv/
 **/.ipynb_checkpoints/
 *.0
+*.out

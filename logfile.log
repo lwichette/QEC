@@ -11995,3 +11995,543 @@ Error 119 of 200
 Error 120 of 200
 Error 121 of 200
 Error 122 of 200
+Error 123 of 200
+Error 124 of 200
+Error 125 of 200
+Error 126 of 200
+Error 127 of 200
+Error 128 of 200
+Error 129 of 200
+Error 130 of 200
+Error 131 of 200
+Error 132 of 200
+Error 133 of 200
+Error 134 of 200
+Error 135 of 200
+Error 136 of 200
+Error 137 of 200
+Error 138 of 200
+Error 139 of 200
+Error 140 of 200
+Error 141 of 200
+Error 142 of 200
+Error 143 of 200
+Error 144 of 200
+Error 145 of 200
+Error 146 of 200
+Error 147 of 200
+Error 148 of 200
+Error 149 of 200
+Error 150 of 200
+Error 151 of 200
+Error 152 of 200
+Error 153 of 200
+Error 154 of 200
+Error 155 of 200
+Error 156 of 200
+Error 157 of 200
+Error 158 of 200
+Error 159 of 200
+Error 160 of 200
+Error 161 of 200
+Error 162 of 200
+Error 163 of 200
+Error 164 of 200
+Error 165 of 200
+Error 166 of 200
+Error 167 of 200
+Error 168 of 200
+Error 169 of 200
+Error 170 of 200
+Error 171 of 200
+Error 172 of 200
+Error 173 of 200
+Error 174 of 200
+Error 175 of 200
+Error 176 of 200
+Error 177 of 200
+Error 178 of 200
+Error 179 of 200
+Error 180 of 200
+Error 181 of 200
+Error 182 of 200
+Error 183 of 200
+Error 184 of 200
+Error 185 of 200
+Error 186 of 200
+Error 187 of 200
+Error 188 of 200
+Error 189 of 200
+Error 190 of 200
+Error 191 of 200
+Error 192 of 200
+Error 193 of 200
+Error 194 of 200
+Error 195 of 200
+Error 196 of 200
+Error 197 of 200
+Error 198 of 200
+Error 199 of 200
+Magnetic susceptibility
+1.29286e+13
+8.5615e+06
+Frac1.51009e+06
+1.29106e+13
+9.95055e+06
+Frac1.29748e+06
+1.28766e+13
+1.11615e+07
+Frac1.15366e+06
+1.28262e+13
+1.20999e+07
+Frac1.06002e+06
+1.27511e+13
+1.32212e+07
+Frac964437
+1.26467e+13
+1.68394e+07
+Frac751019
+1.25182e+13
+2.01952e+07
+Frac619862
+1.23504e+13
+2.59848e+07
+Frac475293
+1.21406e+13
+3.39636e+07
+Frac357458
+1.18852e+13
+4.68513e+07
+Frac253677
+1.15608e+13
+6.67694e+07
+Frac173145
+1.11525e+13
+1.15096e+08
+Frac96897.1
+1.0632e+13
+1.89754e+08
+Frac56029.1
+9.93842e+12
+3.68803e+08
+Frac26946.8
+8.95561e+12
+9.75667e+08
+Frac9177.96
+7.30002e+12
+4.54489e+09
+Frac1605.2
+2.80103e+12
+7.84898e+10
+Frac34.6866
+4.13917e+10
+3.72086e+10
+Frac0.112425
+1.09865e+10
+1.06256e+10
+Frac0.0339632
+5.04362e+09
+4.97246e+09
+Frac0.01431
+2.88493e+09
+2.90231e+09
+Frac-0.00598872
+1.92479e+09
+1.92764e+09
+Frac-0.00147748
+Elapsed time for temperature loop min 6214.616667 
+[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ ./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 50000 --nw 100 --nl 22 --nrt 1 --L 512 --folder 512_all_spins_50k[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ make[K
+[K[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 20000 --nw 100 --nl 22 --nrt 1 --L 512 --folder 512_all_spins_up[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ make[K
+[K[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 50000 --nw 100 --nl 22 --nrt 1 --L 512 --folder 512_all_spins_50k[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ [K
+[K[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 50000 --nw 100 --nl 22 --nrt 1 --L 512 --folder 512_all_spins_50k[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ make[K
+[K[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 20000 --nw 100 --nl 22 --nrt 1 --L 512 --folder 512_all_spins_up[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ [C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C100000 --nw 100 --nl 22 --nrt 1 --L 512 --folder 512_all_spins_up[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ make[K
+[K[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C./open_boundary --p 0.06 --temp 2.1 --step 0.08 --up true --nie 1 --nis 5 --nit 1000 --nw 100 --nl 1 --nrt 1 --L 512 --folder 512_errors[2P12 --folder 12_errors[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 2.1 --step 0.08 --up true --nie 1 --nis 5 --nit 1000 --nw 100 --nl 1 --nrt 1 --L 12 --folder 12_errors200 --nis 200 --nit 1000 --nw 100 --nl 2 --nrt 1 --L 12 --folder 12_error_checks[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ make[K
+[K[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C./open_boundary --p 0.06 --temp 2.1 --step 0.08 --up true --nie 200 --nis 200 --nit 1000 --nw 100 --nl 2 --nrt 1 --L 12 --folder 12_error_checks[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ make[K
+[K[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C./open_boundary --p 0.06 --temp 2.1 --step 0.08 --up true --nie 200 --nis 200 --nit 1000 --nw 100 --nl 2 --nrt 1 --L 12 --folder 12_error_checks[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ [C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C512 --folder 512_error_checks[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ make[K
+[K[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C./open_boundary --p 0.06 --temp 2.1 --step 0.08 --up true --nie 200 --nis 200 --nit 1000 --nw 100 --nl 2 --nrt 1 --L 512 --folder 512_error_real[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ make[K
+[K[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C./open_boundary --p 0.06 --temp 2.1 --step 0.08 --up true --nie 200 --nis 200 --nit 1000 --nw 100 --nl 2 --nrt 1 --L 512 --folder 512_error_real[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ make[K
+[K[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C./open_boundary --p 0.06 --temp 2.1 --step 0.08 --up true --nie 200 --nis 200 --nit 1000 --nw 100 --nl 1 --nrt 1 --L 512 --folder 512_error[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[Kcd open_boundary/[9Pmake run./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 1000 --nw 100 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 1000 --nw 100 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Clattices --p 0.06 --temp 1.2 --step 0.1 --nie 200 --nis 200 --nit 1000 --nw 100 --nl 11 --nrt 1 --L 12 14 18 --folder command_line_options [A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K
+[K[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C./lattices --p 0.06 --temp 1.2 --step 0.1 --nie 200 --nis 200 --nit 1000 --nw 100 --nl 11 --nrt 1 --L 12 14 18 --folder command_line_options [A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[9Popen_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512
+[K[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 51[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake run[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake run[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 51[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Clattices --p 0.06 --temp 1.2 --step 0.1 --nie 200 --nis 200 --nit 1000 --nw 100 --nl 11 --nrt 1 --L 12 14 18 --folder command_line_options [A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K
+[K[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C./lattices --p 0.06 --temp 1.2 --step 0.1 --nie 200 --nis 200 --nit 1000 --nw 100 --nl 11 --nrt 1 --L 12 14 18 --folder command_line_options [A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[9Popen_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512
+[K[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 51[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake run[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 11 --nrt 1 --L 512 --folder 5100 --nw 100 --nl 11 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[3Plattices --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 100[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Copen_boundary --p 0.06 --temp 1.2 --step 0.1 --up false --nie 200 --nis 200 --nit 1000 --nw 100 --nl 11 --nrt 1 --L 12 14 18 --folder command_line_options1[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ make[K
+[K[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C./open_boundary --p 0.06 --temp 1.2 --step 0.1 --up false --nie 200 --nis 200 --nit 1000 --nw 100 --nl 11 --nrt 1 --L 12 14 18 --folder command_line_options1[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ ls[K
+[K[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmakecd ..[3Plscd results/ls[Kcd open_boundary/ls[Kcd User/mbeuerle/Code/qec/make run[K[Kcd open_boundary/make[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 100000 --nw 100 --nl 22 --nrt 1 --L 512 --folder 512_100000[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ make[K
+[K[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 100000 --nw 100 --nl 22 --nrt 1 --L 512 --folder 512_100000[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ [C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C2.1 --step 0.08 --up true --nie 200 --nis 200 --nit 100000 --nw 100 --nl 2 --nrt 1 --L 512 --folder 512_10000[C[K[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ [C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[4Ptest
+[K[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C512_100000[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ [C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 100000 --nw 100 --nl 22 --nrt 1 --L 512 --folder 512_1000[C0[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ make[K
+[K[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 100000 --nw 100 --nl 22 --nrt 1 --L 512 --folder 512_100000[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ make[K
+[K[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Ccd open_boundary/make[K runcd User/mbeuerle/Code/qec/ls[Kcd open_boundary/ls[Kcd results/ls[Kcd ..[1Pmake[2Pls./open_boundary --p 0.06 --temp 1.2 --step 0.1 --up false --nie 200 --nis 200 --nit 1000 --nw 100 --nl 11 --nrt 1 --L 12 14 18 --folder command_line_options1[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ make[K
+[K[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C./open_boundary --p 0.06 --temp 1.2 --step 0.1 --up false --nie 200 --nis 200 --nit 1000 --nw 100 --nl 11 --nrt 1 --L 12 14 18 --folder command_line_options1[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ [C[C[9Plattices --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 100000 --nw 100 --nl 11 --nrt 1 --L 512 --folder 512
+[K[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[3@open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 1[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[4P --nw 10 --nl 11 --nrt 1 --L 512 --folder 51[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake run[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 51[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Clattices --p 0.06 --temp 1.2 --step 0.1 --nie 200 --nis 200 --nit 1000 --nw 100 --nl 11 --nrt 1 --L 12 14 18 --folder command_line_options [A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K
+[K[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C./lattices --p 0.06 --temp 1.2 --step 0.1 --nie 200 --nis 200 --nit 1000 --nw 100 --nl 11 --nrt 1 --L 12 14 18 --folder command_line_options [A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[9Popen_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512
+[K[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 1000 --nw 100 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 1000 --nw 100 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 1000 --nw 100 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Clattices --p 0.06 --temp 1.2 --step 0.1 --nie 200 --nis 200 --nit 1000 --nw 100 --nl 11 --nrt 1 --L 12 14 18 --folder command_line_options [A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K
+[K[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C./lattices --p 0.06 --temp 1.2 --step 0.1 --nie 200 --nis 200 --nit 1000 --nw 100 --nl 11 --nrt 1 --L 12 14 18 --folder command_line_options [A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[9Popen_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512
+[K[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 51[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake run[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 10 --nw 10 --nl 22 --nrt 1 --L 512 --folder 512[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake[K
+/usr/local/cuda/bin/nvcc -std=c++17 -O3 -lineinfo -arch=sm_70 -Xptxas=-v  -I ../header -I /usr/share/doc ../header/utils.cu test.cu -o test -lcurand -lboost_program_options
+ptxas info    : 35 bytes gmem
+ptxas info    : Compiling entry function '_ZN3cub18DeviceReduceKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_EEvT0_T1_T2_NS_13GridEvenShareIS8_EET3_' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub18DeviceReduceKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_EEvT0_T1_T2_NS_13GridEvenShareIS8_EET3_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 40 registers, 44 bytes smem, 413 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN3cub28DeviceReduceSingleTileKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_fEEvT0_T1_T2_T3_T4_' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub28DeviceReduceSingleTileKernelINS_18DeviceReducePolicyIffiNS_3SumEE9Policy600EPfS5_iS2_fEEvT0_T1_T2_T3_T4_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 47 registers, 44 bytes smem, 380 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN3cub18DeviceReduceKernelINS_18DeviceReducePolicyIN6thrust7complexIfEES4_iNS_3SumEE9Policy600EPS4_S8_iS5_EEvT0_T1_T2_NS_13GridEvenShareISB_EET3_' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub18DeviceReduceKernelINS_18DeviceReducePolicyIN6thrust7complexIfEES4_iNS_3SumEE9Policy600EPS4_S8_iS5_EEvT0_T1_T2_NS_13GridEvenShareISB_EET3_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 32 registers, 80 bytes smem, 413 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN3cub28DeviceReduceSingleTileKernelINS_18DeviceReducePolicyIN6thrust7complexIfEES4_iNS_3SumEE9Policy600EPS4_S8_iS5_S4_EEvT0_T1_T2_T3_T4_' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub28DeviceReduceSingleTileKernelINS_18DeviceReducePolicyIN6thrust7complexIfEES4_iNS_3SumEE9Policy600EPS4_S8_iS5_S4_EEvT0_T1_T2_T3_T4_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 48 registers, 80 bytes smem, 384 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN3cub11EmptyKernelIvEEvv' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub11EmptyKernelIvEEvv
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 4 registers, 352 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z14calc_energy_obILb1EEvPfPaS1_S1_xxiPKf' for 'sm_70'
+ptxas info    : Function properties for _Z14calc_energy_obILb1EEvPfPaS1_S1_xxiPKf
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 42 registers, 416 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z17update_lattice_obILb0EEvPaS0_PKfS0_S2_xxiS2_' for 'sm_70'
+ptxas info    : Function properties for _Z17update_lattice_obILb0EEvPaS0_PKfS0_S2_xxiS2_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 38 registers, 424 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z17update_lattice_obILb1EEvPaS0_PKfS0_S2_xxiS2_' for 'sm_70'
+ptxas info    : Function properties for _Z17update_lattice_obILb1EEvPaS0_PKfS0_S2_xxiS2_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 38 registers, 424 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z17weighted_energiesPfS_PN6thrust7complexIfEES_ii' for 'sm_70'
+ptxas info    : Function properties for _Z17weighted_energiesPfS_PN6thrust7complexIfEES_ii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 20 registers, 392 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z8exp_betaPfS_iii' for 'sm_70'
+ptxas info    : Function properties for _Z8exp_betaPfS_iii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 20 registers, 380 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z10abs_squarePN6thrust7complexIfEEii' for 'sm_70'
+ptxas info    : Function properties for _Z10abs_squarePN6thrust7complexIfEEii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 15 registers, 368 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z11calc_energyILb1EEvPfPaS1_S1_xxiPKf' for 'sm_70'
+ptxas info    : Function properties for _Z11calc_energyILb1EEvPfPaS1_S1_xxiPKf
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 32 registers, 416 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z11B2_latticesPaS_PKfPN6thrust7complexIfEEiii' for 'sm_70'
+ptxas info    : Function properties for _Z11B2_latticesPaS_PKfPN6thrust7complexIfEEiii
+    32 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 32 registers, 396 bytes cmem[0], 8 bytes cmem[2]
+ptxas info    : Compiling entry function '_Z14update_latticeILb0EEvPaS0_PKfS0_S2_xxiS2_' for 'sm_70'
+ptxas info    : Function properties for _Z14update_latticeILb0EEvPaS0_PKfS0_S2_xxiS2_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 30 registers, 424 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z14update_latticeILb1EEvPaS0_PKfS0_S2_xxiS2_' for 'sm_70'
+ptxas info    : Function properties for _Z14update_latticeILb1EEvPaS0_PKfS0_S2_xxiS2_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 31 registers, 424 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z10init_spinsPaPKfxxi' for 'sm_70'
+ptxas info    : Function properties for _Z10init_spinsPaPKfxxi
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 10 registers, 388 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z15init_randombondPaPKfxxif' for 'sm_70'
+ptxas info    : Function properties for _Z15init_randombondPaPKfxxif
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 12 registers, 392 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z13init_spins_upPaxxi' for 'sm_70'
+ptxas info    : Function properties for _Z13init_spins_upPaxxi
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 10 registers, 380 bytes cmem[0]
+ptxas info    : 15 bytes gmem
+ptxas info    : Compiling entry function '_ZN6thrust8cuda_cub4core13_kernel_agentINS0_14__parallel_for16ParallelForAgentINS0_11__transform17unary_transform_fIPiS7_NS5_14no_stencil_tagENS_8identityIiEENS5_21always_true_predicateEEElEESC_lEEvT0_T1_' for 'sm_70'
+ptxas info    : Function properties for _ZN6thrust8cuda_cub4core13_kernel_agentINS0_14__parallel_for16ParallelForAgentINS0_11__transform17unary_transform_fIPiS7_NS5_14no_stencil_tagENS_8identityIiEENS5_21always_true_predicateEEElEESC_lEEvT0_T1_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 12 registers, 384 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN6thrust8cuda_cub4core13_kernel_agentINS0_15__reduce_by_key16ReduceByKeyAgentIPiS5_S5_S5_NS_8equal_toIiEENS_4plusIiEES5_iEES5_S5_S5_S5_S5_N3cub24ReduceByKeyScanTileStateIiiLb1EEES7_S9_iiEEvT0_T1_T2_T3_T4_T5_T6_T7_T8_T9_' for 'sm_70'
+ptxas info    : Function properties for _ZN6thrust8cuda_cub4core13_kernel_agentINS0_15__reduce_by_key16ReduceByKeyAgentIPiS5_S5_S5_NS_8equal_toIiEENS_4plusIiEES5_iEES5_S5_S5_S5_S5_N3cub24ReduceByKeyScanTileStateIiiLb1EEES7_S9_iiEEvT0_T1_T2_T3_T4_T5_T6_T7_T8_T9_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 62 registers, 412 bytes cmem[0], 8 bytes cmem[2]
+ptxas info    : Compiling entry function '_ZN6thrust8cuda_cub4core13_kernel_agentINS0_15__reduce_by_key9InitAgentIN3cub24ReduceByKeyScanTileStateIiiLb1EEEiPiEES7_iS8_EEvT0_T1_T2_' for 'sm_70'
+ptxas info    : Function properties for _ZN6thrust8cuda_cub4core13_kernel_agentINS0_15__reduce_by_key9InitAgentIN3cub24ReduceByKeyScanTileStateIiiLb1EEEiPiEES7_iS8_EEvT0_T1_T2_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 14 registers, 376 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN3cub11EmptyKernelIvEEvv' for 'sm_70'
+ptxas info    : Function properties for _ZN3cub11EmptyKernelIvEEvv
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 4 registers, 352 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z9init_keysPiiii' for 'sm_70'
+ptxas info    : Function properties for _Z9init_keysPiiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 22 registers, 372 bytes cmem[0]
+[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ make./open_boundary --p 0.06 --temp 0.5 --step 0.08 --up true --nie 200 --nis 200 --nit 50000 --nw 100 --nl 22 --nrt 1 --L 512 --folder 512_all_spins_50k[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C --folder 512_all_sp[1Pins_50k[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ [C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C --folder 512_all_spi[1Pns_50k[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ [C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C --folder 512_all_spin[1Ps_50k[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ [C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C2 --folder 512_all_spins_50k[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ [C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C5 --folder 512_all_spins_50k[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ [C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C6 --folder 512_all_spins_50k[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ [C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C_all_sp[1Pins_50k[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ [C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C_all_spi[1Pns_50k[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ [C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C_all_spin[1Ps_50k[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ [C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C2_all_spins_50k[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ [C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C5_all_spins_50k[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ [C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C6_all_spins_50k[A[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ [C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C
+
+Folder created successfully: 256_all_spins_50k
+Started Simulation of Lattice 256
+Error 0 of 200
+Error 1 of 200
+Error 2 of 200
+Error 3 of 200
+Error 4 of 200
+Error 5 of 200
+Error 6 of 200
+Error 7 of 200
+Error 8 of 200
+Error 9 of 200
+Error 10 of 200
+Error 11 of 200
+Error 12 of 200
+Error 13 of 200
+Error 14 of 200
+Error 15 of 200
+Error 16 of 200
+Error 17 of 200
+Error 18 of 200
+Error 19 of 200
+Error 20 of 200
+Error 21 of 200
+Error 22 of 200
+Error 23 of 200
+Error 24 of 200
+Error 25 of 200
+Error 26 of 200
+Error 27 of 200
+Error 28 of 200
+Error 29 of 200
+Error 30 of 200
+Error 31 of 200
+Error 32 of 200
+Error 33 of 200
+Error 34 of 200
+Error 35 of 200
+Error 36 of 200
+Error 37 of 200
+Error 38 of 200
+Error 39 of 200
+Error 40 of 200
+Error 41 of 200
+Error 42 of 200
+Error 43 of 200
+Error 44 of 200
+Error 45 of 200
+Error 46 of 200
+Error 47 of 200
+Error 48 of 200
+Error 49 of 200
+Error 50 of 200
+Error 51 of 200
+Error 52 of 200
+Error 53 of 200
+Error 54 of 200
+Error 55 of 200
+Error 56 of 200
+Error 57 of 200
+Error 58 of 200
+Error 59 of 200
+Error 60 of 200
+Error 61 of 200
+Error 62 of 200
+Error 63 of 200
+Error 64 of 200
+Error 65 of 200
+Error 66 of 200
+Error 67 of 200
+Error 68 of 200
+Error 69 of 200
+Error 70 of 200
+Error 71 of 200
+Error 72 of 200
+Error 73 of 200
+Error 74 of 200
+Error 75 of 200
+Error 76 of 200
+Error 77 of 200
+Error 78 of 200
+Error 79 of 200
+Error 80 of 200
+Error 81 of 200
+Error 82 of 200
+Error 83 of 200
+Error 84 of 200
+Error 85 of 200
+Error 86 of 200
+Error 87 of 200
+Error 88 of 200
+Error 89 of 200
+Error 90 of 200
+Error 91 of 200
+Error 92 of 200
+Error 93 of 200
+Error 94 of 200
+Error 95 of 200
+Error 96 of 200
+Error 97 of 200
+Error 98 of 200
+Error 99 of 200
+Error 100 of 200
+Error 101 of 200
+Error 102 of 200
+Error 103 of 200
+Error 104 of 200
+Error 105 of 200
+Error 106 of 200
+Error 107 of 200
+Error 108 of 200
+Error 109 of 200
+Error 110 of 200
+Error 111 of 200
+Error 112 of 200
+Error 113 of 200
+Error 114 of 200
+Error 115 of 200
+Error 116 of 200
+Error 117 of 200
+Error 118 of 200
+Error 119 of 200
+Error 120 of 200
+Error 121 of 200
+Error 122 of 200
+Error 123 of 200
+Error 124 of 200
+Error 125 of 200
+Error 126 of 200
+Error 127 of 200
+Error 128 of 200
+Error 129 of 200
+Error 130 of 200
+Error 131 of 200
+Error 132 of 200
+Error 133 of 200
+Error 134 of 200
+Error 135 of 200
+Error 136 of 200
+Error 137 of 200
+Error 138 of 200
+Error 139 of 200
+Error 140 of 200
+Error 141 of 200
+Error 142 of 200
+Error 143 of 200
+Error 144 of 200
+Error 145 of 200
+Error 146 of 200
+Error 147 of 200
+Error 148 of 200
+Error 149 of 200
+Error 150 of 200
+Error 151 of 200
+Error 152 of 200
+Error 153 of 200
+Error 154 of 200
+Error 155 of 200
+Error 156 of 200
+Error 157 of 200
+Error 158 of 200
+Error 159 of 200
+Error 160 of 200
+Error 161 of 200
+Error 162 of 200
+Error 163 of 200
+Error 164 of 200
+Error 165 of 200
+Error 166 of 200
+Error 167 of 200
+Error 168 of 200
+Error 169 of 200
+Error 170 of 200
+Error 171 of 200
+Error 172 of 200
+Error 173 of 200
+Error 174 of 200
+Error 175 of 200
+Error 176 of 200
+Error 177 of 200
+Error 178 of 200
+Error 179 of 200
+Error 180 of 200
+Error 181 of 200
+Error 182 of 200
+Error 183 of 200
+Error 184 of 200
+Error 185 of 200
+Error 186 of 200
+Error 187 of 200
+Error 188 of 200
+Error 189 of 200
+Error 190 of 200
+Error 191 of 200
+Error 192 of 200
+Error 193 of 200
+Error 194 of 200
+Error 195 of 200
+Error 196 of 200
+Error 197 of 200
+Error 198 of 200
+Error 199 of 200
+Magnetic susceptibility
+8.07394e+11
+2.22806e+06
+Frac362374
+8.06151e+11
+2.57663e+06
+Frac312869
+8.03697e+11
+3.22295e+06
+Frac249366
+8.00097e+11
+3.30693e+06
+Frac241945
+7.95457e+11
+3.87239e+06
+Frac205416
+7.88928e+11
+4.60057e+06
+Frac171484
+7.80251e+11
+6.15235e+06
+Frac126821
+7.69519e+11
+7.12018e+06
+Frac108075
+7.55929e+11
+9.87915e+06
+Frac76516.6
+7.39136e+11
+1.36627e+07
+Frac54097.7
+7.18012e+11
+1.90706e+07
+Frac37649.3
+6.91451e+11
+3.08496e+07
+Frac22412.6
+6.57338e+11
+5.33947e+07
+Frac12309.9
+6.10849e+11
+1.21864e+08
+Frac5011.55
+5.42613e+11
+3.29453e+08
+Frac1646.01
+4.22042e+11
+1.58401e+09
+Frac265.439
+1.28731e+11
+1.33991e+10
+Frac8.60741
+8.67889e+09
+6.60014e+09
+Frac0.314957
+2.602e+09
+2.39649e+09
+Frac0.0857533
+1.21494e+09
+1.16443e+09
+Frac0.0433788
+7.19691e+08
+6.9769e+08
+Frac0.0315346
+4.74599e+08
+4.67811e+08
+Frac0.0145092
+Elapsed time for temperature loop min 2297.916667 
+[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec/open_boundary[00m$ 

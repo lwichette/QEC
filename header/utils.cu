@@ -19,6 +19,7 @@ using namespace std;
 
 void *d_temp_nx = NULL;
 size_t temp_storage_nx = 0;
+
 void *d_temp_nis = NULL;
 size_t temp_storage_nis = 0;
 void *d_temp_nie = NULL;

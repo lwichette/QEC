@@ -125,8 +125,6 @@ int main(int argc, char **argv){
         
         std::string result_name = std::string("L_") + std::to_string(L) + std::string("_p_") + std::to_string(p) + std::string("_ns_") + std::to_string(num_iterations_seeds) + std::string("_ne_") + std::to_string(num_iterations_error) + std::string("_ni_") + std::to_string(niters) + std::string("_nw_") + std::to_string(nwarmup) + std::string(".txt");
 
-        cout << result_name << endl;
-
         if (fs::exists(folderPath + "/" + result_name)){
             cout << "Results already exist" << result_name << std::endl;
             cout << "Continuing with next lattice size" << endl;
@@ -373,14 +371,17 @@ int main(int argc, char **argv){
         CHECK_CUDA(cudaFree(d_temp_nie));
         CHECK_CUDA(cudaFree(d_temp_nis));
         CHECK_CUDA(cudaFree(d_temp_nx));
+        CHECK_CUDA(cudaFree(d_temp_nx_thrust));
 
         d_temp_nie = NULL;
         d_temp_nis = NULL;
         d_temp_nx = NULL;
+        d_temp_nx_thrust = NULL;
         
         temp_storage_nie = 0;
         temp_storage_nis = 0;
         temp_storage_nx = 0;
+        temp_storage_nx_thrust = 0;
         
         CHECK_CURAND(curandDestroyGenerator(update_rng));
         CHECK_CURAND(curandDestroyGenerator(interaction_rng));

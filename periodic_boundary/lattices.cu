@@ -328,16 +328,21 @@ int main(int argc, char **argv){
         cudaFree(d_magnetic_susceptibility_0);
         cudaFree(d_magnetic_susceptibility_k);
 
-        cudaFree(d_temp_nie);
-        cudaFree(d_temp_nis);
-        cudaFree(d_temp_nx);
+        CHECK_CUDA(cudaFree(d_temp_nie));
+        CHECK_CUDA(cudaFree(d_temp_nis));
+        CHECK_CUDA(cudaFree(d_temp_nx));
+        CHECK_CUDA(cudaFree(d_temp_nx_thrust));
+
         d_temp_nie = NULL;
         d_temp_nis = NULL;
         d_temp_nx = NULL;
+        d_temp_nx_thrust = NULL;
+        
         temp_storage_nie = 0;
         temp_storage_nis = 0;
         temp_storage_nx = 0;
-
+        temp_storage_nx_thrust = 0;
+        
         curandDestroyGenerator(update_rng);
         curandDestroyGenerator(interaction_rng);
         curandDestroyGenerator(lattice_rng);

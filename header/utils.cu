@@ -20,8 +20,12 @@ using namespace std;
 void *d_temp_nx = NULL;
 size_t temp_storage_nx = 0;
 
+void *d_temp_nx_thrust = NULL;
+size_t temp_storage_nx_thrust = 0;
+
 void *d_temp_nis = NULL;
 size_t temp_storage_nis = 0;
+
 void *d_temp_nie = NULL;
 size_t temp_storage_nie = 0;
 
@@ -369,12 +373,12 @@ void calculate_B2(
 
     for (int i=0; i<num_lattices; i++){
         
-        if (temp_storage_nx == 0){
-            CHECK_CUDA(cub::DeviceReduce::Sum(d_temp_nx, temp_storage_nx, d_sum + i*nx*ny/2, &d_store_sum[loc + i*num_iterations_seeds], nx*ny/2));
-            CHECK_CUDA(cudaMalloc(&d_temp_nx, temp_storage_nx));
+        if (temp_storage_nx_thrust == 0){
+            CHECK_CUDA(cub::DeviceReduce::Sum(d_temp_nx_thrust, temp_storage_nx_thrust, d_sum + i*nx*ny/2, &d_store_sum[loc + i*num_iterations_seeds], nx*ny/2));
+            CHECK_CUDA(cudaMalloc(&d_temp_nx_thrust, temp_storage_nx_thrust));
         }
         
-        CHECK_CUDA(cub::DeviceReduce::Sum(d_temp_nx, temp_storage_nx, d_sum + i*nx*ny/2, &d_store_sum[loc + i*num_iterations_seeds], nx*ny/2));
+        CHECK_CUDA(cub::DeviceReduce::Sum(d_temp_nx_thrust, temp_storage_nx_thrust, d_sum + i*nx*ny/2, &d_store_sum[loc + i*num_iterations_seeds], nx*ny/2));
     }
 }
 
@@ -616,6 +620,7 @@ __global__ void calc_energy_ob(
                 jcouplingoff = offset_i + 2 * (i * ny + joff) - 1;
             }
         }
+
     } else {
         icouplingpp = offset_i + 2*(nx-1)*ny + 2*(ny*(i+1) + j) + i%2;
         icouplingnn = offset_i + 2*(nx-1)*ny + 2*(ny*(inn+1) + j) + i%2;
@@ -640,7 +645,6 @@ __global__ void calc_energy_ob(
     // Compute sum of nearest neighbor spins times the coupling
     sum[tid] = -1 * coupling_constant[lid]*lattice[offset + i*ny+j]*(op_lattice[offset + inn*ny + j]*interactions[icouplingnn]*c_up + op_lattice[offset + i*ny + j]*interactions[offset_i + 2*(i*ny + j)] 
     + op_lattice[offset + ipp*ny + j]*interactions[icouplingpp]*c_down + op_lattice[offset + i*ny + joff]*interactions[jcouplingoff]*c_side);
-
 }
 
 void calculate_energy_ob(

@@ -1,217 +1,0 @@
-git rm logfile.log-logfile.logflogfile.log logfile.log
-rm 'logfile.log'
-[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec[00m$ git status
-On branch main
-Your branch and 'origin/main' have diverged,
-and have 1 and 1 different commits each, respectively.
-  (use "git pull" to merge the remote branch into yours)
-
-Changes to be committed:
-  (use "git restore --staged <file>..." to unstage)
-	[32mmodified:   .nv/ComputeCache/index[m
-	[32mdeleted:    logfile.log[m
-	[32mmodified:   open_boundary/Makefile[m
-	[32mnew file:   open_boundary/results/12_cluster/L_12_p_0.060000_ns_200_ne_200_ni_1000_nw_100.txt[m
-	[32mmodified:   sbatch_new.slr[m
-	[32mdeleted:    screenlog.0[m
-	[32mnew file:   slurm-499.out[m
-
-Changes not staged for commit:
-  (use "git add/rm <file>..." to update what will be committed)
-  (use "git restore <file>..." to discard changes in working directory)
-	[31mmodified:   .nv/ComputeCache/index[m
-	[31mmodified:   open_boundary/Makefile[m
-	[31mdeleted:    open_boundary/results/12_cluster/L_12_p_0.060000_ns_200_ne_200_ni_1000_nw_100.txt[m
-	[31mmodified:   sbatch_new.slr[m
-	[31mdeleted:    slurm-499.out[m
-
-Untracked files:
-  (use "git add <file>..." to include in what will be committed)
-	[31mlogfile.log[m
-	[31mscreenlog.0[m
-
-[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec[00m$ git pull origin
-Username for 'https://git.hb.dfki.de': mbeuerle
-Password for 'https://mbeuerle@git.hb.dfki.de': 
-error: Your local changes to the following files would be overwritten by merge:
-  .nv/ComputeCache/index logfile.log open_boundary/Makefile open_boundary/results/12_cluster/L_12_p_0.060000_ns_200_ne_200_ni_1000_nw_100.txt sbatch_new.slr screenlog.0 slurm-499.out
-[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec[00m$ git commit -m "Test"
-[main 84b629f] Test
- 7 files changed, 394 insertions(+), 13823 deletions(-)
- delete mode 100644 logfile.log
- create mode 100644 open_boundary/results/12_cluster/L_12_p_0.060000_ns_200_ne_200_ni_1000_nw_100.txt
- delete mode 100644 screenlog.0
- create mode 100644 slurm-499.out
-[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec[00m$ git pull origin
-Username for 'https://git.hb.dfki.de': mbeuerle
-Password for 'https://mbeuerle@git.hb.dfki.de': 
-error: Your local changes to the following files would be overwritten by merge:
-	open_boundary/Makefile
-Please commit your changes or stash them before you merge.
-Aborting
-[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec[00m$ git status
-On branch main
-Your branch and 'origin/main' have diverged,
-and have 2 and 1 different commits each, respectively.
-  (use "git pull" to merge the remote branch into yours)
-
-Changes not staged for commit:
-  (use "git add/rm <file>..." to update what will be committed)
-  (use "git restore <file>..." to discard changes in working directory)
-	[31mmodified:   .nv/ComputeCache/index[m
-	[31mmodified:   open_boundary/Makefile[m
-	[31mdeleted:    open_boundary/results/12_cluster/L_12_p_0.060000_ns_200_ne_200_ni_1000_nw_100.txt[m
-	[31mmodified:   sbatch_new.slr[m
-	[31mdeleted:    slurm-499.out[m
-
-Untracked files:
-  (use "git add <file>..." to include in what will be committed)
-	[31mlogfile.log[m
-	[31mscreenlog.0[m
-
-no changes added to commit (use "git add" and/or "git commit -a")
-[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec[00m$ git add Makefile[K[K[K[K[K[K[K[Kopen_boundary/Makefile 
-[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec[00m$ git commit -m "Makefile ocmmi[K[K[K[K[Kcommited"
-[main 13ab156] Makefile commited
- 1 file changed, 4 insertions(+), 4 deletions(-)
-[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec[00m$ git pull origin
-Username for 'https://git.hb.dfki.de': mbeuerle
-Password for 'https://mbeuerle@git.hb.dfki.de': 
-warning: Cannot merge binary files: open_boundary/test (HEAD vs. 3e705ade48a2f9f1d382acbf6d9a91bb8b3a15dc)
-Auto-merging open_boundary/test
-CONFLICT (content): Merge conflict in open_boundary/test
-Auto-merging open_boundary/Makefile
-CONFLICT (content): Merge conflict in open_boundary/Makefile
-CONFLICT (modify/delete): logfile.log deleted in HEAD and modified in 3e705ade48a2f9f1d382acbf6d9a91bb8b3a15dc. Version 3e705ade48a2f9f1d382acbf6d9a91bb8b3a15dc of logfile.log left in tree at logfile.log~3e705ade48a2f9f1d382acbf6d9a91bb8b3a15dc.
-Automatic merge failed; fix conflicts and then commit the result.
-[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec[00m$ git pu[K[K[K pull origin
-error: Pulling is not possible because you have unmerged files.
-[33mhint: Fix them up in the work tree, and then use 'git add/rm <file>'[m
-[33mhint: as appropriate to mark resolution and make a commit.[m
-fatal: Exiting because of an unresolved conflict.
-[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec[00m$ git status
-On branch main
-Your branch and 'origin/main' have diverged,
-and have 3 and 1 different commits each, respectively.
-  (use "git pull" to merge the remote branch into yours)
-
-You have unmerged paths.
-  (fix conflicts and run "git commit")
-  (use "git merge --abort" to abort the merge)
-
-Unmerged paths:
-  (use "git add/rm <file>..." as appropriate to mark resolution)
-	[31mdeleted by us:   logfile.log[m
-	[31mboth modified:   open_boundary/Makefile[m
-	[31mboth modified:   open_boundary/test[m
-
-Changes not staged for commit:
-  (use "git add/rm <file>..." to update what will be committed)
-  (use "git restore <file>..." to discard changes in working directory)
-	[31mmodified:   .nv/ComputeCache/index[m
-	[31mdeleted:    open_boundary/results/12_cluster/L_12_p_0.060000_ns_200_ne_200_ni_1000_nw_100.txt[m
-	[31mmodified:   sbatch_new.slr[m
-	[31mdeleted:    slurm-499.out[m
-
-Untracked files:
-  (use "git add <file>..." to include in what will be committed)
-	[31mlogfile.log~3e705ade48a2f9f1d382acbf6d9a91bb8b3a15dc[m
-	[31mscreenlog.0[m
-
-no changes added to commit (use "git add" and/or "git commit -a")
-[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec[00m$ git str[Katus
-On branch main
-Your branch and 'origin/main' have diverged,
-and have 3 and 1 different commits each, respectively.
-  (use "git pull" to merge the remote branch into yours)
-
-You have unmerged paths.
-  (fix conflicts and run "git commit")
-  (use "git merge --abort" to abort the merge)
-
-Unmerged paths:
-  (use "git add/rm <file>..." as appropriate to mark resolution)
-	[31mdeleted by us:   logfile.log[m
-	[31mboth modified:   open_boundary/Makefile[m
-	[31mboth modified:   open_boundary/test[m
-
-Changes not staged for commit:
-  (use "git add/rm <file>..." to update what will be committed)
-  (use "git restore <file>..." to discard changes in working directory)
-	[31mmodified:   .nv/ComputeCache/index[m
-	[31mdeleted:    open_boundary/results/12_cluster/L_12_p_0.060000_ns_200_ne_200_ni_1000_nw_100.txt[m
-	[31mmodified:   sbatch_new.slr[m
-	[31mdeleted:    slurm-499.out[m
-
-Untracked files:
-  (use "git add <file>..." to include in what will be committed)
-	[31mlogfile.log~3e705ade48a2f9f1d382acbf6d9a91bb8b3a15dc[m
-	[31mscreenlog.0[m
-
-no changes added to commit (use "git add" and/or "git commit -a")
-[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec[00m$ git add logfile.log
-[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec[00m$ git add open_boundary/Makefile 
-[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec[00m$ git add t[Kopen_boundary/test
-[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec[00m$ git commit -m "Merge"
-[main 93a6f7d] Merge
-[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec[00m$ #[Kgit pull origin
-Username for 'https://git.hb.dfki.de': mbeuerle
-Password for 'https://mbeuerle@git.hb.dfki.de': 
-Already up to date.
-[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec[00m$ git push origin
-Username for 'https://git.hb.dfki.de': mbeuerle
-Password for 'https://mbeuerle@git.hb.dfki.de': 
-Enumerating objects: 41, done.
-Counting objects:   2% (1/38)Counting objects:   5% (2/38)Counting objects:   7% (3/38)Counting objects:  10% (4/38)Counting objects:  13% (5/38)Counting objects:  15% (6/38)Counting objects:  18% (7/38)Counting objects:  21% (8/38)Counting objects:  23% (9/38)Counting objects:  26% (10/38)Counting objects:  28% (11/38)Counting objects:  31% (12/38)Counting objects:  34% (13/38)Counting objects:  36% (14/38)Counting objects:  39% (15/38)Counting objects:  42% (16/38)Counting objects:  44% (17/38)Counting objects:  47% (18/38)Counting objects:  50% (19/38)Counting objects:  52% (20/38)Counting objects:  55% (21/38)Counting objects:  57% (22/38)Counting objects:  60% (23/38)Counting objects:  63% (24/38)Counting objects:  65% (25/38)Counting objects:  68% (26/38)Counting objects:  71% (27/38)Counting objects:  73% (28/38)Counting objects:  76% (29/38)Counting objects:  78% (30/38)Counting objects:  81% (31/38)Counting objects:  84% (32/38)Counting objects:  86% (33/38)Counting objects:  89% (34/38)Counting objects:  92% (35/38)Counting objects:  94% (36/38)Counting objects:  97% (37/38)Counting objects: 100% (38/38)Counting objects: 100% (38/38), done.
-Delta compression using up to 64 threads
-Compressing objects:   4% (1/23)Compressing objects:   8% (2/23)Compressing objects:  13% (3/23)Compressing objects:  17% (4/23)Compressing objects:  21% (5/23)Compressing objects:  26% (6/23)Compressing objects:  30% (7/23)Compressing objects:  34% (8/23)Compressing objects:  39% (9/23)Compressing objects:  43% (10/23)Compressing objects:  47% (11/23)Compressing objects:  52% (12/23)Compressing objects:  56% (13/23)Compressing objects:  60% (14/23)Compressing objects:  65% (15/23)Compressing objects:  69% (16/23)Compressing objects:  73% (17/23)Compressing objects:  78% (18/23)Compressing objects:  82% (19/23)Compressing objects:  86% (20/23)Compressing objects:  91% (21/23)Compressing objects:  95% (22/23)Compressing objects: 100% (23/23)Compressing objects: 100% (23/23), done.
-Writing objects:   4% (1/23)Writing objects:   8% (2/23)Writing objects:  13% (3/23)Writing objects:  17% (4/23)Writing objects:  21% (5/23)Writing objects:  26% (6/23)Writing objects:  30% (7/23)Writing objects:  39% (9/23)Writing objects:  43% (10/23)Writing objects:  47% (11/23)Writing objects:  52% (12/23)Writing objects:  56% (13/23)Writing objects:  60% (14/23)Writing objects:  65% (15/23)Writing objects:  69% (16/23)Writing objects:  73% (17/23)Writing objects:  78% (18/23)Writing objects:  82% (19/23)Writing objects:  86% (20/23)Writing objects:  91% (21/23)Writing objects:  95% (22/23)Writing objects: 100% (23/23)Writing objects: 100% (23/23), 140.84 KiB | 1.22 MiB/s, done.
-Total 23 (delta 18), reused 0 (delta 0)
-To https://git.hb.dfki.de/quantum/quantum-error-correction/statmech/qec.git
-   3e705ad..93a6f7d  main -> main
-[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec[00m$ git commi[K[K[K[K[Kstatus
-On branch main
-Your branch is up to date with 'origin/main'.
-
-Changes not staged for commit:
-  (use "git add/rm <file>..." to update what will be committed)
-  (use "git restore <file>..." to discard changes in working directory)
-	[31mmodified:   .gitignore[m
-	[31mmodified:   .nv/ComputeCache/index[m
-	[31mmodified:   logfile.log[m
-	[31mdeleted:    open_boundary/results/12_cluster/L_12_p_0.060000_ns_200_ne_200_ni_1000_nw_100.txt[m
-	[31mmodified:   sbatch_new.slr[m
-	[31mdeleted:    slurm-499.out[m
-
-Untracked files:
-  (use "git add <file>..." to include in what will be committed)
-	[31mlogfile.log~3e705ade48a2f9f1d382acbf6d9a91bb8b3a15dc[m
-	[31mscreenlog.0[m
-
-no changes added to commit (use "git add" and/or "git commit -a")
-[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec[00m$ git add .
-[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec[00m$ git commit -m "gitignore"
-[main 1bfc628] gitignore
- 8 files changed, 12584 insertions(+), 394 deletions(-)
- create mode 100644 logfile.log~3e705ade48a2f9f1d382acbf6d9a91bb8b3a15dc
- delete mode 100644 open_boundary/results/12_cluster/L_12_p_0.060000_ns_200_ne_200_ni_1000_nw_100.txt
- create mode 100644 screenlog.0
- delete mode 100644 slurm-499.out
-[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec[00m$ git push oridin
-fatal: 'oridin' does not appear to be a git repository
-fatal: Could not read from remote repository.
-
-Please make sure you have the correct access rights
-and the repository exists.
-[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec[00m$ git push oridin[1Pingin
-Username for 'https://git.hb.dfki.de': mbeuerle
-Password for 'https://mbeuerle@git.hb.dfki.de': 
-Enumerating objects: 21, done.
-Counting objects:   4% (1/21)Counting objects:   9% (2/21)Counting objects:  14% (3/21)Counting objects:  19% (4/21)Counting objects:  23% (5/21)Counting objects:  28% (6/21)Counting objects:  33% (7/21)Counting objects:  38% (8/21)Counting objects:  42% (9/21)Counting objects:  47% (10/21)Counting objects:  52% (11/21)Counting objects:  57% (12/21)Counting objects:  61% (13/21)Counting objects:  66% (14/21)Counting objects:  71% (15/21)Counting objects:  76% (16/21)Counting objects:  80% (17/21)Counting objects:  85% (18/21)Counting objects:  90% (19/21)Counting objects:  95% (20/21)Counting objects: 100% (21/21)Counting objects: 100% (21/21), done.
-Delta compression using up to 64 threads
-Compressing objects:  11% (1/9)Compressing objects:  22% (2/9)Compressing objects:  33% (3/9)Compressing objects:  44% (4/9)Compressing objects:  55% (5/9)Compressing objects:  66% (6/9)Compressing objects:  77% (7/9)Compressing objects:  88% (8/9)Compressing objects: 100% (9/9)Compressing objects: 100% (9/9), done.
-Writing objects:   8% (1/12)Writing objects:  16% (2/12)Writing objects:  25% (3/12)Writing objects:  33% (4/12)Writing objects:  41% (5/12)Writing objects:  50% (6/12)Writing objects:  58% (7/12)Writing objects:  66% (8/12)Writing objects:  75% (9/12)Writing objects:  83% (10/12)Writing objects:  91% (11/12)Writing objects: 100% (12/12)Writing objects: 100% (12/12), 32.29 KiB | 2.15 MiB/s, done.
-Total 12 (delta 6), reused 0 (delta 0)
-To https://git.hb.dfki.de/quantum/quantum-error-correction/statmech/qec.git
-   93a6f7d..1bfc628  main -> main
-[01;32mmbeuerle@QINROS-LAB2-U[00m:[01;34m~/User/mbeuerle/Code/qec[00m$ 

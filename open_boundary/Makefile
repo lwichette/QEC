@@ -9,11 +9,11 @@ VALGRIND_FLAGS = --tool=memcheck --leak-check=full --track-origins=yes --error-l
 
 all: output
 
-output: test.cu
-	$(CUDACC) $(NVCC_FLAGS) ../header/utils.cu test.cu -o test $(LDFLAGS) $(LBOOSTFLAGS)
+output: open_boundary.cu
+	$(CUDACC) $(NVCC_FLAGS) ../header/utils.cu open_boundary.cu -o open_boundary $(LDFLAGS) $(LBOOSTFLAGS)
 
 run: output
-$(VALGRIND) $(VALGRIND_FLAGS) ./test
+	$(VALGRIND) $(VALGRIND_FLAGS) ./open_boundary
 
 clean:
-	rm -f test
+	rm -f open_boundary

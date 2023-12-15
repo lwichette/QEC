@@ -217,7 +217,7 @@ int main(int argc, char **argv){
             init_interactions_with_seed(d_interactions, seeds_interactions, interaction_rng, interaction_randvals, L, L, num_lattices, p);
 
             for (int s = 0; s < num_iterations_seeds; s++){
-                
+
                 if (up){
                     init_spins_up<<<blocks,THREADS>>>(lattice_b, L, L/2, num_lattices);
                     init_spins_up<<<blocks,THREADS>>>(lattice_w, L, L/2, num_lattices);
@@ -234,15 +234,13 @@ int main(int argc, char **argv){
                 }
 
                 CHECK_CUDA(cudaDeviceSynchronize());
-
+                
                 for (int j = 0; j < niters; j++){
                     update_ob(lattice_b, lattice_w, randvals, update_rng, d_interactions, d_inv_temp, L, L, num_lattices, d_coupling_constant);
                 }
-
-                CHECK_CUDA(cudaDeviceSynchronize());
-
-                //write_lattice(lattice_b, lattice_w, "lattice/lattice_" + std::to_string(s), L, L, num_lattices);
                 
+                CHECK_CUDA(cudaDeviceSynchronize());
+                                
                 calculate_B2(d_sum, lattice_b, lattice_w, d_store_sum_0, d_wave_vector_0, s, L, L, num_lattices, num_iterations_seeds);
                 calculate_B2(d_sum, lattice_b, lattice_w, d_store_sum_k, d_wave_vector_k, s, L, L, num_lattices, num_iterations_seeds);
                 
@@ -253,19 +251,6 @@ int main(int argc, char **argv){
 
             abs_square<<<blocks, THREADS>>>(d_store_sum_0, num_lattices, num_iterations_seeds);
             abs_square<<<blocks, THREADS>>>(d_store_sum_k, num_lattices, num_iterations_seeds);
-
-            /*
-            std::vector<thrust::complex<float>> h_store_sum_0(num_lattices*num_iterations_seeds);
-            std::vector<thrust::complex<float>> h_store_sum_k(num_lattices*num_iterations_seeds);
-
-            cudaMemcpy(h_store_sum_0.data(), d_store_sum_0, num_lattices*num_iterations_seeds*sizeof(thrust::complex<float>), cudaMemcpyDeviceToHost);
-            cudaMemcpy(h_store_sum_k.data(), d_store_sum_k, num_lattices*num_iterations_seeds*sizeof(thrust::complex<float>), cudaMemcpyDeviceToHost);
-            
-            for (int i=0; i<num_lattices*num_iterations_seeds; i++){
-                cout << h_store_sum_0[i].real() << endl;
-                cout << h_store_sum_k[i].real() << endl;
-            }
-            */
 
             exp_beta<<<blocks, THREADS>>>(d_store_energy, d_inv_temp, num_lattices, num_iterations_seeds, L);
             
@@ -283,20 +268,6 @@ int main(int argc, char **argv){
 
             seeds_interactions += 1;
         }
-
-        /*
-        std::vector<float> h_error_weight_0(num_lattices*num_iterations_error*sizeof(float));
-        std::vector<float> h_error_weight_k(num_lattices*num_iterations_error*sizeof(float));
-
-        CHECK_CUDA(cudaMemcpy(h_error_weight_0.data(), d_error_weight_0, num_lattices*num_iterations_error*sizeof(float), cudaMemcpyDeviceToHost));
-        CHECK_CUDA(cudaMemcpy(h_error_weight_k.data(), d_error_weight_k, num_lattices*num_iterations_error*sizeof(float), cudaMemcpyDeviceToHost));
-
-        cout << "weighted error" << endl;
-        for (int i=0; i<num_lattices*num_iterations_error;i++){
-            cout << h_error_weight_0[i] << endl;
-            cout << h_error_weight_k[i] << endl;
-        }
-        */
         
         float *d_magnetic_susceptibility_0, *d_magnetic_susceptibility_k;
         CHECK_CUDA(cudaMalloc(&d_magnetic_susceptibility_0, num_lattices*sizeof(*d_magnetic_susceptibility_0)));

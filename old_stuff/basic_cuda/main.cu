@@ -179,11 +179,11 @@ static void usage(const char *pname) {
 int main(int argc, char **argv) {
 
   // Defaults
-  long long nx = 5120;
-  long long ny = 5120;
+  long long nx = 12;
+  long long ny = 12;
   float alpha = 0.1f;
   int nwarmup = 100;
-  int niters = 1000;
+  int niters = 1000000;
   bool write = false;
   unsigned long long seed = 1234ULL;
 

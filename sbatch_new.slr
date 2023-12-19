@@ -22,8 +22,5 @@
 singularity exec --home /mnt/beegfs/data/QuDA-KI/qec --nv /mnt/beegfs/public/images/boost.sif /bin/bash -c "
     cd open_boundary \
     && make \
-    && (CUDA_VISIBLE_DEVICES=0 ./open_boundary --p 0.10917 --temp 0.8 --step 0.025 --up true --nie 200 --nis 200 --nit 20000 --nw 100 --nl 10 --nrt 3 --L 12 18 28 --folder 10.719% & \
-    CUDA_VISIBLE_DEVICES=1 ./open_boundary --p 0.10917 --temp 0.8 --step 0.025 --up true --nie 200 --nis 200 --nit 20000 --nw 100 --nl 10 --nrt 3 --L 14 24 36 --folder 10.719%)\
-    && (CUDA_VISIBLE_DEVICES=0 ./open_boundary --p 0.10917 --temp 0.8 --step 0.025 --up true --nie 200 --nis 200 --nit 100000 --nw 100 --nl 10 --nrt 3 --L 128 --folder 10.719% & \
-    CUDA_VISIBLE_DEVICES=1 ./open_boundary --p 0.10917 --temp 0.8 --step 0.025 --up true --nie 200 --nis 200 --nit 100000 --nw 100 --nl 10 --nrt 3 --L 256 --folder 10.719%) \
-    && CUDA_VISIBLE_DEVICES=0 ./open_boundary --p 0.10917 --temp 0.8 --step 0.025 --up true --nie 200 --nis 200 --nit 200000 --nw 100 --nl 10 --nrt 1 --L 512 --folder 10.719%" 
+    && (CUDA_VISIBLE_DEVICES=0 ./open_boundary --p 0.10917 --temp 0.8 --step 0.025 --up true --nie 200 --nis 200 --nit 1000000 --nw 100 --nl 10 --nrt 1 --L 12 18 28 --folder 10.719% & \
+    CUDA_VISIBLE_DEVICES=1 ./open_boundary --p 0.10917 --temp 0.8 --step 0.025 --up true --nie 200 --nis 200 --nit 1000000 --nw 100 --nl 10 --nrt 1 --L 14 24 36 --folder 10.719%)" 

@@ -33,6 +33,7 @@
 #include "cudamacro.h" /* for time() */
 #include "utils.h"
 #include <iostream>
+#include <vector>
 
 using namespace std;
 
@@ -57,11 +58,15 @@ using namespace std;
 //   256:  4,  8, 1, 1
 //   128:  2,  8, 1, 1
 
+// Unclear
 #define BLOCK_X (16)
 #define BLOCK_Y (16)
+
+// Unclear
 #define BMULT_X (2)
 #define BMULT_Y (1)
 
+// Maximum number of GPUs
 #define MAX_GPU	(256)
 
 #define NUMIT_DEF (1)
@@ -108,20 +113,33 @@ __global__  void latticeInit_k(const int devid,
                                const long long begY,
                                const long long dimX, // ld
                                      INT2_T *__restrict__ vDst) {
+    /*
+	const int it: ???
+	const long long begY: ???
+	const long long dimX: lld/2 
+	pointer to beginning of black or white lattice
+	*/
 
+	// i, j position in grid lattice
 	const int __i = blockIdx.y*BDIM_Y*LOOP_Y + threadIdx.y;
 	const int __j = blockIdx.x*BDIM_X*LOOP_X + threadIdx.x;
-
+	
+	// calculate number of spins per word
 	const int SPIN_X_WORD = 8*sizeof(INT_T)/BITXSP;
-
+	
+	// get thread id
 	const long long tid = ((devid*gridDim.y + blockIdx.y)*gridDim.x + blockIdx.x)*BDIM_X*BDIM_Y +
 	                       threadIdx.y*BDIM_X + threadIdx.x;
-
+	
+	// Random number generator
 	curandStatePhilox4_32_10_t st;
 	curand_init(seed, tid, static_cast<long long>(2*SPIN_X_WORD)*LOOP_X*LOOP_Y*(2*it+COLOR), &st);
-
+	
+	// tmp 2D array of type INT2_T (2x1)
 	INT2_T __tmp[LOOP_Y][LOOP_X];
-	#pragma unroll
+
+	// Initialize array with (0,0)
+	#pragma unroll //compiler more efficient
 	for(int i = 0; i < LOOP_Y; i++) {
 		#pragma unroll
 		for(int j = 0; j < LOOP_X; j++) {
@@ -129,12 +147,16 @@ __global__  void latticeInit_k(const int devid,
 		}
 	}
 
+	//INT = Unsigned long long
+	//INT2 == (ull, ull)
+	// BIT X SP = 4
 	#pragma unroll
 	for(int i = 0; i < LOOP_Y; i++) {
 		#pragma unroll
 		for(int j = 0; j < LOOP_X; j++) {
 			#pragma unroll
 			for(int k = 0; k < 8*sizeof(INT_T); k += BITXSP) {
+				// Logical or plus shifting --> Initialize spins to up or down
 				if (curand_uniform(&st) < 0.5f) {
 					__tmp[i][j].x |= INT_T(1) << k;
 				}
@@ -1234,30 +1256,35 @@ static void generate_times(unsigned long long nsteps,
 
 int main(int argc, char **argv) {
 
+	// v_d whole lattice
+	// black_d black lattice --> white_d white lattice
 	unsigned long long *v_d=NULL;
 	unsigned long long *black_d=NULL;
 	unsigned long long *white_d=NULL;
 
+	// Unclear yet
 	unsigned long long *ham_d=NULL;
 	unsigned long long *hamB_d=NULL;
 	unsigned long long *hamW_d=NULL;
 
 	cudaEvent_t start, stop;
-        float et;
+    float et;
 
 	// Number of spins per word
+	// Bits per word / Bits per Spin
+	// 16 spins per word (Theorie)
 	const int SPIN_X_WORD = (8*sizeof(*v_d)) / BIT_X_SPIN;
 
-	//lattice sizes
+	// Lattice sizes per GPU
 	int X = 0;
 	int Y = 0;
 
 	int dumpOut = 0;
 
-        char cname[256];
+    char cname[256];
 
-		// dumps a file including correlation of each point with the 128 points on the right and below
-        int corrOut = 0;
+	// dumps a file including correlation of each point with the 128 points on the right and below
+    int corrOut = 0;
 
 	double *corr_d[MAX_GPU];
 	double *corr_h[MAX_GPU];
@@ -1299,11 +1326,11 @@ int main(int argc, char **argv) {
 	// Should we use sublattices or not
 	int useSubLatt = 0;
 	
-	// Size of sublattices
+	// Size of sublattices per GPU
 	int XSL = 0;
 	int YSL = 0;
 
-	// number of sublattices along X and Y
+	// number of sublattices along X and Y per GPU
 	int NSLX = 1;
 	int NSLY = 1;
 
@@ -1421,18 +1448,19 @@ int main(int argc, char **argv) {
 	if (!X || !Y) {
 		// check if X is zero
 		if (!X) {
-			// if Y is not zero and ! Y % 2*2*16*2 then set x=y
+			// if Y is not zero and ! Y % 2*S then set x=y
+			// X is minimal size 2*SPIN_X_WORD ...
 			if (Y && !(Y % (2*SPIN_X_WORD*2*BLOCK_X*BMULT_X))) {
 				X = Y;
 			}
-			// else X = 2*2*2*16*2 
+			// else set X equal to this 
 			else {
 				X = 2*SPIN_X_WORD*2*BLOCK_X*BMULT_X;
 			}
 		}
 		// if Y is zero
 		if (!Y) {
-			// if x is not divisable by BLOCK_Y*BMULT_Y, set Y=X
+			// if x is divisable by BLOCK_Y*BMULT_Y, set Y=X
 			if (!(X%(BLOCK_Y*BMULT_Y))) {
 				Y = X;
 			} 
@@ -1476,6 +1504,8 @@ int main(int argc, char **argv) {
 				}
 			}
 		}
+
+		// Error handling
 		if ((X%XSL) || !XSL || (XSL%2) || ((XSL/2)%(SPIN_X_WORD*2*BLOCK_X*BMULT_X))) {
 			fprintf(stderr,
 				"\nPlease specify an X sub-lattice dim multiple of %d and divisor of %d\n\n",
@@ -1494,9 +1524,10 @@ int main(int argc, char **argv) {
 		NSLX = X / XSL;
 		NSLY = Y / YSL;
 	} 
+
 	// If no sublattice
 	else {
-		// XSL clear, YSL no plan
+		// XSL clear, YSL column size of all lattices over all GPUs
 		XSL = X;
 		YSL = Y*ndev;
 
@@ -1539,8 +1570,10 @@ int main(int argc, char **argv) {
 	// we assums all gpus to be the same so we'll later
 	// use the props filled for the last GPU...
 
+
 	// If we use more dann one gpu
 	if (ndev > 1) {
+		// Check if GPU allows concurrent managed memory access
 		for(int i = 0; i < ndev; i++) {
 			int attVal = 0;
 			CHECK_CUDA(cudaDeviceGetAttribute(&attVal, cudaDevAttrConcurrentManagedAccess, i));
@@ -1551,19 +1584,24 @@ int main(int argc, char **argv) {
 			}
 		}
 
+		// print number of GPUs
 		printf("GPUs direct access matrix:\n       ");
 		for(int i = 0; i < ndev; i++) {
 			printf("%4d", i);
 		}
+
 		int missingLinks = 0;
 		printf("\n");
 		for(int i = 0; i < ndev; i++) {
 			printf("GPU %2d:", i);
+			// Set index of GPUs
 			CHECK_CUDA(cudaSetDevice(i)); 
 			for(int j = 0; j < ndev; j++) {
 				int access = 1;
+				// Check if GPU i can access memory of GPU j
 				if (i != j) {
 					CHECK_CUDA(cudaDeviceCanAccessPeer(&access, i, j));
+					// if access, then enable memory access for peer GPU
 					if (access) {
 						CHECK_CUDA(cudaDeviceEnablePeerAccess(j, 0));
 					} else {
@@ -1575,6 +1613,7 @@ int main(int argc, char **argv) {
 			printf("\n");
 		}
 		printf("\n");
+		// If missing Links, abort
 		if (missingLinks) {
 			fprintf(stderr,
 				"error: %d direct memory links among devices missing\n",
@@ -1583,19 +1622,26 @@ int main(int argc, char **argv) {
 		}
 	}
 	
-	// Size of word lattice
+	// Size of X-dimension of the black (white) word lattice per GPU
 	size_t lld = (X/2)/SPIN_X_WORD;
 
-	// length of a single color section per GPU
+	cout << "Spin x word " << SPIN_X_WORD << endl;
+	cout << "lld " << lld << endl;
+
+	// length of a single color section per GPU (Word lattice)
 	size_t llenLoc = static_cast<size_t>(Y)*lld;
 
-	// total lattice length (all GPUs, all colors)
+	// total word lattice length (all GPUs, all colors)
 	size_t llen = 2ull*ndev*llenLoc;
 
-	// Create word grid 
+	// Create blocks and Threads grid
+	// lld/2 zwei Phasen??
 	// #define DIV_UP(a,b)     (((a)+((b)-1))/(b))
 	dim3 grid(DIV_UP(lld/2, BLOCK_X*BMULT_X),
 		  DIV_UP(    Y, BLOCK_Y*BMULT_Y));
+
+	cout << "grid x " << grid.x << endl;
+	cout << "grid y " << grid.y << endl;
 
 	// Creates a CUDA block with Block_X threads in the x dimension and block_Y threads in the y dimension
 	dim3 block(BLOCK_X, BLOCK_Y);
@@ -1645,12 +1691,14 @@ int main(int argc, char **argv) {
 	printf("\ttotal lattice shape: 2 x %8d x %8zu (%12zu %s)\n", ndev*Y, lld,      llen, sizeof(*v_d) == 4 ? "uints" : "ulls");
 	printf("\tmemory: %.2lf MB (%.2lf MB per GPU)\n", (llen*sizeof(*v_d))/(1024.0*1024.0), llenLoc*2*sizeof(*v_d)/(1024.0*1024.0));
 
-	// get number of blocks used later?
+	// Maximum block number
 	const int redBlocks = MIN(DIV_UP(llen, THREADS),
 				  (props.maxThreadsPerMultiProcessor/THREADS)*props.multiProcessorCount);
-
+  
+	// How many spins are up/down
 	unsigned long long cntPos;
 	unsigned long long cntNeg;
+
 	// pointer array of length MAX_GPU 
 	unsigned long long *sum_d[MAX_GPU];
 	
@@ -1659,6 +1707,7 @@ int main(int argc, char **argv) {
 		//Allocate memory of size equal to whole lattice and set to 0
 		CHECK_CUDA(cudaMalloc(&v_d, llen*sizeof(*v_d)));
 		CHECK_CUDA(cudaMemset(v_d, 0, llen*sizeof(*v_d)));
+		
 		// allocate two unsigned long longs
 		CHECK_CUDA(cudaMalloc(&sum_d[0], 2*sizeof(**sum_d)));
 
@@ -1667,6 +1716,7 @@ int main(int argc, char **argv) {
 			CHECK_CUDA(cudaMalloc(&ham_d, llen*sizeof(*ham_d)));
 			CHECK_CUDA(cudaMemset(ham_d, 0, llen*sizeof(*ham_d)));
 		}
+
 	// More than one GPU
 	} else {
 		// Allocate memory accessible by GPU and CPU
@@ -1675,6 +1725,7 @@ int main(int argc, char **argv) {
 		if (useGenHamilt) {
 			CHECK_CUDA(cudaMallocManaged(&ham_d, llen*sizeof(*ham_d), cudaMemAttachGlobal));
 		}
+		
 		printf("\nSetting up multi-gpu configuration:\n"); fflush(stdout);
 		//#pragma omp parallel for schedule(static)
 		
@@ -1687,8 +1738,7 @@ int main(int argc, char **argv) {
 			CHECK_CUDA(cudaMalloc(sum_d+i,     2*sizeof(**sum_d)));
         	CHECK_CUDA(cudaMemset(sum_d[i], 0, 2*sizeof(**sum_d)));
 
-			// set preferred loc for black/white
-			// Tell which GPU can access which parts of the GPU?
+			// divide v_d into regions for black and white lattices
 			CHECK_CUDA(cudaMemAdvise(v_d +            i*llenLoc, llenLoc*sizeof(*v_d), cudaMemAdviseSetPreferredLocation, i));
 			CHECK_CUDA(cudaMemAdvise(v_d + (llen/2) + i*llenLoc, llenLoc*sizeof(*v_d), cudaMemAdviseSetPreferredLocation, i));
 
@@ -1723,6 +1773,7 @@ int main(int argc, char **argv) {
 		}
 	}
 
+	// Print 
 	if(corrOut) {
 		snprintf(cname, sizeof(cname), "corr_%dx%d_T_%f_%llu", Y, X, temp, seed);
 		Remove(cname);
@@ -1739,6 +1790,7 @@ int main(int argc, char **argv) {
 	// Set pointer to start of black and white lattice
 	black_d = v_d;
 	white_d = v_d + llen/2;
+	
 	if (useGenHamilt) {
 		hamB_d = ham_d;
 		hamW_d = ham_d + llen/2;
@@ -1749,7 +1801,7 @@ int main(int argc, char **argv) {
 	float  exp_h[2][5];
 
 	// precompute possible exponentials
-	//?????
+	// ?????
 	for(int i = 0; i < 2; i++) {
 		for(int j = 0; j < 5; j++) {
 			if(temp > 0) {
@@ -1772,11 +1824,16 @@ int main(int argc, char **argv) {
 		CHECK_CUDA(cudaMemcpy(exp_d[i], exp_h, 2*5*sizeof(**exp_d), cudaMemcpyHostToDevice));
 	}
 
+	// Start and Stop event
 	CHECK_CUDA(cudaEventCreate(&start));
 	CHECK_CUDA(cudaEventCreate(&stop));
 
 	for(int i = 0; i < ndev; i++) {
+		
 		// Init Black lattice
+		cout << "BMULT_X " << BMULT_X << endl;
+		cout << "BMULT_Y " << BMULT_Y << endl;
+
 		CHECK_CUDA(cudaSetDevice(i));
 		latticeInit_k<BLOCK_X, BLOCK_Y,
 			      BMULT_X, BMULT_Y,
@@ -1786,7 +1843,8 @@ int main(int argc, char **argv) {
 								   0, i*Y, lld/2,
 								   reinterpret_cast<ulonglong2 *>(black_d));
 		CHECK_ERROR("initLattice_k");
-
+		
+		// Init white lattice
 		latticeInit_k<BLOCK_X, BLOCK_Y,
 			      BMULT_X, BMULT_Y,
 			      BIT_X_SPIN, C_WHITE,
@@ -1796,6 +1854,7 @@ int main(int argc, char **argv) {
 								   reinterpret_cast<ulonglong2 *>(white_d));
 		CHECK_ERROR("initLattice_k");
 
+		// Init Hamiltonian 
 		if (useGenHamilt) {
 			hamiltInitB_k<BLOCK_X, BLOCK_Y,
 				      BMULT_X, BMULT_Y,
@@ -1813,18 +1872,22 @@ int main(int argc, char **argv) {
 								   	   reinterpret_cast<ulonglong2 *>(hamW_d));
 		}
 	}
+	
 
 	// Calculate sum of spins
 	countSpins(ndev, redBlocks, llen, llenLoc, black_d, white_d, sum_d, &cntPos, &cntNeg);
+	
 	printf("\nInitial magnetization: %9.6lf, up_s: %12llu, dw_s: %12llu\n",
 	       abs(static_cast<double>(cntPos)-static_cast<double>(cntNeg)) / (llen*SPIN_X_WORD),
 	       cntPos, cntNeg);
 
+	// Device Synchronize
 	for(int i = 0; i < ndev; i++) {
 		CHECK_CUDA(cudaSetDevice(i));
 		CHECK_CUDA(cudaDeviceSynchronize());
 	}
 
+	// Timing
 	double __t0;
 	if (ndev == 1) {
 		CHECK_CUDA(cudaEventRecord(start, 0));
@@ -1837,6 +1900,7 @@ int main(int argc, char **argv) {
 	for(j = 0; j < nsteps; j++) {
 		for(int i = 0; i < ndev; i++) {
 			CHECK_CUDA(cudaSetDevice(i));
+			// Update black lattice
 			spinUpdateV_2D_k<BLOCK_X, BLOCK_Y,
 					 BMULT_X, BMULT_Y,
 					 BIT_X_SPIN, C_BLACK,
@@ -1850,12 +1914,16 @@ int main(int argc, char **argv) {
 									      reinterpret_cast<ulonglong2 *>(white_d),
 									      reinterpret_cast<ulonglong2 *>(black_d));
 		}
+
+		// Device Synchronize
 		if (ndev > 1) {
 			for(int i = 0; i < ndev; i++) {
 				CHECK_CUDA(cudaSetDevice(i));
 				CHECK_CUDA(cudaDeviceSynchronize());
 			}
 		}
+
+		// Update white lattice or other way round
 		for(int i = 0; i < ndev; i++) {
 			CHECK_CUDA(cudaSetDevice(i));
 			spinUpdateV_2D_k<BLOCK_X, BLOCK_Y,
@@ -1871,25 +1939,37 @@ int main(int argc, char **argv) {
 									      reinterpret_cast<ulonglong2 *>(black_d),
 									      reinterpret_cast<ulonglong2 *>(white_d));
 		}
+
+		// Cuda device Synchronize
 		if (ndev > 1) {
 			for(int i = 0; i < ndev; i++) {
 				CHECK_CUDA(cudaSetDevice(i));
 				CHECK_CUDA(cudaDeviceSynchronize());
 			}
 		}
+
+		// Print stuff		
 		if (printFreq && ((j+1) % printFreq) == 0) {
+			
+			// Calculate magnetization
 			countSpins(ndev, redBlocks, llen, llenLoc, black_d, white_d, sum_d, &cntPos, &cntNeg);
 			const double magn = abs(static_cast<double>(cntPos)-static_cast<double>(cntNeg)) / (llen*SPIN_X_WORD);
 			printf("        magnetization: %9.6lf, up_s: %12llu, dw_s: %12llu (iter: %8d)\n",
 			       magn, cntPos, cntNeg, j+1);
+			
+			// Compute Correlation
 			if (corrOut) {
 				computeCorr(cname, ndev, j+1, lld, useSubLatt, XSL, YSL, X, Y, black_d, white_d, corr_d, corr_h);
 			}
+
+			// Write results to file
 			if (dumpOut) {
 				char fname[256];
 				snprintf(fname, sizeof(fname), "lattice_%dx%d_T_%f_IT_%08d_", Y, X, temp, j+1);
 				dumpLattice(fname, ndev, Y, lld, llen, llenLoc, v_d);
 			}
+
+			// Check if abortion criteria is met
 			if (tgtMagn != -1.0) {
 				if (abs(magn-tgtMagn) < TGT_MAGN_MAX_DIFF) {
 					j++;
@@ -1897,6 +1977,8 @@ int main(int argc, char **argv) {
 				}
 			}
 		}
+
+		// same as above but other frequency to print
 		//printf("j: %d, printExpSteps[%d]: %d\n", j, printExpCur, printExpSteps[printExpCur]);
 		if (printExp && printExpSteps[printExpCur] == j) {
 			printExpCur++;
@@ -1919,24 +2001,33 @@ int main(int argc, char **argv) {
 				}
 			}
 		}
+
+		// Adjust temperature 
 		if (tempUpdFreq && ((j+1) % tempUpdFreq) == 0) {
 			temp = MAX(MIN_TEMP, temp+tempUpdStep);
 			printf("Changing temperature to %f\n", temp);
+			
+			// Update exponential table
 			for(int i = 0; i < 2; i++) {
 				for(int k = 0; k < 5; k++) {
 					exp_h[i][k] = expf((i?-2.0f:2.0f)*static_cast<float>(k*2-4)*(1.0f/temp));
 					printf("exp[%2d][%d]: %E\n", i?1:-1, k, exp_h[i][k]);
 				}
 			}
+
+			// Copy exponential table to GPU
 			for(int i = 0; i < ndev; i++) {
 				CHECK_CUDA(cudaMemcpy(exp_d[i], exp_h, 2*5*sizeof(**exp_d), cudaMemcpyHostToDevice));
 			}
 		}
 	}
+
+	// Finish update step
 	if (ndev == 1) {
 		CHECK_CUDA(cudaEventRecord(stop, 0));
 		CHECK_CUDA(cudaEventSynchronize(stop));
-	} else {
+	} 
+	else {
 		for(int i = 0; i < ndev; i++) {
 			CHECK_CUDA(cudaSetDevice(i));
 			CHECK_CUDA(cudaDeviceSynchronize());
@@ -1944,10 +2035,12 @@ int main(int argc, char **argv) {
 		__t0 = Wtime()-__t0;
 	}
 
+	// Calculate final magnetization
 	countSpins(ndev, redBlocks, llen, llenLoc, black_d, white_d, sum_d, &cntPos, &cntNeg);
 	printf("Final   magnetization: %9.6lf, up_s: %12llu, dw_s: %12llu (iter: %8d)\n\n",
 	       abs(static_cast<double>(cntPos)-static_cast<double>(cntNeg)) / (llen*SPIN_X_WORD),
 	       cntPos, cntNeg, j);
+
 
 	if (ndev == 1) {
 		CHECK_CUDA(cudaEventElapsedTime(&et, start, stop));
@@ -1964,13 +2057,14 @@ int main(int argc, char **argv) {
 		1.0E+9) / (et/1.0E+3));
 
 
-
+	// Write lattice
 	if (dumpOut) {
 		char fname[256];
 		snprintf(fname, sizeof(fname), "lattice_%dx%d_T_%f_IT_%08d_", Y, X, temp, j);
 		dumpLattice(fname, ndev, Y, lld, llen, llenLoc, v_d);
 	}
 
+	// free memory for all GPUs and stuff
 	CHECK_CUDA(cudaFree(v_d));
 	if (useGenHamilt) {
 		CHECK_CUDA(cudaFree(ham_d));

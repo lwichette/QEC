@@ -231,9 +231,9 @@ static void usage(const char *pname) {
 
 
   int main(int argc, char **argv) {
-    long nx = 12;
-    long ny = 12;
-    int niters = 1000;
+    long nx = 1774;
+    long ny = 1774;
+    int niters = 1000000;
     float alpha = 1.0f;
     int nwarmup = 100;
     float TCRIT = 8.0f;
@@ -349,7 +349,7 @@ static void usage(const char *pname) {
     
     for (int i = 0; i < niters; i++) {
       update(lattice_b, lattice_w, randvals, rng, interactions, inv_temp, nx, ny,coupling_constant);
-      if (i % 1000 == 0) printf("Completed %d/%d iterations...\n", i+1, niters);
+      //if (i % 1000 == 0) printf("Completed %d/%d iterations...\n", i+1, niters);
     }
   
     cudaDeviceSynchronize();

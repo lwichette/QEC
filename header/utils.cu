@@ -66,10 +66,8 @@ __global__ void init_spins(
 
 void init_interactions_with_seed(
     signed char* interactions, const long long seed, curandGenerator_t interaction_rng, float* interaction_randvals,
-    const long long nx, const long long ny, const int num_lattices, const float p
+    const long long nx, const long long ny, const int num_lattices, const float p, const int blocks
 ){
-    int blocks = (nx*ny*2*num_lattices + THREADS -1)/THREADS;
-
     // Set Seed 
     CHECK_CURAND(curandSetPseudoRandomGeneratorSeed(interaction_rng,seed));
     
@@ -79,20 +77,25 @@ void init_interactions_with_seed(
 
 void init_spins_with_seed(
     signed char* lattice_b, signed char* lattice_w, const long long seed, curandGenerator_t lattice_rng, float* lattice_randvals,
-    const long long nx, const long long ny, const int num_lattices
+    const long long nx, const long long ny, const int num_lattices, bool up, const int blocks
 ){
-    
-    int blocks = (nx*ny*2*num_lattices + THREADS -1)/THREADS;
-    
-    // Set seed
-    CHECK_CURAND(curandSetPseudoRandomGeneratorSeed(lattice_rng, seed));
 
-    //Initialize the arrays for white and black lattice
-    CHECK_CURAND(curandGenerateUniform(lattice_rng, lattice_randvals, nx*ny/2*num_lattices));
-    init_spins<<<blocks, THREADS>>>(lattice_b, lattice_randvals, nx, ny/2, num_lattices);
+    if (up){
+        init_spins_up<<<blocks,THREADS>>>(lattice_b, nx, ny/2, num_lattices);
+        init_spins_up<<<blocks,THREADS>>>(lattice_w, nx, ny/2, num_lattices);
+    }
+    
+    else{
+        // Set seed
+        CHECK_CURAND(curandSetPseudoRandomGeneratorSeed(lattice_rng, seed));
 
-    CHECK_CURAND(curandGenerateUniform(lattice_rng, lattice_randvals, nx*ny/2*num_lattices));
-    init_spins<<<blocks, THREADS>>>(lattice_w, lattice_randvals, nx, ny/2, num_lattices);
+        //Initialize the arrays for white and black lattice
+        CHECK_CURAND(curandGenerateUniform(lattice_rng, lattice_randvals, nx*ny/2*num_lattices));
+        init_spins<<<blocks, THREADS>>>(lattice_b, lattice_randvals, nx, ny/2, num_lattices);
+
+        CHECK_CURAND(curandGenerateUniform(lattice_rng, lattice_randvals, nx*ny/2*num_lattices));
+        init_spins<<<blocks, THREADS>>>(lattice_w, lattice_randvals, nx, ny/2, num_lattices);
+    }
 }
 
 void write_lattice(signed char *lattice_b, signed char *lattice_w, std::string filename, long long nx, long long ny, const int num_lattices) {
@@ -364,11 +367,9 @@ __global__ void calc_energy(
 
 void calculate_B2(
     thrust::complex<float> *d_sum, signed char *lattice_b, signed char *lattice_w, thrust::complex<float> *d_store_sum, float *d_wave_vector, 
-    int loc, const long nx, const long ny, const int num_lattices, const int num_iterations_seeds
+    int loc, const long nx, const long ny, const int num_lattices, const int num_iterations_seeds, const int blocks
 ){
     // Calculate B2 and reduce sum
-    int blocks = (nx*ny*2*num_lattices + THREADS -1)/THREADS;
-
     B2_lattices<<<blocks, THREADS>>>(lattice_b, lattice_w, d_wave_vector, d_sum, nx, ny/2, num_lattices);
 
     for (int i=0; i<num_lattices; i++){
@@ -553,12 +554,9 @@ __global__ void update_lattice_ob(
 
 void update_ob(
     signed char *lattice_b, signed char *lattice_w, float* randvals, curandGenerator_t rng, signed char* interactions, 
-    float *inv_temp, long long nx, long long ny, const int num_lattices, float *coupling_constant
+    float *inv_temp, long long nx, long long ny, const int num_lattices, float *coupling_constant, const int blocks
 ) {
  
-    // Setup CUDA launch configuration
-    int blocks = (nx * ny/2 * num_lattices + THREADS - 1) / THREADS;
-
     // Update black
     CHECK_CURAND(curandGenerateUniform(rng, randvals, num_lattices*nx*ny/2));
     update_lattice_ob<true><<<blocks, THREADS>>>(lattice_b, lattice_w, randvals, interactions, inv_temp, nx, ny/2, num_lattices, coupling_constant);
@@ -649,11 +647,9 @@ __global__ void calc_energy_ob(
 
 void calculate_energy_ob(
     float* d_energy, signed char *lattice_b, signed char *lattice_w, signed char *d_interactions, float *d_store_energy, 
-    float *coupling_constant, const int loc, const int nx, const int ny, const int num_lattices, const int num_iterations_seeds
+    float *coupling_constant, const int loc, const int nx, const int ny, const int num_lattices, const int num_iterations_seeds, const int blocks
 ){
     // Calculate energy and reduce sum
-    int blocks = (nx*ny*2*num_lattices + THREADS -1)/THREADS;
-
     calc_energy_ob<true><<<blocks,THREADS>>>(d_energy, lattice_b, lattice_w, d_interactions, nx, ny/2, num_lattices, coupling_constant);
 
     for (int i=0; i<num_lattices; i++){

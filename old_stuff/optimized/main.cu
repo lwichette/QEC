@@ -57,13 +57,14 @@ using namespace std;
 //   512:  8,  8, 1, 1
 //   256:  4,  8, 1, 1
 //   128:  2,  8, 1, 1
+// 2*SPIN_X_WORD*2*BLOCK_X*BMULT_X
+// BMULT_X Block Multiple X Direction
+// Unclear
+#define BLOCK_X (8)
+#define BLOCK_Y (8)
 
 // Unclear
-#define BLOCK_X (16)
-#define BLOCK_Y (16)
-
-// Unclear
-#define BMULT_X (2)
+#define BMULT_X (1)
 #define BMULT_Y (1)
 
 // Maximum number of GPUs
@@ -509,21 +510,26 @@ void spinUpdateV_2D_k(const int devid,
 		            INT2_T *__restrict__ vDst) {
 
 	const int SPIN_X_WORD = 8*sizeof(INT_T)/BITXSP;
-
+	
+	// x and y location in Thread lattice
 	const int tidx = threadIdx.x;
 	const int tidy = threadIdx.y;
-
+	
+	// Initialize shared memory of given size
 	__shared__ INT2_T shTile[BDIM_Y*LOOP_Y+2][BDIM_X*LOOP_X+2];
-
+    
+	// Load spin tiles of given thread to shared memory
 	loadTile<BDIM_X, BDIM_Y,
 		 BDIM_X*LOOP_X,
 		 BDIM_Y*LOOP_Y, 
 		 1, 1, INT2_T>(slX, slY, begY, dimX, vSrc, shTile);
 
 	// __shExp[cur_s{0,1}][sum_s{0,1}] = __expf(-2*cur_s{-1,+1}*F{+1,-1}(sum_s{0,1})*INV_TEMP)
+	// Shared memory to store Exp
 	__shared__ float __shExp[2][5];
 
 	// for small lattices BDIM_X/Y may be smaller than 2/5
+	// Load exponentials into shared memory
 	#pragma unroll
 	for(int i = 0; i < 2; i += BDIM_Y) {
 		#pragma unroll
@@ -1258,10 +1264,27 @@ int main(int argc, char **argv) {
 
 	// v_d whole lattice
 	// black_d black lattice --> white_d white lattice
-	unsigned long long *v_d=NULL;
+	//unsigned long long *v_d=NULL;
 	unsigned long long *black_d=NULL;
 	unsigned long long *white_d=NULL;
+	
+	unsigned long long *v_d = (unsigned long long *)Malloc(10*sizeof(*v_d));
+	
+	for (int i=0; i<10; i++){
+		cout << v_d[i] << endl;
+	}
 
+	printf("new \n"); 
+
+	ulonglong2 *v_new = reinterpret_cast<ulonglong2 *>(v_d);
+
+	for (int i=0; i<5; i++){
+		cout << v_new[i].x << v_new[i].y << endl;
+	}
+
+	printf("Ende");
+
+	return 0;
 	// Unclear yet
 	unsigned long long *ham_d=NULL;
 	unsigned long long *hamB_d=NULL;
@@ -1625,9 +1648,6 @@ int main(int argc, char **argv) {
 	// Size of X-dimension of the black (white) word lattice per GPU
 	size_t lld = (X/2)/SPIN_X_WORD;
 
-	cout << "Spin x word " << SPIN_X_WORD << endl;
-	cout << "lld " << lld << endl;
-
 	// length of a single color section per GPU (Word lattice)
 	size_t llenLoc = static_cast<size_t>(Y)*lld;
 
@@ -1635,13 +1655,10 @@ int main(int argc, char **argv) {
 	size_t llen = 2ull*ndev*llenLoc;
 
 	// Create blocks and Threads grid
-	// lld/2 zwei Phasen??
+	// lld/2 Tupel im Init
 	// #define DIV_UP(a,b)     (((a)+((b)-1))/(b))
 	dim3 grid(DIV_UP(lld/2, BLOCK_X*BMULT_X),
 		  DIV_UP(    Y, BLOCK_Y*BMULT_Y));
-
-	cout << "grid x " << grid.x << endl;
-	cout << "grid y " << grid.y << endl;
 
 	// Creates a CUDA block with Block_X threads in the x dimension and block_Y threads in the y dimension
 	dim3 block(BLOCK_X, BLOCK_Y);
@@ -1829,10 +1846,6 @@ int main(int argc, char **argv) {
 	CHECK_CUDA(cudaEventCreate(&stop));
 
 	for(int i = 0; i < ndev; i++) {
-		
-		// Init Black lattice
-		cout << "BMULT_X " << BMULT_X << endl;
-		cout << "BMULT_Y " << BMULT_Y << endl;
 
 		CHECK_CUDA(cudaSetDevice(i));
 		latticeInit_k<BLOCK_X, BLOCK_Y,

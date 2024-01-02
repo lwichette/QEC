@@ -1,0 +1,45 @@
+#!/bin/bash
+
+#SBATCH --job-name=qec
+#SBATCH --partition=qc
+#SBATCH --account=quxki
+
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=marius.beuerle@dfki.de
+
+#SBATCH --time=14-00:00:00
+
+#SBATCH -N 1
+#SBATCH --exclusive
+
+#SBATCH --ntasks=2 --nodes=1
+#SBATCH --mem=256G
+#SBATCH --cpus-per-task=48
+#SBATCH --gres=gpu:2
+
+#SBATCH -D /mnt/beegfs/data/QuDA-KI/qec
+
+singularity exec --home /mnt/beegfs/data/QuDA-KI/qec --nv /mnt/beegfs/public/images/boost.sif /bin/bash -c "
+    cd open_boundary \
+    && make \
+    && (CUDA_VISIBLE_DEVICES=0 ./open_boundary --p 0.1092 --temp 0.9 --step 0.0167 --up true --nie 300 --nis 10 --nit 200000 --nw 100 --nl 13 --nrt 1 --L 64 --folder 0.1092 &\
+        CUDA_VISIBLE_DEVICES=1 ./open_boundary --p 0.10921 --temp 0.9 --step 0.0167 --up true --nie 300 --nis 10 --nit 200000 --nw 100 --nl 13 --nrt 1 --L 64 --folder 0.10921) \
+    && (CUDA_VISIBLE_DEVICES=0 ./open_boundary --p 0.1091 --temp 0.9 --step 0.0167 --up true --nie 300 --nis 10 --nit 400000 --nw 100 --nl 13 --nrt 1 --L 256 --folder 0.1091 &\
+	CUDA_VISIBLE_DEVICES=1 ./open_boundary --p 0.10911 --temp 0.9 --step 0.0167 --up true --nie 300 --nis 10 --nit 400000 --nw 100 --nl 13 --nrt 1 --L 256 --folder 0.10911) \
+    && (CUDA_VISIBLE_DEVICES=0 ./open_boundary --p 0.10912 --temp 0.9 --step 0.0167 --up true --nie 300 --nis 10 --nit 400000 --nw 100 --nl 13 --nrt 1 --L 256 --folder 0.10912 &\
+        CUDA_VISIBLE_DEVICES=1 ./open_boundary --p 0.10913 --temp 0.9 --step 0.0167 --up true --nie 300 --nis 10 --nit 400000 --nw 100 --nl 13 --nrt 1 --L 256 --folder 0.10913) \
+    && (CUDA_VISIBLE_DEVICES=0 ./open_boundary --p 0.10914 --temp 0.9 --step 0.0167 --up true --nie 300 --nis 10 --nit 400000 --nw 100 --nl 13 --nrt 1 --L 256 --folder 0.10914 &\
+        CUDA_VISIBLE_DEVICES=1 ./open_boundary --p 0.10915 --temp 0.9 --step 0.0167 --up true --nie 300 --nis 10 --nit 400000 --nw 100 --nl 13 --nrt 1 --L 256 --folder 0.10915) \
+    && (CUDA_VISIBLE_DEVICES=0 ./open_boundary --p 0.10916 --temp 0.9 --step 0.0167 --up true --nie 300 --nis 10 --nit 400000 --nw 100 --nl 13 --nrt 1 --L 256 --folder 0.10916 &\
+        CUDA_VISIBLE_DEVICES=1 ./open_boundary --p 0.10917 --temp 0.9 --step 0.0167 --up true --nie 300 --nis 10 --nit 400000 --nw 100 --nl 13 --nrt 1 --L 256 --folder 0.10917) \
+    && (CUDA_VISIBLE_DEVICES=0 ./open_boundary --p 0.10918 --temp 0.9 --step 0.0167 --up true --nie 300 --nis 10 --nit 400000 --nw 100 --nl 13 --nrt 1 --L 256 --folder 0.10918 &\
+        CUDA_VISIBLE_DEVICES=1 ./open_boundary --p 0.10919 --temp 0.9 --step 0.0167 --up true --nie 300 --nis 10 --nit 400000 --nw 100 --nl 13 --nrt 1 --L 256 --folder 0.10919) \
+    && (CUDA_VISIBLE_DEVICES=0 ./open_boundary --p 0.1092 --temp 0.9 --step 0.0167 --up true --nie 300 --nis 10 --nit 400000 --nw 100 --nl 13 --nrt 1 --L 256 --folder 0.1092 &\
+        CUDA_VISIBLE_DEVICES=1 ./open_boundary --p 0.10921 --temp 0.9 --step 0.0167 --up true --nie 300 --nis 10 --nit 400000 --nw 100 --nl 13 --nrt 1 --L 256 --folder 0.10921) \
+    && (CUDA_VISIBLE_DEVICES=0 ./open_boundary --p 0.1091 --temp 0.9 --step 0.0167 --up true --nie 300 --nis 10 --nit 500000 --nw 100 --nl 13 --nrt 1 --L 512 --folder 0.1091 &\
+        CUDA_VISIBLE_DEVICES=1 ./open_boundary --p 0.10911 --temp 0.9 --step 0.0167 --up true --nie 300 --nis 10 --nit 500000 --nw 100 --nl 13 --nrt 1 --L 512 --folder 0.10911) \
+    && (CUDA_VISIBLE_DEVICES=0 ./open_boundary --p 0.10912 --temp 0.9 --step 0.0167 --up true --nie 300 --nis 10 --nit 500000 --nw 100 --nl 13 --nrt 1 --L 512 --folder 0.10912 &\
+        CUDA_VISIBLE_DEVICES=1 ./open_boundary --p 0.10913 --temp 0.9 --step 0.0167 --up true --nie 300 --nis 10 --nit 500000 --nw 100 --nl 13 --nrt 1 --L 512 --folder 0.10913) \
+    && (CUDA_VISIBLE_DEVICES=0 ./open_boundary --p 0.10914 --temp 0.9 --step 0.0167 --up true --nie 300 --nis 10 --nit 500000 --nw 100 --nl 13 --nrt 1 --L 512 --folder 0.10914 &\
+        CUDA_VISIBLE_DEVICES=1 ./open_boundary --p 0.10915 --temp 0.9 --step 0.0167 --up true --nie 300 --nis 10 --nit 500000 --nw 100 --nl 13 --nrt 1 --L 512 --folder 0.10915)"
+    

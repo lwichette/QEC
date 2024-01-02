@@ -8,7 +8,7 @@ LBOOSTFLAGS=-lboost_program_options
 all: output
 
 output: open_boundary.cu
-	$(CUDACC) $(NVCC_FLAGS) ../header/utils.cu open_boundary.cu -o test $(LDFLAGS) $(LBOOSTFLAGS)
+	$(CUDACC) $(NVCC_FLAGS) ../header/utils.cu open_boundary.cu -o open_boundary $(LDFLAGS) $(LBOOSTFLAGS)
 
 clean:
-	rm -f test
+	rm -f open_boundary

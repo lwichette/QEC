@@ -248,11 +248,8 @@ __global__ void update_lattice(
 
 void update(
     signed char *lattice_b, signed char *lattice_w, float* randvals, curandGenerator_t rng, signed char* interactions, 
-    float *inv_temp, long long nx, long long ny, const int num_lattices, float *coupling_constant
+    float *inv_temp, long long nx, long long ny, const int num_lattices, float *coupling_constant, const int blocks
 ) {
- 
-    // Setup CUDA launch configuration
-    int blocks = (nx * ny/2 * num_lattices + THREADS - 1) / THREADS;
 
     // Update black
     CHECK_CURAND(curandGenerateUniform(rng, randvals, num_lattices*nx*ny/2));
@@ -385,11 +382,9 @@ void calculate_B2(
 
 void calculate_energy(
     float* d_energy, signed char *lattice_b, signed char *lattice_w, signed char *d_interactions, float *d_store_energy, 
-    float *coupling_constant, const int loc, const int nx, const int ny, const int num_lattices, const int num_iterations_seeds
+    float *coupling_constant, const int loc, const int nx, const int ny, const int num_lattices, const int num_iterations_seeds, const int blocks
 ){
     // Calculate energy and reduce sum
-    int blocks = (nx*ny*2*num_lattices + THREADS -1)/THREADS;
-
     calc_energy<true><<<blocks,THREADS>>>(d_energy, lattice_b, lattice_w, d_interactions, nx, ny/2, num_lattices, coupling_constant);
 
     for (int i=0; i<num_lattices; i++){

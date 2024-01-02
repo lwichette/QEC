@@ -28,13 +28,14 @@ int main(int argc, char **argv){
     int num_iterations_error, num_iterations_seeds, niters, nwarmup, num_lattices, num_reps_temp;
     std::vector<int> L_size;
     std::string folderName;
-    bool up;
+    bool up, open;
 
     // Declare the supported options.
     po::options_description desc("Allowed options");
     desc.add_options()
       ("help", "produce help options")
       ("p", po::value<float>(), "probability")
+      ("open", po::value<bool>(), "open boundary")
       ("temp", po::value<float>(), "start_temp")
       ("step", po::value<float>(), "step size temperature")
       ("up", po::value<bool>(), "step size temperature")
@@ -54,6 +55,9 @@ int main(int argc, char **argv){
   
     if (vm.count("p")) {
         p = vm["p"].as<float>();
+    }
+    if (vm.count("open")) {
+        open = vm["open"].as<bool>();
     }
     if (vm.count("temp")) {
         start_temp = vm["temp"].as<float>();
@@ -89,8 +93,15 @@ int main(int argc, char **argv){
         folderName = vm["folder"].as<std::string>();
     }
 
-    std::string folderPath = "results/" + folderName;
+    std::string folderPath;
 
+    if (open){
+        folderPath = "results/open_boundary/" + folderName;
+    }
+    else{
+        folderPath = "results/periodic_boundary/" + folderName; 
+    }
+    
     if (!fs::exists(folderPath)) { 
         if (fs::create_directory(folderPath)) {
             std::cout << "Directory created successfully." << std::endl;
@@ -98,6 +109,23 @@ int main(int argc, char **argv){
             std::cout << "Failed to create directory." << std::endl;
         }
     }
+    
+    // Function Maps
+    std::map<bool, std::function<void(
+        signed char*, signed char*, float*, curandGenerator_t, signed char*, float*,
+        long long, long long, const int, float*, const int
+    )>> updateMap;
+
+    updateMap[false] = &update;
+    updateMap[true] = &update_ob;
+
+    std::map<bool, std::function<void(
+         float*, signed char*, signed char*, signed char*,  float*, float*, const int, const int,
+         const int, const int, const int, const int
+    )>> energyMap;
+
+    energyMap[false] = &calculate_energy;
+    energyMap[true] = &calculate_energy_ob;
 
     std::vector<float> inv_temp;
     std::vector<float> coupling_constant;
@@ -225,13 +253,13 @@ int main(int argc, char **argv){
                 CHECK_CURAND(curandSetPseudoRandomGeneratorSeed(update_rng, seeds_spins));
 
                 for (int j = 0; j < nwarmup; j++) {
-                    update_ob(lattice_b, lattice_w, randvals, update_rng, d_interactions, d_inv_temp, L, L, num_lattices, d_coupling_constant, blocks_spins);
+                    updateMap[open](lattice_b, lattice_w, randvals, update_rng, d_interactions, d_inv_temp, L, L, num_lattices, d_coupling_constant, blocks_spins);
                 }
 
                 CHECK_CUDA(cudaDeviceSynchronize());
                 
                 for (int j = 0; j < niters; j++){
-                    update_ob(lattice_b, lattice_w, randvals, update_rng, d_interactions, d_inv_temp, L, L, num_lattices, d_coupling_constant, blocks_spins);
+                    updateMap[open](lattice_b, lattice_w, randvals, update_rng, d_interactions, d_inv_temp, L, L, num_lattices, d_coupling_constant, blocks_spins);
                 }
                 
                 CHECK_CUDA(cudaDeviceSynchronize());
@@ -239,7 +267,7 @@ int main(int argc, char **argv){
                 calculate_B2(d_sum, lattice_b, lattice_w, d_store_sum_0, d_wave_vector_0, s, L, L, num_lattices, num_iterations_seeds, blocks_spins);
                 calculate_B2(d_sum, lattice_b, lattice_w, d_store_sum_k, d_wave_vector_k, s, L, L, num_lattices, num_iterations_seeds, blocks_spins);
                 
-                calculate_energy_ob(d_energy, lattice_b, lattice_w, d_interactions, d_store_energy, d_coupling_constant, s, L, L, num_lattices, num_iterations_seeds, blocks_spins);
+                energyMap[open](d_energy, lattice_b, lattice_w, d_interactions, d_store_energy, d_coupling_constant, s, L, L, num_lattices, num_iterations_seeds, blocks_spins);
 
                 seeds_spins += 1;
             }

@@ -168,6 +168,7 @@ __global__  void latticeInit_k(const int devid,
 		}
 	}
 
+	// Set values in overall array
 	#pragma unroll
 	for(int i = 0; i < LOOP_Y; i++) {
 		#pragma unroll
@@ -508,14 +509,15 @@ void spinUpdateV_2D_k(const int devid,
 		      const INT2_T *__restrict__ jDst,
 		      const INT2_T *__restrict__ vSrc,
 		            INT2_T *__restrict__ vDst) {
-
+	
+	// calc how many spins per word
 	const int SPIN_X_WORD = 8*sizeof(INT_T)/BITXSP;
 	
 	// x and y location in Thread lattice
 	const int tidx = threadIdx.x;
 	const int tidy = threadIdx.y;
 	
-	// Initialize shared memory of given size
+	// Initialize shared memory of Block size + 2?
 	__shared__ INT2_T shTile[BDIM_Y*LOOP_Y+2][BDIM_X*LOOP_X+2];
     
 	// Load spin tiles of given thread to shared memory
@@ -541,14 +543,18 @@ void spinUpdateV_2D_k(const int devid,
 	}
 	__syncthreads();
 
+	// get i and j location in block/thread grid
 	const int __i = blockIdx.y*BDIM_Y*LOOP_Y + tidy;
 	const int __j = blockIdx.x*BDIM_X*LOOP_X + tidx;
 
+	// calculate thread id
 	const long long tid = ((devid*gridDim.y + blockIdx.y)*gridDim.x + blockIdx.x)*BDIM_X*BDIM_Y +
 	                       threadIdx.y*BDIM_X + threadIdx.x;
 
+	// array of size BMULT_Y x BMULT_X of unsigned long long
 	INT2_T __me[LOOP_Y][LOOP_X];
 
+	// Store spin words in array
 	#pragma unroll
 	for(int i = 0; i < LOOP_Y; i++) {
 		#pragma unroll
@@ -557,10 +563,12 @@ void spinUpdateV_2D_k(const int devid,
 		}
 	}
 
+	// initialize up, down center arrays
 	INT2_T __up[LOOP_Y][LOOP_X];
 	INT2_T __ct[LOOP_Y][LOOP_X];
 	INT2_T __dw[LOOP_Y][LOOP_X];
 
+	// Load up, down, center arrays
 	#pragma unroll
 	for(int i = 0; i < LOOP_Y; i++) {
 		#pragma unroll
@@ -572,10 +580,13 @@ void spinUpdateV_2D_k(const int devid,
 	}
 
 	// BDIM_Y is power of two so row parity won't change across loops
+	// Check if color is black --> Offset
 	const int readBack = (COLOR == C_BLACK) ? !(__i%2) : (__i%2);
 
+	// Create array of size BMULT_Y x BMULT_X of a unsigned long long tuple
 	INT2_T __sd[LOOP_Y][LOOP_X];
 
+	// Load word into array
 	#pragma unroll
 	for(int i = 0; i < LOOP_Y; i++) {
 		#pragma unroll
@@ -1846,7 +1857,7 @@ int main(int argc, char **argv) {
 	CHECK_CUDA(cudaEventCreate(&stop));
 
 	for(int i = 0; i < ndev; i++) {
-
+		// Init black lattice
 		CHECK_CUDA(cudaSetDevice(i));
 		latticeInit_k<BLOCK_X, BLOCK_Y,
 			      BMULT_X, BMULT_Y,
@@ -1936,7 +1947,7 @@ int main(int argc, char **argv) {
 			}
 		}
 
-		// Update white lattice or other way round
+		// Update white lattice
 		for(int i = 0; i < ndev; i++) {
 			CHECK_CUDA(cudaSetDevice(i));
 			spinUpdateV_2D_k<BLOCK_X, BLOCK_Y,

@@ -8,9 +8,7 @@
 #SBATCH --mail-user=marius.beuerle@dfki.de
 
 #SBATCH --time=14-00:00:00
-
 #SBATCH -N 1
-
 #SBATCH --ntasks=1 --nodes=1
 #SBATCH --mem=256G
 #SBATCH --cpus-per-task=48

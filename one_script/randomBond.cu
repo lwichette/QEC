@@ -138,7 +138,7 @@ int main(int argc, char **argv){
             coupling_constant.push_back(1/run_temp);
         }
     }
-
+    
     num_lattices = num_lattices * num_reps_temp;
 
     float *d_inv_temp, *d_coupling_constant;
@@ -151,7 +151,7 @@ int main(int argc, char **argv){
         
         int L = L_size[ls];
         
-        std::string result_name = std::string("L_") + std::to_string(L) + std::string("_p_") + std::to_string(p) + std::string("_ns_") + std::to_string(num_iterations_seeds) + std::string("_ne_") + std::to_string(num_iterations_error) + std::string("_ni_") + std::to_string(niters) + std::string("_nw_") + std::to_string(nwarmup) + std::string("_up_") + std::to_string(up) + std::string("_temp_") + std::to_string(temp) + std::string("step") + std::to_string(step) + std::string("_nl_") + std::to_string(nl) + std::string("_nrt_") + std::to_string(nrt) + std::string(".txt");
+        std::string result_name = std::string("L_") + std::to_string(L) + std::string("_p_") + std::to_string(p) + std::string("_ns_") + std::to_string(num_iterations_seeds) + std::string("_ne_") + std::to_string(num_iterations_error) + std::string("_ni_") + std::to_string(niters) + std::string("_nw_") + std::to_string(nwarmup) + std::string("_up_") + std::to_string(up) + std::string("_temp_") + std::to_string(start_temp) + std::string("step") + std::to_string(step) + std::string("_nl_") + std::to_string(num_lattices/num_reps_temp) + std::string("_nrt_") + std::to_string(num_reps_temp) + std::string(".txt");
 
         if (fs::exists(folderPath + "/" + result_name)){
             cout << "Results already exist" << result_name << std::endl;

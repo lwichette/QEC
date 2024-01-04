@@ -3,3 +3,6 @@
 **/.ipynb_checkpoints/
 *.0
 *.out
+*.elf
+one_script/randomBond
+.nv/ComputeCache/index

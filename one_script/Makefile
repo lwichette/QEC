@@ -8,7 +8,7 @@ LBOOSTFLAGS=-lboost_program_options
 all: output
 
 output: randomBond.cu
-	$(CUDACC) $(NVCC_FLAGS) ../header/utils.cu randomBond.cu -o test $(LDFLAGS) $(LBOOSTFLAGS)
+	$(CUDACC) $(NVCC_FLAGS) ../header/utils.cu randomBond.cu -o randomBond $(LDFLAGS) $(LBOOSTFLAGS)
 
 clean:
-	rm -f test
+	rm -f randomBond

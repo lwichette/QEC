@@ -289,6 +289,19 @@ int main(int argc, char **argv){
             calculate_weighted_energies(d_weighted_energies, d_error_weight_0, d_store_energy, d_store_sum_0, d_partition_function, num_lattices, num_iterations_seeds, num_iterations_error, blocks_nis, e);
             calculate_weighted_energies(d_weighted_energies, d_error_weight_k, d_store_energy, d_store_sum_k, d_partition_function, num_lattices, num_iterations_seeds, num_iterations_error, blocks_nis, e);
 
+            std::vector<float> h_store_energy(num_lattices*num_iterations_seeds);
+            std::vector<float> h_store_sum_0(num_lattices*num_iterations_seeds);
+
+            cudaMemcpy(h_store_energy.data(), d_store_energy, num_lattices*num_iterations_seeds*sizeof(float), cudaMemcpyDeviceToHost);
+            cudaMemcpy(h_store_sum_0.data(), d_store_sum_0, num_lattices*num_iterations_seeds*sizeof(float), cudaMemcpyDeviceToHost);
+
+            for (int i=0; i< num_lattices*num_iterations_error; i++){
+                printf("energy %f \n", h_store_energy[i]);
+                printf("sum %f \n", h_store_sum_0[i]);
+            }
+
+            return; 
+
             seeds_interactions += 1;
         }
         

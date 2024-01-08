@@ -175,6 +175,11 @@ int main(int argc, char **argv){
         CHECK_CUDA(cudaMalloc(&d_store_sum_k, num_lattices*num_iterations_seeds*sizeof(*d_store_sum_k)));
         CHECK_CUDA(cudaMalloc(&d_store_energy, num_lattices*num_iterations_seeds*sizeof(*d_store_energy)));
 
+        // Initialize array on the GPU to store incremental sums of the magnetization sums time boltzmann factors over update steps.
+        float *d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector, *d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector;
+        CHECK_CUDA(cudaMalloc(&d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector, num_lattices*num_iterations_seeds*sizeof(*d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector)));
+        CHECK_CUDA(cudaMalloc(&d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector, num_lattices*num_iterations_seeds*sizeof(*d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector)));
+
         // B2 Sum
         thrust::complex<float> *d_sum;
         CHECK_CUDA(cudaMalloc(&d_sum, num_lattices*L*L/2*sizeof(thrust::complex<float>)));
@@ -246,7 +251,6 @@ int main(int argc, char **argv){
                     exp_beta<<<blocks_nis, THREADS>>>(d_store_energy, d_inv_temp, num_lattices, num_iterations_seeds, L);
 
                     incremental_summation_of_product_of_magnetization_and_boltzmann_factor<<<blocks_nis, THREADS>>>(d_store_energy, d_store_sum_0, , d_store_sum_0, num_lattices, num_iterations, d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector, d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector);
-
 
                 }
 

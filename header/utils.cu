@@ -33,7 +33,7 @@ size_t temp_storage_nie = 0;
 __global__ void init_spins_up(signed char* lattice, const long long nx, const long long ny, const int num_lattices){
     const long long  tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
     if (tid >= nx * ny * num_lattices) return;
-        
+
     lattice[tid] = 1;
 }
 
@@ -41,14 +41,14 @@ __global__ void init_randombond(
     signed char* interactions, const float* __restrict__ interaction_randvals,
     const long long nx, const long long ny, const int num_lattices, const float p
 ){
-        
+
         const long long tid = static_cast<long long>(threadIdx.x + blockIdx.x * blockDim.x);
-        
+
         if (tid >= 2*nx*ny*num_lattices) return;
 
         float bondrandval = interaction_randvals[tid];
         signed char bondval = (bondrandval<p)? -1 : 1;
-        interactions[tid] = bondval;                                  
+        interactions[tid] = bondval;
 }
 
 // Initialize lattice spins
@@ -58,7 +58,7 @@ __global__ void init_spins(
 ){
         const long long  tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
         if (tid >= nx * ny * num_lattices) return;
-        
+
         float randval = randvals[tid];
         signed char val = (randval < 0.5f) ? -1 : 1;
         lattice[tid] = val;
@@ -68,9 +68,9 @@ void init_interactions_with_seed(
     signed char* interactions, const long long seed, curandGenerator_t interaction_rng, float* interaction_randvals,
     const long long nx, const long long ny, const int num_lattices, const float p, const int blocks
 ){
-    // Set Seed 
+    // Set Seed
     CHECK_CURAND(curandSetPseudoRandomGeneratorSeed(interaction_rng,seed));
-    
+
     CHECK_CURAND(curandGenerateUniform(interaction_rng,interaction_randvals, num_lattices*nx*ny*2));
     init_randombond<<<blocks, THREADS>>>(interactions, interaction_randvals, nx, ny, num_lattices, p);
 }
@@ -84,7 +84,7 @@ void init_spins_with_seed(
         init_spins_up<<<blocks,THREADS>>>(lattice_b, nx, ny/2, num_lattices);
         init_spins_up<<<blocks,THREADS>>>(lattice_w, nx, ny/2, num_lattices);
     }
-    
+
     else{
         // Set seed
         CHECK_CURAND(curandSetPseudoRandomGeneratorSeed(lattice_rng, seed));
@@ -100,7 +100,7 @@ void init_spins_with_seed(
 
 void write_lattice(signed char *lattice_b, signed char *lattice_w, std::string filename, long long nx, long long ny, const int num_lattices) {
     printf("Writing lattice to %s...\n", filename.c_str());
-    
+
     std::vector<signed char> lattice_h(nx*ny);
     std::vector<signed char> lattice_w_h(nx*ny/2*num_lattices);
     std::vector<signed char> lattice_b_h(nx*ny/2*num_lattices);
@@ -108,10 +108,10 @@ void write_lattice(signed char *lattice_b, signed char *lattice_w, std::string f
     CHECK_CUDA(cudaMemcpy(lattice_b_h.data(), lattice_b, num_lattices * nx * ny/2 * sizeof(*lattice_b), cudaMemcpyDeviceToHost));
     CHECK_CUDA(cudaMemcpy(lattice_w_h.data(), lattice_w, num_lattices * nx * ny/2 * sizeof(*lattice_w), cudaMemcpyDeviceToHost));
 
-    int offset; 
+    int offset;
 
     for (int l = 0; l < num_lattices; l++){
-        
+
         offset = l*nx*ny/2;
 
         for (int i = 0; i < nx; i++){
@@ -129,7 +129,7 @@ void write_lattice(signed char *lattice_b, signed char *lattice_w, std::string f
 
         std::ofstream f;
         f.open(filename + std::to_string(l) + std::string(".txt"));
-        
+
         if (f.is_open()) {
             for (int i = 0; i < nx; i++) {
                 for (int j = 0; j < ny; j++) {
@@ -144,17 +144,17 @@ void write_lattice(signed char *lattice_b, signed char *lattice_w, std::string f
 
 void write_bonds(signed char* interactions, std::string filename, long nx, long ny, const int num_lattices){
     printf("Writing bonds to %s ...\n", filename.c_str());
-    
+
     std::vector<signed char> interactions_host(2*nx*ny*num_lattices);
-    
+
     CHECK_CUDA(cudaMemcpy(interactions_host.data(),interactions, 2*num_lattices*nx*ny*sizeof(*interactions), cudaMemcpyDeviceToHost));
-    
+
     int offset;
 
     for (int l=0; l<num_lattices; l++){
-        
+
         offset = l*nx*ny*2;
-        
+
         std::ofstream f;
         f.open(filename + std::to_string(l) + std::string(".txt"));
         if (f.is_open()) {
@@ -178,11 +178,11 @@ __global__ void update_lattice(
     const long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
 
     if (tid >= nx*ny*num_lattices) return;
-    
+
     // Calculate in which lattice we are
     int l_id = tid/(nx*ny);
-    
-    // Project tid back to single lattice 
+
+    // Project tid back to single lattice
     int tid_sl = tid - l_id*nx*ny;
 
     int i = tid_sl/ny;
@@ -198,14 +198,14 @@ __global__ void update_lattice(
     int jcouplingoff;
     int icouplingpp;
     int icouplingnn;
-    
+
     int offset = l_id * nx * ny;
     int offset_i = l_id * nx * ny * 4;
-    
+
     if (is_black) {
         icouplingpp = offset_i + 2*(nx-1)*ny + 2*(ny*(i+1) + j) + (i+1)%2;
         icouplingnn = offset_i + 2*(nx-1)*ny + 2*(ny*(inn+1) + j) + (i+1)%2;
-        
+
         joff = (i % 2) ? jnn : jpp;
 
         if (i % 2) {
@@ -220,7 +220,7 @@ __global__ void update_lattice(
     } else {
         icouplingpp = offset_i + 2*(nx-1)*ny + 2*(ny*(i+1) + j) + i%2;
         icouplingnn = offset_i + 2*(nx-1)*ny + 2*(ny*(inn+1) + j) + i%2;
-        
+
         joff = (i % 2) ? jpp : jnn;
 
         if (i % 2) {
@@ -235,7 +235,7 @@ __global__ void update_lattice(
     }
 
     // Compute sum of nearest neighbor spins times the coupling
-    signed char nn_sum = op_lattice[offset + inn*ny + j]*interactions[icouplingnn] + op_lattice[offset + i*ny + j]*interactions[offset_i + 2*(i*ny + j)] 
+    signed char nn_sum = op_lattice[offset + inn*ny + j]*interactions[icouplingnn] + op_lattice[offset + i*ny + j]*interactions[offset_i + 2*(i*ny + j)]
                         + op_lattice[offset + ipp*ny + j]*interactions[icouplingpp] + op_lattice[offset + i*ny + joff]*interactions[jcouplingoff];
 
     // Determine whether to flip spin
@@ -243,11 +243,11 @@ __global__ void update_lattice(
     float acceptance_ratio = exp(-2 * coupling_constant[l_id] * nn_sum * lij);
     if (randvals[offset + i*ny + j] < acceptance_ratio) {
         lattice[offset + i*ny + j] = -lij;
-    }  
+    }
 }
 
 void update(
-    signed char *lattice_b, signed char *lattice_w, float* randvals, curandGenerator_t rng, signed char* interactions, 
+    signed char *lattice_b, signed char *lattice_w, float* randvals, curandGenerator_t rng, signed char* interactions,
     float *inv_temp, long long nx, long long ny, const int num_lattices, float *coupling_constant, const int blocks
 ) {
 
@@ -261,12 +261,12 @@ void update(
 }
 
 __global__ void B2_lattices(
-    signed char *lattice_b, signed char *lattice_w, const float *wave_vector, 
+    signed char *lattice_b, signed char *lattice_w, const float *wave_vector,
     thrust::complex<float> *sum, int nx, int ny, int num_lattices
 ){
-    
+
     int tid = blockDim.x * blockIdx.x + threadIdx.x;
-    
+
     if (tid >= nx*ny*num_lattices) return;
 
     int lattice_id = tid/(nx*ny);
@@ -277,7 +277,7 @@ __global__ void B2_lattices(
     int j = tid_single_lattice%ny;
 
     int b_orig_j;
-    int w_orig_j; 
+    int w_orig_j;
 
     if (i%2==0){
         b_orig_j = 2*j +1;
@@ -293,7 +293,7 @@ __global__ void B2_lattices(
 
     float dot_b = wave_vector[0]*i + wave_vector[1]*b_orig_j;
     float dot_w = wave_vector[0]*i + wave_vector[1]*w_orig_j;
-    
+
     sum[tid] = lattice_b[tid]*exp(imag*dot_b) + lattice_w[tid]*exp(imag*dot_w);
 }
 
@@ -306,7 +306,7 @@ __global__ void calc_energy(
     const long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
 
     if (tid >= num_lattices*nx*ny) return;
-    
+
     const int lid = tid/(nx*ny);
     const int offset = lid*nx*ny;
     int offset_i = lid * nx * ny * 4;
@@ -324,11 +324,11 @@ __global__ void calc_energy(
     int jcouplingoff;
     int icouplingpp;
     int icouplingnn;
-    
+
     if (is_black) {
         icouplingpp = offset_i + 2*(nx-1)*ny + 2*(ny*(i+1) + j) + (i+1)%2;
         icouplingnn = offset_i + 2*(nx-1)*ny + 2*(ny*(inn+1) + j) + (i+1)%2;
-        
+
         joff = (i % 2) ? jnn : jpp;
 
         if (i % 2) {
@@ -343,7 +343,7 @@ __global__ void calc_energy(
     } else {
         icouplingpp = offset_i + 2*(nx-1)*ny + 2*(ny*(i+1) + j) + i%2;
         icouplingnn = offset_i + 2*(nx-1)*ny + 2*(ny*(inn+1) + j) + i%2;
-        
+
         joff = (i % 2) ? jpp : jnn;
 
         if (i % 2) {
@@ -358,30 +358,30 @@ __global__ void calc_energy(
     }
 
     // Compute sum of nearest neighbor spins times the coupling
-    sum[tid] = -1 * coupling_constant[lid]*lattice[offset + i*ny+j]*(op_lattice[offset + inn*ny + j]*interactions[icouplingnn] + op_lattice[offset + i*ny + j]*interactions[offset_i + 2*(i*ny + j)] 
+    sum[tid] = -1 * coupling_constant[lid]*lattice[offset + i*ny+j]*(op_lattice[offset + inn*ny + j]*interactions[icouplingnn] + op_lattice[offset + i*ny + j]*interactions[offset_i + 2*(i*ny + j)]
     + op_lattice[offset + ipp*ny + j]*interactions[icouplingpp] + op_lattice[offset + i*ny + joff]*interactions[jcouplingoff]);
 }
 
 void calculate_B2(
-    thrust::complex<float> *d_sum, signed char *lattice_b, signed char *lattice_w, thrust::complex<float> *d_store_sum, float *d_wave_vector, 
+    thrust::complex<float> *d_sum, signed char *lattice_b, signed char *lattice_w, thrust::complex<float> *d_store_sum, float *d_wave_vector,
     int loc, const long nx, const long ny, const int num_lattices, const int num_iterations_seeds, const int blocks
 ){
     // Calculate B2 and reduce sum
     B2_lattices<<<blocks, THREADS>>>(lattice_b, lattice_w, d_wave_vector, d_sum, nx, ny/2, num_lattices);
 
     for (int i=0; i<num_lattices; i++){
-        
+
         if (temp_storage_nx_thrust == 0){
             CHECK_CUDA(cub::DeviceReduce::Sum(d_temp_nx_thrust, temp_storage_nx_thrust, d_sum + i*nx*ny/2, &d_store_sum[loc + i*num_iterations_seeds], nx*ny/2));
             CHECK_CUDA(cudaMalloc(&d_temp_nx_thrust, temp_storage_nx_thrust));
         }
-        
+
         CHECK_CUDA(cub::DeviceReduce::Sum(d_temp_nx_thrust, temp_storage_nx_thrust, d_sum + i*nx*ny/2, &d_store_sum[loc + i*num_iterations_seeds], nx*ny/2));
     }
 }
 
 void calculate_energy(
-    float* d_energy, signed char *lattice_b, signed char *lattice_w, signed char *d_interactions, float *d_store_energy, 
+    float* d_energy, signed char *lattice_b, signed char *lattice_w, signed char *d_interactions, float *d_store_energy,
     float *coupling_constant, const int loc, const int nx, const int ny, const int num_lattices, const int num_iterations_seeds, const int blocks
 ){
     // Calculate energy and reduce sum
@@ -399,7 +399,7 @@ void calculate_energy(
 }
 
 __global__ void abs_square(thrust::complex<float> *d_store_sum, const int num_lattices, const int num_iterations){
-    
+
     const long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
 
     if (tid >= num_lattices * num_iterations) return;
@@ -408,29 +408,41 @@ __global__ void abs_square(thrust::complex<float> *d_store_sum, const int num_la
 }
 
 __global__ void exp_beta(float *d_store_energy, float *inv_temp, const int num_lattices, const int num_iterations, const int L){
-    
+
     const long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
 
     if (tid >= num_iterations*num_lattices) return;
 
     int lid = tid/num_iterations;
 
-    d_store_energy[tid] = exp(-inv_temp[lid]*d_store_energy[tid]/(L*L));
+    // denominator in B2 ?? or really in exponent?
+    d_store_energy[tid] = exp(-inv_temp[lid]*d_store_energy[tid]=)/(L*L);
+}
+
+__global__ void incremental_summation_of_product_of_magnetization_and_boltzmann_factor(float *d_store_energy, float *d_store_sum_0, , float *d_store_sum_0, const int num_lattices, const int num_iterations, float *d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector, float *d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector){
+
+    const long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
+
+    if (tid >= num_iterations*num_lattices) return;
+
+    d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector[tid] += d_store_energy[tid]*d_store_sum_0[tid];
+    d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector[tid] += d_store_energy[tid]*d_store_sum_k[tid];
+
 }
 
 __global__ void weighted_energies(float *d_weighted_energies, float *d_store_energy, thrust::complex<float> *d_store_sum, float *d_partition_function, const int num_lattices, const int num_iterations){
-    
+
     const long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
 
     if (tid >= num_lattices*num_iterations) return;
-    
+
     int lid = tid/num_iterations;
-    
+
     d_weighted_energies[tid] = d_store_energy[tid]*d_store_sum[tid].real() / d_partition_function[lid];
 }
 
 void calculate_weighted_energies(
-    float* d_weighted_energies, float *d_error_weight, float *d_store_energy, thrust::complex<float> *d_store_sum, float *d_partition_function, 
+    float* d_weighted_energies, float *d_error_weight, float *d_store_energy, thrust::complex<float> *d_store_sum, float *d_partition_function,
     const int num_lattices, const int num_iterations_seeds, const int num_iterations_error, const int blocks, const int e
 ){
     weighted_energies<<<blocks, THREADS>>>(d_weighted_energies, d_store_energy, d_store_sum, d_partition_function, num_lattices, num_iterations_seeds);
@@ -468,11 +480,11 @@ __global__ void update_lattice_ob(
     const long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
 
     if (tid >= nx*ny*num_lattices) return;
-    
+
     // Calculate in which lattice we are
     int l_id = tid/(nx*ny);
-    
-    // Project tid back to single lattice 
+
+    // Project tid back to single lattice
     int tid_sl = tid - l_id*nx*ny;
 
     int i = tid_sl/ny;
@@ -488,7 +500,7 @@ __global__ void update_lattice_ob(
     int jcouplingoff;
     int icouplingpp;
     int icouplingnn;
-    
+
     int offset = l_id * nx * ny;
     int offset_i = l_id * nx * ny * 4;
 
@@ -499,12 +511,12 @@ __global__ void update_lattice_ob(
     if (is_black) {
         icouplingpp = offset_i + 2*(nx-1)*ny + 2*(ny*(i+1) + j) + (i+1)%2;
         icouplingnn = offset_i + 2*(nx-1)*ny + 2*(ny*(inn+1) + j) + (i+1)%2;
-        
+
         joff = (i % 2) ? jnn : jpp;
 
         if (i % 2) {
             jcouplingoff = offset_i + 2 * (i * ny + joff) + 1;
-            
+
             c_side = 1 - jnn/(ny-1);
         } else {
             c_side = 1 - (j+1)/ny;
@@ -515,11 +527,11 @@ __global__ void update_lattice_ob(
                 jcouplingoff = offset_i + 2 * (i * ny + joff) - 1;
             }
         }
-    } 
+    }
     else {
         icouplingpp = offset_i + 2*(nx-1)*ny + 2*(ny*(i+1) + j) + i%2;
         icouplingnn = offset_i + 2*(nx-1)*ny + 2*(ny*(inn+1) + j) + i%2;
-        
+
         joff = (i % 2) ? jpp : jnn;
 
         if (i % 2) {
@@ -536,7 +548,7 @@ __global__ void update_lattice_ob(
         }
     }
 
-    signed char nn_sum = op_lattice[offset + inn*ny + j]*interactions[icouplingnn]*c_up + op_lattice[offset + i*ny + j]*interactions[offset_i + 2*(i*ny + j)] 
+    signed char nn_sum = op_lattice[offset + inn*ny + j]*interactions[icouplingnn]*c_up + op_lattice[offset + i*ny + j]*interactions[offset_i + 2*(i*ny + j)]
                         + op_lattice[offset + ipp*ny + j]*interactions[icouplingpp]*c_down + op_lattice[offset + i*ny + joff]*interactions[jcouplingoff]*c_side;
 
     // Determine whether to flip spin
@@ -544,14 +556,14 @@ __global__ void update_lattice_ob(
     float acceptance_ratio = exp(-2 * coupling_constant[l_id] * nn_sum * lij);
     if (randvals[offset + i*ny + j] < acceptance_ratio) {
         lattice[offset + i*ny + j] = -lij;
-    }  
+    }
 }
 
 void update_ob(
-    signed char *lattice_b, signed char *lattice_w, float* randvals, curandGenerator_t rng, signed char* interactions, 
+    signed char *lattice_b, signed char *lattice_w, float* randvals, curandGenerator_t rng, signed char* interactions,
     float *inv_temp, long long nx, long long ny, const int num_lattices, float *coupling_constant, const int blocks
 ) {
- 
+
     // Update black
     CHECK_CURAND(curandGenerateUniform(rng, randvals, num_lattices*nx*ny/2));
     update_lattice_ob<true><<<blocks, THREADS>>>(lattice_b, lattice_w, randvals, interactions, inv_temp, nx, ny/2, num_lattices, coupling_constant);
@@ -570,7 +582,7 @@ __global__ void calc_energy_ob(
     const long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
 
     if (tid >= num_lattices*nx*ny) return;
-    
+
     const int lid = tid/(nx*ny);
     const int offset = lid*nx*ny;
     int offset_i = lid * nx * ny * 4;
@@ -593,20 +605,20 @@ __global__ void calc_energy_ob(
     int c_down = 1-(i+1)/nx;
     int c_side;
 
-    
+
     if (is_black) {
         icouplingpp = offset_i + 2*(nx-1)*ny + 2*(ny*(i+1) + j) + (i+1)%2;
         icouplingnn = offset_i + 2*(nx-1)*ny + 2*(ny*(inn+1) + j) + (i+1)%2;
-        
+
         joff = (i % 2) ? jnn : jpp;
 
         if (i % 2) {
             jcouplingoff = offset_i + 2 * (i * ny + joff) + 1;
-            
+
             c_side = 1-jnn/(ny-1);
         } else {
             c_side = 1-(j+1)/ny;
-            
+
             if (j + 1 >= ny) {
                 jcouplingoff = offset_i + 2 * (i * ny + j + 1) - 1;
             } else {
@@ -617,7 +629,7 @@ __global__ void calc_energy_ob(
     } else {
         icouplingpp = offset_i + 2*(nx-1)*ny + 2*(ny*(i+1) + j) + i%2;
         icouplingnn = offset_i + 2*(nx-1)*ny + 2*(ny*(inn+1) + j) + i%2;
-        
+
         joff = (i % 2) ? jpp : jnn;
 
         if (i % 2) {
@@ -636,19 +648,19 @@ __global__ void calc_energy_ob(
     }
 
     // Compute sum of nearest neighbor spins times the coupling
-    sum[tid] = -1 * coupling_constant[lid]*lattice[offset + i*ny+j]*(op_lattice[offset + inn*ny + j]*interactions[icouplingnn]*c_up + op_lattice[offset + i*ny + j]*interactions[offset_i + 2*(i*ny + j)] 
+    sum[tid] = -1 * coupling_constant[lid]*lattice[offset + i*ny+j]*(op_lattice[offset + inn*ny + j]*interactions[icouplingnn]*c_up + op_lattice[offset + i*ny + j]*interactions[offset_i + 2*(i*ny + j)]
     + op_lattice[offset + ipp*ny + j]*interactions[icouplingpp]*c_down + op_lattice[offset + i*ny + joff]*interactions[jcouplingoff]*c_side);
 }
 
 void calculate_energy_ob(
-    float* d_energy, signed char *lattice_b, signed char *lattice_w, signed char *d_interactions, float *d_store_energy, 
+    float* d_energy, signed char *lattice_b, signed char *lattice_w, signed char *d_interactions, float *d_store_energy,
     float *coupling_constant, const int loc, const int nx, const int ny, const int num_lattices, const int num_iterations_seeds, const int blocks
 ){
     // Calculate energy and reduce sum
     calc_energy_ob<true><<<blocks,THREADS>>>(d_energy, lattice_b, lattice_w, d_interactions, nx, ny/2, num_lattices, coupling_constant);
 
     for (int i=0; i<num_lattices; i++){
-        
+
         if (temp_storage_nx==0){
             CHECK_CUDA(cub::DeviceReduce::Sum(d_temp_nx, temp_storage_nx, d_energy + i*nx*ny/2, &d_store_energy[loc + i*num_iterations_seeds], nx*ny/2));
             CHECK_CUDA(cudaMalloc(&d_temp_nx, temp_storage_nx));

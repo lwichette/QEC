@@ -240,8 +240,9 @@ int main(int argc, char **argv){
                     update_ob(lattice_b, lattice_w, randvals, update_rng, d_interactions, d_inv_temp, L, L, num_lattices, d_coupling_constant, blocks_spins);
 
                     // device sync needed here?
-                    calculate_energy_ob(d_energy, lattice_b, lattice_w, d_interactions, d_store_energy, d_coupling_constant, s, L, L, num_lattices, num_iterations_seeds, blocks_spins);
 
+                    // calculate energy and magnetic susceptibility
+                    calculate_energy_ob(d_energy, lattice_b, lattice_w, d_interactions, d_store_energy, d_coupling_constant, s, L, L, num_lattices, num_iterations_seeds, blocks_spins);
                     calculate_B2(d_sum, lattice_b, lattice_w, d_store_sum_0, d_wave_vector_0, s, L, L, num_lattices, num_iterations_seeds, blocks_spins);
                     calculate_B2(d_sum, lattice_b, lattice_w, d_store_sum_k, d_wave_vector_k, s, L, L, num_lattices, num_iterations_seeds, blocks_spins);
 
@@ -250,6 +251,7 @@ int main(int argc, char **argv){
 
                     exp_beta<<<blocks_nis, THREADS>>>(d_store_energy, d_inv_temp, num_lattices, num_iterations_seeds, L);
 
+                    // Only stored to different entries by lattice and spin seed configs. Summation over errors is incrementally executed and stored in the d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_._wave_vector arrays.
                     incremental_summation_of_product_of_magnetization_and_boltzmann_factor<<<blocks_nis, THREADS>>>(d_store_energy, d_store_sum_0, , d_store_sum_0, num_lattices, num_iterations, d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector, d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector);
 
                 }
@@ -259,8 +261,12 @@ int main(int argc, char **argv){
                 seeds_spins += 1;
             }
 
+            std::vector<float> h_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector(num_lattices*num_iterations_seeds);
+            std::vector<float> h_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector(num_lattices*num_iterations_seeds);
+            CHECK_CUDA(cudaMemcpy(h_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector.data(), d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector, num_lattices*num_iterations_seeds*sizeof(float), cudaMemcpyDeviceToHost));
 
-
+            print("this is the magnetization for: T=%.d, p=%.d, L=%.d\n<X(0)>=%.6f", run_temp, p, L, d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector);
+            return
 
 
             for (int l=0; l<num_lattices; l++){
@@ -296,6 +302,7 @@ int main(int argc, char **argv){
 
         std::vector<float> h_magnetic_susceptibility_0(num_lattices);
         std::vector<float> h_magnetic_susceptibility_k(num_lattices);
+
 
         CHECK_CUDA(cudaMemcpy(h_magnetic_susceptibility_0.data(), d_magnetic_susceptibility_0, num_lattices*sizeof(float), cudaMemcpyDeviceToHost));
         CHECK_CUDA(cudaMemcpy(h_magnetic_susceptibility_k.data(), d_magnetic_susceptibility_k, num_lattices*sizeof(float), cudaMemcpyDeviceToHost));
@@ -337,6 +344,8 @@ int main(int argc, char **argv){
         CHECK_CUDA(cudaFree(d_error_weight_k));
         CHECK_CUDA(cudaFree(d_store_sum_0));
         CHECK_CUDA(cudaFree(d_store_sum_k));
+        CHECK_CUDA(cudaFree(d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector));
+        CHECK_CUDA(cudaFree(d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector));
         CHECK_CUDA(cudaFree(d_store_energy));
         CHECK_CUDA(cudaFree(d_sum));
         CHECK_CUDA(cudaFree(d_weighted_energies));

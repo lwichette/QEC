@@ -416,17 +416,17 @@ __global__ void exp_beta(float *d_store_energy, float *inv_temp, const int num_l
     int lid = tid/num_iterations;
 
     // denominator in B2 ?? or really in exponent?
-    d_store_energy[tid] = exp(-inv_temp[lid]*d_store_energy[tid]=)/(L*L);
+    d_store_energy[tid] = exp(-inv_temp[lid]*d_store_energy[tid])/(L*L);
 }
 
-__global__ void incremental_summation_of_product_of_magnetization_and_boltzmann_factor(float *d_store_energy, float *d_store_sum_0, , float *d_store_sum_0, const int num_lattices, const int num_iterations, float *d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector, float *d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector){
+__global__ void incremental_summation_of_product_of_magnetization_and_boltzmann_factor(float *d_store_energy, thrust::complex<float> *d_store_sum_0, thrust::complex<float> *d_store_sum_k, const int num_lattices, const int num_iterations, float *d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector, float *d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector){
 
     const long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
 
     if (tid >= num_iterations*num_lattices) return;
 
-    d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector[tid] += d_store_energy[tid]*d_store_sum_0[tid];
-    d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector[tid] += d_store_energy[tid]*d_store_sum_k[tid];
+    d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector[tid] += d_store_energy[tid]*d_store_sum_0[tid].real();
+    d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector[tid] += d_store_energy[tid]*d_store_sum_k[tid].real();
 
 }
 
@@ -568,16 +568,16 @@ __global__ void update_lattice_ob(
 
 void update_ob(
     signed char *lattice_b, signed char *lattice_w, float* randvals, curandGenerator_t rng, signed char* interactions,
-    float *inv_temp, long long nx, long long ny, const int num_lattices, float *coupling_constant, const int blocks
+    float *inv_temp, long long nx, long long ny, const int num_lattices, float *coupling_constant, const int blocks, float *d_energy
 ) {
 
     // Update black
     CHECK_CURAND(curandGenerateUniform(rng, randvals, num_lattices*nx*ny/2));
-    update_lattice_ob<true><<<blocks, THREADS>>>(lattice_b, lattice_w, randvals, interactions, inv_temp, nx, ny/2, num_lattices, coupling_constant);
+    update_lattice_ob<true><<<blocks, THREADS>>>(lattice_b, lattice_w, randvals, interactions, inv_temp, nx, ny/2, num_lattices, coupling_constant, d_energy);
 
     // Update white
     CHECK_CURAND(curandGenerateUniform(rng, randvals, num_lattices*nx*ny/2));
-    update_lattice_ob<false><<<blocks, THREADS>>>(lattice_w, lattice_b, randvals, interactions, inv_temp, nx, ny/2, num_lattices, coupling_constant);
+    update_lattice_ob<false><<<blocks, THREADS>>>(lattice_w, lattice_b, randvals, interactions, inv_temp, nx, ny/2, num_lattices, coupling_constant, d_energy);
 }
 
 template<bool is_black>
@@ -678,11 +678,9 @@ void calculate_energy_ob(
 }
 
 void combine_cross_subset_hamiltonians_to_whole_lattice_hamiltonian(
-    float* d_energy, signed char *lattice_b, signed char *lattice_w, signed char *d_interactions, float *d_store_energy,
-    float *coupling_constant, const int loc, const int nx, const int ny, const int num_lattices, const int num_iterations_seeds, const int blocks
+    float* d_energy,  float *d_store_energy,
+  const int loc, const int nx, const int ny, const int num_lattices, const int num_iterations_seeds
 ){
-    // Calculate energy and reduce sum.
-    calc_energy_ob<true><<<blocks,THREADS>>>(d_energy, lattice_b, lattice_w, d_interactions, nx, ny/2, num_lattices, coupling_constant);
 
     for (int i=0; i<num_lattices; i++){
 

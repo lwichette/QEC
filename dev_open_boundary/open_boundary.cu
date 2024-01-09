@@ -111,6 +111,7 @@ int main(int argc, char **argv){
         }
     }
 
+    // This knots my thoughts - num_lattices is amount of different temperatures and reps temp is the multiplicity of each temp.
     num_lattices = num_lattices * num_reps_temp;
 
     float *d_inv_temp, *d_coupling_constant;
@@ -236,7 +237,7 @@ int main(int argc, char **argv){
                 CHECK_CUDA(cudaDeviceSynchronize());
 
                 for (int j = 0; j < niters; j++){
-                    //update_ob calculates H already and this should be used to store!!
+                    //Why does calc_energy_ob use num_lattices when we are iterating over the Temps and not parallizing it?
                     update_ob(lattice_b, lattice_w, randvals, update_rng, d_interactions, d_inv_temp, L, L, num_lattices, d_coupling_constant, blocks_spins);
 
                     // device sync needed here?
@@ -261,11 +262,13 @@ int main(int argc, char **argv){
                 seeds_spins += 1;
             }
 
+            // For
+
             std::vector<float> h_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector(num_lattices*num_iterations_seeds);
             std::vector<float> h_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector(num_lattices*num_iterations_seeds);
             CHECK_CUDA(cudaMemcpy(h_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector.data(), d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector, num_lattices*num_iterations_seeds*sizeof(float), cudaMemcpyDeviceToHost));
 
-            print("this is the magnetization for: T=%.d, p=%.d, L=%.d\n<X(0)>=%.6f", run_temp, p, L, d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector);
+            print("this is the magnetization susceptibility 0 for: T=%.d, p=%.d, L=%.d\n<X(0)>=%.6f", run_temp, p, L, h_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector);
             return
 
 

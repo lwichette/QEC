@@ -231,28 +231,31 @@ int main(int argc, char **argv){
                 CHECK_CURAND(curandSetPseudoRandomGeneratorSeed(update_rng, seeds_spins));
 
                 for (int j = 0; j < nwarmup; j++) {
-                    update_ob(lattice_b, lattice_w, randvals, update_rng, d_interactions, d_inv_temp, L, L, num_lattices, d_coupling_constant, blocks_spins);
+                    update_ob(lattice_b, lattice_w, randvals, update_rng, d_interactions, d_inv_temp, L, L, num_lattices, d_coupling_constant, blocks_spins, d_energy);
                 }
 
                 CHECK_CUDA(cudaDeviceSynchronize());
 
                 for (int j = 0; j < niters; j++){
                     //Why does calc_energy_ob use num_lattices when we are iterating over the Temps and not parallizing it?
-                    update_ob(lattice_b, lattice_w, randvals, update_rng, d_interactions, d_inv_temp, L, L, num_lattices, d_coupling_constant, blocks_spins);
+                    update_ob(lattice_b, lattice_w, randvals, update_rng, d_interactions, d_inv_temp, L, L, num_lattices, d_coupling_constant, blocks_spins, d_energy);
 
                     // device sync needed here?
 
-                    // calculate energy and magnetic susceptibility
-                    calculate_energy_ob(d_energy, lattice_b, lattice_w, d_interactions, d_store_energy, d_coupling_constant, s, L, L, num_lattices, num_iterations_seeds, blocks_spins);
+                    // take cross term hamiltonian values in d_energy array and reduce them to whole lattice hamiltonians.
+                    combine_cross_subset_hamiltonians_to_whole_lattice_hamiltonian(d_energy, lattice_b, lattice_w, d_interactions, d_store_energy, d_coupling_constant, s, L, L, num_lattices, num_iterations_seeds, blocks_spins);
+                    // Calculate suscetibilitites.
                     calculate_B2(d_sum, lattice_b, lattice_w, d_store_sum_0, d_wave_vector_0, s, L, L, num_lattices, num_iterations_seeds, blocks_spins);
                     calculate_B2(d_sum, lattice_b, lattice_w, d_store_sum_k, d_wave_vector_k, s, L, L, num_lattices, num_iterations_seeds, blocks_spins);
 
+                    // Take abs squares of previous sums.
                     abs_square<<<blocks_nis, THREADS>>>(d_store_sum_0, num_lattices, num_iterations_seeds);
                     abs_square<<<blocks_nis, THREADS>>>(d_store_sum_k, num_lattices, num_iterations_seeds);
 
+                    // Combine abs squares of spin sums and boltzman factor.
                     exp_beta<<<blocks_nis, THREADS>>>(d_store_energy, d_inv_temp, num_lattices, num_iterations_seeds, L);
 
-                    // Only stored to different entries by lattice and spin seed configs. Summation over errors is incrementally executed and stored in the d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_._wave_vector arrays.
+                    // Summation over errors and update steps is incrementally executed and stored in the d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_._wave_vector arrays.
                     incremental_summation_of_product_of_magnetization_and_boltzmann_factor<<<blocks_nis, THREADS>>>(d_store_energy, d_store_sum_0, , d_store_sum_0, num_lattices, num_iterations, d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector, d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector);
 
                 }
@@ -262,13 +265,14 @@ int main(int argc, char **argv){
                 seeds_spins += 1;
             }
 
-            // For
-
+            // copying new result to host.
             std::vector<float> h_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector(num_lattices*num_iterations_seeds);
             std::vector<float> h_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector(num_lattices*num_iterations_seeds);
             CHECK_CUDA(cudaMemcpy(h_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector.data(), d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector, num_lattices*num_iterations_seeds*sizeof(float), cudaMemcpyDeviceToHost));
 
+            // printing results.
             print("this is the magnetization susceptibility 0 for: T=%.d, p=%.d, L=%.d\n<X(0)>=%.6f", run_temp, p, L, h_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector);
+            // exit return for test.
             return
 
 

@@ -140,7 +140,7 @@ int main(int argc, char **argv){
 
         int blocks_inter = (num_lattices*L*L*2 + THREADS - 1)/THREADS;
         int blocks_spins = (L*L/2*num_lattices + THREADS - 1)/THREADS;
-        int blocks_nis = (num_lattices*num_iterations_seeds + THREADS - 1)/THREADS;
+        int blocks_nis = (num_lattices + THREADS - 1)/THREADS;
         int blocks_temperature_parallel = (num_lattices + THREADS - 1)/THREADS;
 
         auto t0 = std::chrono::high_resolution_clock::now();
@@ -173,14 +173,14 @@ int main(int argc, char **argv){
         // Initialize arrays on the GPU to store results per spin system for energy and sum of B2
         thrust::complex<float> *d_store_sum_0, *d_store_sum_k;
         float *d_store_energy;
-        CHECK_CUDA(cudaMalloc(&d_store_sum_0, num_lattices*num_iterations_seeds*sizeof(*d_store_sum_0)));
-        CHECK_CUDA(cudaMalloc(&d_store_sum_k, num_lattices*num_iterations_seeds*sizeof(*d_store_sum_k)));
-        CHECK_CUDA(cudaMalloc(&d_store_energy, num_lattices*num_iterations_seeds*sizeof(*d_store_energy)));
+        CHECK_CUDA(cudaMalloc(&d_store_sum_0, num_lattices*sizeof(*d_store_sum_0)));
+        CHECK_CUDA(cudaMalloc(&d_store_sum_k, num_lattices*sizeof(*d_store_sum_k)));
+        CHECK_CUDA(cudaMalloc(&d_store_energy, num_lattices*sizeof(*d_store_energy)));
 
         // Initialize array on the GPU to store incremental sums of the magnetization sums time boltzmann factors over update steps.
         float *d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector, *d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector;
-        CHECK_CUDA(cudaMalloc(&d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector, num_lattices*num_iterations_seeds*sizeof(*d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector)));
-        CHECK_CUDA(cudaMalloc(&d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector, num_lattices*num_iterations_seeds*sizeof(*d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector)));
+        CHECK_CUDA(cudaMalloc(&d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector, num_lattices*sizeof(*d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector)));
+        CHECK_CUDA(cudaMalloc(&d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector, num_lattices*sizeof(*d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector)));
 
         // B2 Sum
         thrust::complex<float> *d_sum;
@@ -188,7 +188,7 @@ int main(int argc, char **argv){
 
         // Weighted energies
         float *d_weighted_energies;
-        CHECK_CUDA(cudaMalloc(&d_weighted_energies, num_lattices*num_iterations_seeds*sizeof(*d_weighted_energies)));
+        CHECK_CUDA(cudaMalloc(&d_weighted_energies, num_lattices*sizeof(*d_weighted_energies)));
 
         // energy
         float *d_energy;
@@ -216,21 +216,21 @@ int main(int argc, char **argv){
         CHECK_CUDA(cudaMalloc(&interaction_randvals,num_lattices*L*L*2*sizeof(*interaction_randvals)));
 
         // Initialize array for partition function
+        // Not really needed !!!
         float *d_partition_function;
-        CHECK_CUDA(cudaMalloc(&d_partition_function, num_lattices*num_iterations_seeds*sizeof(float)));
+        CHECK_CUDA(cudaMalloc(&d_partition_function, num_lattices*sizeof(float)));
 
         // summation over errors can be parallized right?
+        // Change this !!!
         for (int e = 0; e < num_iterations_error; e++){
 
             cout << "Error " << e << " of " << num_iterations_error << endl;
 
             init_interactions_with_seed(d_interactions, seeds_interactions, interaction_rng, interaction_randvals, L, L, num_lattices, p, blocks_inter);
 
-            for (int s = 0; s < num_iterations_seeds; s++){
+            init_spins_with_seed(lattice_b, lattice_w, seeds_spins, lattice_rng, lattice_randvals, L, L, num_lattices, up, blocks_spins);
 
-                init_spins_with_seed(lattice_b, lattice_w, seeds_spins, lattice_rng, lattice_randvals, L, L, num_lattices, up, blocks_spins);
-
-                CHECK_CURAND(curandSetPseudoRandomGeneratorSeed(update_rng, seeds_spins));
+            CHECK_CURAND(curandSetPseudoRandomGeneratorSeed(update_rng, seeds_spins));
 
                 for (int j = 0; j < nwarmup; j++) {
                     update_ob(lattice_b, lattice_w, randvals, update_rng, d_interactions, d_inv_temp, L, L, num_lattices, d_coupling_constant, blocks_spins, d_energy);
@@ -245,25 +245,25 @@ int main(int argc, char **argv){
 
                     // For loop over num lattices must be changed to kernel parallel over num lattices
                     // combine cross term hamiltonian values from d_energy array (dim: num_lattices*sublattice_dof) and store in d_store_energy array (dim: num_lattices*num_spin_seeds) to whole lattice energy at each temperature iteration for each spin seed seperately.
-                    combine_cross_subset_hamiltonians_to_whole_lattice_hamiltonian(d_energy, d_store_energy, s, L, L, num_lattices, num_iterations_seeds);
+                    combine_cross_subset_hamiltonians_to_whole_lattice_hamiltonian(d_energy, d_store_energy, L, L, num_lattices);
 
                     // Calculate suscetibilitites for each temperation iteration and spin seed configuration (hence dimension of d_store_sum equals num_lattices*num_spin_seeds)
                     // !!!! Have to change here as well parallization in spin configs !!!
-                    calculate_B2(d_sum, lattice_b, lattice_w, d_store_sum_0, d_wave_vector_0, s, L, L, num_lattices, num_iterations_seeds, blocks_spins);
-                    calculate_B2(d_sum, lattice_b, lattice_w, d_store_sum_k, d_wave_vector_k, s, L, L, num_lattices, num_iterations_seeds, blocks_spins);
+                    calculate_B2(d_sum, lattice_b, lattice_w, d_store_sum_0, d_wave_vector_0, L, L, num_lattices, blocks_spins);
+                    calculate_B2(d_sum, lattice_b, lattice_w, d_store_sum_k, d_wave_vector_k, L, L, num_lattices, blocks_spins);
 
                     // Take abs squares of previous B2 sums for each temperature iteration and spin seed configuration seperately and store again to d_store_sum arrays.
                     // changed block count only parallel over temps and must pushforward the current spin config iterator -> change insided kernel to do!!!!
-                    abs_square<<<blocks_temperature_parallel, THREADS>>>(d_store_sum_0, num_lattices, s);
-                    abs_square<<<blocks_temperature_parallel, THREADS>>>(d_store_sum_k, num_lattices, s);
+                    abs_square<<<blocks_temperature_parallel, THREADS>>>(d_store_sum_0, num_lattices);
+                    abs_square<<<blocks_temperature_parallel, THREADS>>>(d_store_sum_k, num_lattices);
 
                     // Calculate boltzman factor time lattice dim normalization factor for each spin seed and temperature iteration.
-                    exp_beta<<<blocks_temperature_parallel, THREADS>>>(d_store_energy, d_inv_temp, num_lattices, s, L);
+                    exp_beta<<<blocks_temperature_parallel, THREADS>>>(d_store_energy, d_inv_temp, num_lattices, L);
 
 
                     // For one spin seed and only parallel over num_lattices (temperatures)!!! Have to change the block count and num_iteration_seeds -> current iteration seed
                     // Summation over errors and update steps is incrementally executed and stored in the d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_._wave_vector arrays.
-                    incremental_summation_of_product_of_magnetization_and_boltzmann_factor<<<blocks_temperature_parallel, THREADS>>>(d_store_energy, d_store_sum_0, d_store_sum_k, num_lattices, num_iterations_seeds, d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector, d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector);
+                    incremental_summation_of_product_of_magnetization_and_boltzmann_factor<<<blocks_temperature_parallel, THREADS>>>(d_store_energy, d_store_sum_0, d_store_sum_k, num_lattices, d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector, d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector);
 
 
                     // missing normalization factor of number errors times partitition function (this should be computed here incrementally)
@@ -271,19 +271,12 @@ int main(int argc, char **argv){
 
                     // partition function computation. d_store_energy contains for current update config the e^-beta*H value
                     // For one spin seed and only parallel over num_lattices (temperatures)!!! Have to change the block count and num_iteration_seeds -> current iteration seed
-                    incremental_summation_of_partition_function<<<blocks_temperature_parallel, THREADS>>>(d_store_energy, num_lattices, s, d_store_partition_function);
+                    incremental_summation_of_partition_function<<<blocks_temperature_parallel, THREADS>>>(d_store_energy, num_lattices, d_store_partition_function);
 
 
                 }
 
-                seeds_spins += 1;
-
                 CHECK_CUDA(cudaDeviceSynchronize());
-
-
-            }
-
-            seeds_interactions += 1;
 
         }
 

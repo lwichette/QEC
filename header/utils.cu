@@ -415,7 +415,7 @@ __global__ void exp_beta(float *d_store_energy, float *inv_temp, const int num_l
 
     int lid = tid/num_iterations;
 
-    // denominator in B2 ?? or really in exponent?
+    // denominator really in exponent?
     d_store_energy[tid] = exp(-inv_temp[lid]*d_store_energy[tid])/(L*L);
 }
 

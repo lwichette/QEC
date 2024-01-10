@@ -404,7 +404,7 @@ __global__ void abs_square(thrust::complex<float> *d_store_sum, const int num_la
 
     if (tid >= num_lattices * num_iterations) return;
 
-    d_store_sum[tid] = thrust::abs(d_store_sum[tid]) * thrust::abs(d_store_sum[tid]);
+    d_store_sum[tid] = thrust::abs(d_store_sum[tid]) * thrust::abs(d_store_sum[tid])/(L*L);
 }
 
 __global__ void exp_beta(float *d_store_energy, float *inv_temp, const int num_lattices, const int num_iterations, const int L){
@@ -416,7 +416,7 @@ __global__ void exp_beta(float *d_store_energy, float *inv_temp, const int num_l
     int lid = tid/num_iterations;
 
     // denominator really in exponent?
-    d_store_energy[tid] = exp(-inv_temp[lid]*d_store_energy[tid])/(L*L);
+    d_store_energy[tid] = exp(-inv_temp[lid]*d_store_energy[tid]);
 }
 
 __global__ void incremental_summation_of_product_of_magnetization_and_boltzmann_factor(float *d_store_energy, thrust::complex<float> *d_store_sum_0, thrust::complex<float> *d_store_sum_k, const int num_lattices, const int num_iterations, float *d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector, float *d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector){
@@ -427,6 +427,16 @@ __global__ void incremental_summation_of_product_of_magnetization_and_boltzmann_
 
     d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector[tid] += d_store_energy[tid]*d_store_sum_0[tid].real();
     d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector[tid] += d_store_energy[tid]*d_store_sum_k[tid].real();
+
+}
+
+__global__ void incremental_summation_of_partition_function(float *d_store_energy, float *d_store_partition_function){
+
+    const long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
+
+    if (tid >= num_iterations*num_lattices) return;
+
+    d_store_partition_function[tid] += d_store_energy[tid];
 
 }
 

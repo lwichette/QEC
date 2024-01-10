@@ -216,7 +216,7 @@ int main(int argc, char **argv){
 
         // Initialize array for partition function
         float *d_partition_function;
-        CHECK_CUDA(cudaMalloc(&d_partition_function, num_lattices*sizeof(float)));
+        CHECK_CUDA(cudaMalloc(&d_partition_function, num_lattices*num_iterations_seeds*sizeof(float)));
 
         // summation over errors can be parallized right?
         for (int e = 0; e < num_iterations_error; e++){
@@ -259,8 +259,15 @@ int main(int argc, char **argv){
                     // Summation over errors and update steps is incrementally executed and stored in the d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_._wave_vector arrays.
                     incremental_summation_of_product_of_magnetization_and_boltzmann_factor<<<blocks_nis, THREADS>>>(d_store_energy, d_store_sum_0, d_store_sum_k, num_lattices, num_iterations_seeds, d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector, d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector);
 
+
                     // missing normalization factor of number errors times partitition function (this should be computed here incrementally)
                     // though this is not contributing to correlation function
+
+                    // partition function computation. d_store_energy contains for current update config the e^-beta*H value
+                    incremental_summation_of_partition_function<<<blocks_nis, THREADS>>>(d_store_energy, d_store_partition_function);
+
+            }
+
                 }
 
                 CHECK_CUDA(cudaDeviceSynchronize());
@@ -272,14 +279,7 @@ int main(int argc, char **argv){
 
         }
 
-        //     for (int l=0; l<num_lattices; l++){
-        //         if (temp_storage_nis == 0){
-        //             CHECK_CUDA(cub::DeviceReduce::Sum(d_temp_nis, temp_storage_nis, d_store_energy + l*num_iterations_seeds, &d_partition_function[l], num_iterations_seeds));
-        //             CHECK_CUDA(cudaMalloc(&d_temp_nis, temp_storage_nis));
-        //         }
 
-        //         CHECK_CUDA(cub::DeviceReduce::Sum(d_temp_nis, temp_storage_nis, d_store_energy + l*num_iterations_seeds, &d_partition_function[l], num_iterations_seeds));
-        //     }
 
         //     calculate_weighted_energies(d_weighted_energies, d_error_weight_0, d_store_energy, d_store_sum_0, d_partition_function, num_lattices, num_iterations_seeds, num_iterations_error, blocks_nis, e);
         //     calculate_weighted_energies(d_weighted_energies, d_error_weight_k, d_store_energy, d_store_sum_k, d_partition_function, num_lattices, num_iterations_seeds, num_iterations_error, blocks_nis, e);

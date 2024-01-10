@@ -398,25 +398,23 @@ void calculate_energy(
     }
 }
 
-__global__ void abs_square(thrust::complex<float> *d_store_sum, const int num_lattices, const int num_iterations){
+__global__ void abs_square(thrust::complex<float> *d_store_sum, const int num_lattices){
 
     const long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
 
-    if (tid >= num_lattices * num_iterations) return;
+    if (tid >= num_lattices) return;
 
     d_store_sum[tid] = thrust::abs(d_store_sum[tid]) * thrust::abs(d_store_sum[tid])/(L*L);
 }
 
-__global__ void exp_beta(float *d_store_energy, float *inv_temp, const int num_lattices, const int num_iterations, const int L){
+__global__ void exp_beta(float *d_store_energy, float *inv_temp, const int num_lattices, const int L){
 
     const long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
 
-    if (tid >= num_iterations*num_lattices) return;
+    if (tid >= num_lattices) return;
 
-    int lid = tid/num_iterations;
-
-    // denominator really in exponent?
-    d_store_energy[tid] = exp(-inv_temp[lid]*d_store_energy[tid]);
+    // to rescale for high numbers include L**2 denominator
+    d_store_energy[tid] = exp(-inv_temp[tid]*d_store_energy[tid]/(L*L));
 }
 
 __global__ void incremental_summation_of_product_of_magnetization_and_boltzmann_factor(float *d_store_energy, thrust::complex<float> *d_store_sum_0, thrust::complex<float> *d_store_sum_k, const int num_lattices, const int num_iterations, float *d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector, float *d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector){

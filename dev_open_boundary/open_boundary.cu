@@ -244,19 +244,18 @@ int main(int argc, char **argv){
 
                     // device sync needed here somewhere?
 
-                    // combine cross term hamiltonian values from d_energy array (dim: num_lattices*sublattice_dof) and store in d_store_energy array (dim: num_lattices) to whole lattice energy at each temperature iteration.
+                    // combine cross term hamiltonian values from d_energy array (dim: num_lattices*sublattice_dof) and store in d_store_energy array (dim: num_lattices) to whole lattice energy for each temperature.
                     combine_cross_subset_hamiltonians_to_whole_lattice_hamiltonian(d_energy, d_store_energy, L, L, num_lattices);
 
-                    // Calculate suscetibilitites for each temperation iteration (hence dimension of d_store_sum equals num_lattices)
+                    // Calculate suscetibilitites for each temperature (hence dimension of d_store_sum equals num_lattices)
                     calculate_B2(d_sum, lattice_b, lattice_w, d_store_sum_0, d_wave_vector_0, L, L, num_lattices, blocks_spins);
                     calculate_B2(d_sum, lattice_b, lattice_w, d_store_sum_k, d_wave_vector_k, L, L, num_lattices, blocks_spins);
 
-                    // Take abs squares of previous B2 sums for each temperature iteration and spin seed configuration seperately and store again to d_store_sum arrays.
-                    // changed block count only parallel over temps and must pushforward the current spin config iterator -> change insided kernel to do!!!!
+                    // Take abs squares of previous B2 sums for each temperature and store again to d_store_sum array.
                     abs_square<<<blocks_temperature_parallel, THREADS>>>(d_store_sum_0, num_lattices);
                     abs_square<<<blocks_temperature_parallel, THREADS>>>(d_store_sum_k, num_lattices);
 
-                    // Calculate boltzman factor time lattice dim normalization factor for each spin seed and temperature iteration.
+                    // Calculate boltzman factor time lattice dim normalization factor for each temperature.
                     exp_beta<<<blocks_temperature_parallel, THREADS>>>(d_store_energy, d_inv_temp, num_lattices, L);
 
 

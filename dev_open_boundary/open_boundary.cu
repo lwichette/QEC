@@ -266,18 +266,22 @@ int main(int argc, char **argv){
                     // partition function computation. d_store_energy contains for current update config the e^-beta*H value
                     incremental_summation_of_partition_function<<<blocks_nis, THREADS>>>(d_store_energy, d_store_partition_function);
 
-            }
 
                 }
 
+                seeds_spins += 1;
+
                 CHECK_CUDA(cudaDeviceSynchronize());
 
-                seeds_spins += 1;
+
             }
 
             seeds_interactions += 1;
 
         }
+
+
+
 
 
 

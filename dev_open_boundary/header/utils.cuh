@@ -25,17 +25,17 @@ __global__ void B2_lattices(signed char* lattice_b, signed char* lattice_w, cons
 template<bool is_black>
 __global__ void calc_energy(float* sum, signed char* lattice, signed char* __restrict__ op_lattice, signed char* interactions, const long long nx, const long long ny, const int num_lattices, const float *coupling_constant);
 
-void calculate_B2(thrust::complex<float> *d_sum, signed char *lattice_b, signed char *lattice_w, thrust::complex<float> *d_store_sum, float *d_wave_vector, int loc, const long nx, const long ny, const int num_lattices, const int num_iterations_seeds, const int blocks);
+void calculate_B2(thrust::complex<float> *d_sum, signed char *lattice_b, signed char *lattice_w, thrust::complex<float> *d_store_sum, float *d_wave_vector, const long nx, const long ny, const int num_lattices, const int blocks);
 
-void calculate_energy(float* d_energy, signed char *lattice_b, signed char *lattice_w, signed char *d_interactions, float *d_store_energy, float *coupling_constant, const int loc, const int nx, const int ny, const int num_lattices, const int num_iterations_seeds, const int blocks);
+void calculate_energy(float* d_energy, signed char *lattice_b, signed char *lattice_w, signed char *d_interactions, float *d_store_energy, float *coupling_constant, const int nx, const int ny, const int num_lattices, const int blocks);
 
-__global__ void abs_square(thrust::complex<float> *d_store_sum, const int num_lattices, const int num_iterations);
+__global__ void abs_square(thrust::complex<float> *d_store_sum, const int num_lattices);
 
-__global__ void exp_beta(float *d_store_energy, float *inv_temp, const int num_lattices, const int num_iterations, const int L);
+__global__ void exp_beta(float *d_store_energy, float *inv_temp, const int num_lattices, const int L);
 
 __global__ void weighted_energies(float *d_weighted_energies, float *d_store_energy, thrust::complex<float> *d_store_sum, float *d_partition_function, const int num_lattices, const int num_iterations);
 
-void calculate_weighted_energies(float* d_weighted_energies, float *d_error_weight, float *d_store_energy, thrust::complex<float> *d_store_sum, float *d_partition_function, const int num_lattices, const int num_iterations_seeds, const int num_iterations_error, const int blocks, const int e);
+void calculate_weighted_energies(float* d_weighted_energies, float *d_error_weight, float *d_store_energy, thrust::complex<float> *d_store_sum, float *d_partition_function, const int num_lattices, const int num_iterations_error, const int blocks, const int e);
 
 int create_results_folder(char* results);
 
@@ -44,17 +44,17 @@ __global__ void update_lattice_ob(signed char* lattice, signed char* __restrict_
 
 void update_ob(signed char *lattice_b, signed char *lattice_w, float* randvals, curandGenerator_t rng, signed char* interactions, float *inv_temp, long long nx, long long ny, const int num_lattices, float *coupling_constant, const int blocks, float *d_energy);
 
-void combine_cross_subset_hamiltonians_to_whole_lattice_hamiltonian(float* d_energy,  float *d_store_energy, const int loc, const int nx, const int ny, const int num_lattices, const int num_iterations_seeds);
+void combine_cross_subset_hamiltonians_to_whole_lattice_hamiltonian(float* d_energy,  float *d_store_energy, const int nx, const int ny, const int num_lattices);
 
-void calculate_energy_ob(float* d_energy, signed char *lattice_b, signed char *lattice_w, signed char *d_interactions, float *d_store_energy, float *coupling_constant, const int loc, const int nx, const int ny, const int num_lattices, const int num_iterations_seeds, const int blocks);
+void calculate_energy_ob(float* d_energy, signed char *lattice_b, signed char *lattice_w, signed char *d_interactions, float *d_store_energy, float *coupling_constant, const int loc, const int nx, const int ny, const int num_lattices, const int blocks);
 
 template<bool is_black>
 __global__ void calc_energy_ob(float* sum, signed char* lattice, signed char* __restrict__ op_lattice, signed char* interactions, const long long nx, const long long ny, const int num_lattices, const float *coupling_constant);
 
 __global__ void init_spins_up(signed char* lattice, const long long nx, const long long ny, const int num_lattices);
 
-__global__ void incremental_summation_of_product_of_magnetization_and_boltzmann_factor(float *d_store_energy, thrust::complex<float> *d_store_sum_0, thrust::complex<float> *d_store_sum_k, const int num_lattices, const int num_iterations, float *d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector, float *d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector);
+__global__ void incremental_summation_of_product_of_magnetization_and_boltzmann_factor(float *d_store_energy, thrust::complex<float> *d_store_sum_0, thrust::complex<float> *d_store_sum_k, const int num_lattices, float *d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector, float *d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector);
 
-__global__ void incremental_summation_of_partition_function(float *d_store_energy, float *d_store_partition_function);
+__global__ void incremental_summation_of_partition_function(float *d_store_energy, const int num_lattices, float *d_store_partition_function);
 
 #endif

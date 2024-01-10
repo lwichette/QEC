@@ -17,6 +17,8 @@
 #include "../header/utils.cuh"
 #include "../header/cudamacro.h"
 
+// General problem with multiple header files - methods on higher hierarchy overload the lower once such that I couldnt use my dev methods while header exists on higher hierarchy
+
 using namespace std;
 
 namespace po = boost::program_options;

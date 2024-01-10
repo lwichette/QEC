@@ -404,7 +404,7 @@ __global__ void abs_square(thrust::complex<float> *d_store_sum, const int num_la
 
     if (tid >= num_lattices) return;
 
-    d_store_sum[tid] = thrust::abs(d_store_sum[tid]) * thrust::abs(d_store_sum[tid])/(L*L);
+    d_store_sum[tid] = thrust::abs(d_store_sum[tid]) * thrust::abs(d_store_sum[tid]);
 }
 
 __global__ void exp_beta(float *d_store_energy, float *inv_temp, const int num_lattices, const int L){

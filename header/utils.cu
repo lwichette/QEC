@@ -404,7 +404,7 @@ __global__ void abs_square(thrust::complex<float> *d_store_sum, const int num_la
 
     if (tid >= num_lattices * num_iterations) return;
 
-    d_store_sum[tid] = thrust::abs(d_store_sum[tid]) * thrust::abs(d_store_sum[tid])/(L*L);
+    d_store_sum[tid] = thrust::abs(d_store_sum[tid]) * thrust::abs(d_store_sum[tid]);
 }
 
 __global__ void exp_beta(float *d_store_energy, float *inv_temp, const int num_lattices, const int num_iterations, const int L){
@@ -415,29 +415,7 @@ __global__ void exp_beta(float *d_store_energy, float *inv_temp, const int num_l
 
     int lid = tid/num_iterations;
 
-    // denominator really in exponent?
-    d_store_energy[tid] = exp(-inv_temp[lid]*d_store_energy[tid]);
-}
-
-__global__ void incremental_summation_of_product_of_magnetization_and_boltzmann_factor(float *d_store_energy, thrust::complex<float> *d_store_sum_0, thrust::complex<float> *d_store_sum_k, const int num_lattices, const int num_iterations, float *d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector, float *d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector){
-
-    const long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
-
-    if (tid >= num_iterations*num_lattices) return;
-
-    d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector[tid] += d_store_energy[tid]*d_store_sum_0[tid].real();
-    d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector[tid] += d_store_energy[tid]*d_store_sum_k[tid].real();
-
-}
-
-__global__ void incremental_summation_of_partition_function(float *d_store_energy, const int num_lattices, const int num_iterations, float *d_store_partition_function){
-
-    const long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
-
-    if (tid >= num_iterations*num_lattices) return;
-
-    d_store_partition_function[tid] += d_store_energy[tid];
-
+    d_store_energy[tid] = exp(-inv_temp[lid]*d_store_energy[tid]/(L*L));
 }
 
 __global__ void weighted_energies(float *d_weighted_energies, float *d_store_energy, thrust::complex<float> *d_store_sum, float *d_partition_function, const int num_lattices, const int num_iterations){
@@ -484,7 +462,7 @@ int create_results_folder(char* results){
 template<bool is_black>
 __global__ void update_lattice_ob(
     signed char* lattice, signed char* __restrict__ op_lattice, const float* __restrict__ randvals, signed char* interactions,
-    const float *inv_temp, const long long nx, const long long ny, const int num_lattices, const float *coupling_constant, float* d_energy
+    const float *inv_temp, const long long nx, const long long ny, const int num_lattices, const float *coupling_constant
 ){
 
     const long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
@@ -562,15 +540,8 @@ __global__ void update_lattice_ob(
                         + op_lattice[offset + ipp*ny + j]*interactions[icouplingpp]*c_down + op_lattice[offset + i*ny + joff]*interactions[jcouplingoff]*c_side;
 
     // Determine whether to flip spin
-
-    // The exponent is exactly what calc_energy_ob does and which is calles again to store energy over same iterator in update loop. Instead here should be filled the energy array directly
-
     signed char lij = lattice[offset + i*ny + j];
-
-    // set device energy for each temp and each spin on lattice
-    d_energy[tid]=-coupling_constant[l_id]*nn_sum*lij;
-
-    float acceptance_ratio = exp(2*d_energy[tid]);
+    float acceptance_ratio = exp(-2 * coupling_constant[l_id] * nn_sum * lij);
     if (randvals[offset + i*ny + j] < acceptance_ratio) {
         lattice[offset + i*ny + j] = -lij;
     }
@@ -578,16 +549,16 @@ __global__ void update_lattice_ob(
 
 void update_ob(
     signed char *lattice_b, signed char *lattice_w, float* randvals, curandGenerator_t rng, signed char* interactions,
-    float *inv_temp, long long nx, long long ny, const int num_lattices, float *coupling_constant, const int blocks, float *d_energy
+    float *inv_temp, long long nx, long long ny, const int num_lattices, float *coupling_constant, const int blocks
 ) {
 
     // Update black
     CHECK_CURAND(curandGenerateUniform(rng, randvals, num_lattices*nx*ny/2));
-    update_lattice_ob<true><<<blocks, THREADS>>>(lattice_b, lattice_w, randvals, interactions, inv_temp, nx, ny/2, num_lattices, coupling_constant, d_energy);
+    update_lattice_ob<true><<<blocks, THREADS>>>(lattice_b, lattice_w, randvals, interactions, inv_temp, nx, ny/2, num_lattices, coupling_constant);
 
     // Update white
     CHECK_CURAND(curandGenerateUniform(rng, randvals, num_lattices*nx*ny/2));
-    update_lattice_ob<false><<<blocks, THREADS>>>(lattice_w, lattice_b, randvals, interactions, inv_temp, nx, ny/2, num_lattices, coupling_constant, d_energy);
+    update_lattice_ob<false><<<blocks, THREADS>>>(lattice_w, lattice_b, randvals, interactions, inv_temp, nx, ny/2, num_lattices, coupling_constant);
 }
 
 template<bool is_black>
@@ -673,24 +644,8 @@ void calculate_energy_ob(
     float* d_energy, signed char *lattice_b, signed char *lattice_w, signed char *d_interactions, float *d_store_energy,
     float *coupling_constant, const int loc, const int nx, const int ny, const int num_lattices, const int num_iterations_seeds, const int blocks
 ){
-    // Calculate energy and reduce sum.
+    // Calculate energy and reduce sum
     calc_energy_ob<true><<<blocks,THREADS>>>(d_energy, lattice_b, lattice_w, d_interactions, nx, ny/2, num_lattices, coupling_constant);
-
-    for (int i=0; i<num_lattices; i++){
-
-        if (temp_storage_nx==0){
-            CHECK_CUDA(cub::DeviceReduce::Sum(d_temp_nx, temp_storage_nx, d_energy + i*nx*ny/2, &d_store_energy[loc + i*num_iterations_seeds], nx*ny/2));
-            CHECK_CUDA(cudaMalloc(&d_temp_nx, temp_storage_nx));
-        }
-
-        CHECK_CUDA(cub::DeviceReduce::Sum(d_temp_nx, temp_storage_nx, d_energy + i*nx*ny/2, &d_store_energy[loc + i*num_iterations_seeds], nx*ny/2));
-    }
-}
-
-void combine_cross_subset_hamiltonians_to_whole_lattice_hamiltonian(
-    float* d_energy,  float *d_store_energy,
-  const int loc, const int nx, const int ny, const int num_lattices, const int num_iterations_seeds
-){
 
     for (int i=0; i<num_lattices; i++){
 

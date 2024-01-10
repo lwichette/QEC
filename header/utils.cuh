@@ -42,9 +42,7 @@ int create_results_folder(char* results);
 template<bool is_black>
 __global__ void update_lattice_ob(signed char* lattice, signed char* __restrict__ op_lattice, const float* __restrict__ randvals, signed char* interactions, const float *inv_temp, const long long nx, const long long ny, const int num_lattices, const float *coupling_constant);
 
-void update_ob(signed char *lattice_b, signed char *lattice_w, float* randvals, curandGenerator_t rng, signed char* interactions, float *inv_temp, long long nx, long long ny, const int num_lattices, float *coupling_constant, const int blocks, float *d_energy);
-
-void combine_cross_subset_hamiltonians_to_whole_lattice_hamiltonian(float* d_energy,  float *d_store_energy, const int loc, const int nx, const int ny, const int num_lattices, const int num_iterations_seeds);
+void update_ob(signed char *lattice_b, signed char *lattice_w, float* randvals, curandGenerator_t rng, signed char* interactions, float *inv_temp, long long nx, long long ny, const int num_lattices, float *coupling_constant, const int blocks);
 
 void calculate_energy_ob(float* d_energy, signed char *lattice_b, signed char *lattice_w, signed char *d_interactions, float *d_store_energy, float *coupling_constant, const int loc, const int nx, const int ny, const int num_lattices, const int num_iterations_seeds, const int blocks);
 
@@ -52,9 +50,5 @@ template<bool is_black>
 __global__ void calc_energy_ob(float* sum, signed char* lattice, signed char* __restrict__ op_lattice, signed char* interactions, const long long nx, const long long ny, const int num_lattices, const float *coupling_constant);
 
 __global__ void init_spins_up(signed char* lattice, const long long nx, const long long ny, const int num_lattices);
-
-__global__ void incremental_summation_of_product_of_magnetization_and_boltzmann_factor(float *d_store_energy, thrust::complex<float> *d_store_sum_0, thrust::complex<float> *d_store_sum_k, const int num_lattices, const int num_iterations, float *d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector, float *d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector);
-
-__global__ void incremental_summation_of_partition_function(float *d_store_energy, float *d_store_partition_function);
 
 #endif

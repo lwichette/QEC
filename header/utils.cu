@@ -430,7 +430,7 @@ __global__ void incremental_summation_of_product_of_magnetization_and_boltzmann_
 
 }
 
-__global__ void incremental_summation_of_partition_function(float *d_store_energy, float *d_store_partition_function){
+__global__ void incremental_summation_of_partition_function(float *d_store_energy, const int num_lattices, const int num_iterations, float *d_store_partition_function){
 
     const long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
 

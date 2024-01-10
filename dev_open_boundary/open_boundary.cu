@@ -141,6 +141,7 @@ int main(int argc, char **argv){
         int blocks_inter = (num_lattices*L*L*2 + THREADS - 1)/THREADS;
         int blocks_spins = (L*L/2*num_lattices + THREADS - 1)/THREADS;
         int blocks_nis = (num_lattices*num_iterations_seeds + THREADS - 1)/THREADS;
+        int blocks_temperature_parallel = (num_lattices + THREADS - 1)/THREADS;
 
         auto t0 = std::chrono::high_resolution_clock::now();
 
@@ -242,29 +243,35 @@ int main(int argc, char **argv){
 
                     // device sync needed here?
 
+                    // For loop over num lattices must be changed to kernel parallel over num lattices
                     // combine cross term hamiltonian values from d_energy array (dim: num_lattices*sublattice_dof) and store in d_store_energy array (dim: num_lattices*num_spin_seeds) to whole lattice energy at each temperature iteration for each spin seed seperately.
                     combine_cross_subset_hamiltonians_to_whole_lattice_hamiltonian(d_energy, d_store_energy, s, L, L, num_lattices, num_iterations_seeds);
 
                     // Calculate suscetibilitites for each temperation iteration and spin seed configuration (hence dimension of d_store_sum equals num_lattices*num_spin_seeds)
+                    // !!!! Have to change here as well parallization in spin configs !!!
                     calculate_B2(d_sum, lattice_b, lattice_w, d_store_sum_0, d_wave_vector_0, s, L, L, num_lattices, num_iterations_seeds, blocks_spins);
                     calculate_B2(d_sum, lattice_b, lattice_w, d_store_sum_k, d_wave_vector_k, s, L, L, num_lattices, num_iterations_seeds, blocks_spins);
 
                     // Take abs squares of previous B2 sums for each temperature iteration and spin seed configuration seperately and store again to d_store_sum arrays.
-                    abs_square<<<blocks_nis, THREADS>>>(d_store_sum_0, num_lattices, num_iterations_seeds);
-                    abs_square<<<blocks_nis, THREADS>>>(d_store_sum_k, num_lattices, num_iterations_seeds);
+                    // changed block count only parallel over temps and must pushforward the current spin config iterator -> change insided kernel to do!!!!
+                    abs_square<<<blocks_temperature_parallel, THREADS>>>(d_store_sum_0, num_lattices, s);
+                    abs_square<<<blocks_temperature_parallel, THREADS>>>(d_store_sum_k, num_lattices, s);
 
                     // Calculate boltzman factor time lattice dim normalization factor for each spin seed and temperature iteration.
-                    exp_beta<<<blocks_nis, THREADS>>>(d_store_energy, d_inv_temp, num_lattices, num_iterations_seeds, L);
+                    exp_beta<<<blocks_temperature_parallel, THREADS>>>(d_store_energy, d_inv_temp, num_lattices, s, L);
 
+
+                    // For one spin seed and only parallel over num_lattices (temperatures)!!! Have to change the block count and num_iteration_seeds -> current iteration seed
                     // Summation over errors and update steps is incrementally executed and stored in the d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_._wave_vector arrays.
-                    incremental_summation_of_product_of_magnetization_and_boltzmann_factor<<<blocks_nis, THREADS>>>(d_store_energy, d_store_sum_0, d_store_sum_k, num_lattices, num_iterations_seeds, d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector, d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector);
+                    incremental_summation_of_product_of_magnetization_and_boltzmann_factor<<<blocks_temperature_parallel, THREADS>>>(d_store_energy, d_store_sum_0, d_store_sum_k, num_lattices, num_iterations_seeds, d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector, d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector);
 
 
                     // missing normalization factor of number errors times partitition function (this should be computed here incrementally)
                     // though this is not contributing to correlation function
 
                     // partition function computation. d_store_energy contains for current update config the e^-beta*H value
-                    incremental_summation_of_partition_function<<<blocks_nis, THREADS>>>(d_store_energy, d_store_partition_function);
+                    // For one spin seed and only parallel over num_lattices (temperatures)!!! Have to change the block count and num_iteration_seeds -> current iteration seed
+                    incremental_summation_of_partition_function<<<blocks_temperature_parallel, THREADS>>>(d_store_energy, num_lattices, s, d_store_partition_function);
 
 
                 }

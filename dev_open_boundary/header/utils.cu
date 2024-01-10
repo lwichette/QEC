@@ -417,22 +417,22 @@ __global__ void exp_beta(float *d_store_energy, float *inv_temp, const int num_l
     d_store_energy[tid] = exp(-inv_temp[tid]*d_store_energy[tid]/(L*L));
 }
 
-__global__ void incremental_summation_of_product_of_magnetization_and_boltzmann_factor(float *d_store_energy, thrust::complex<float> *d_store_sum_0, thrust::complex<float> *d_store_sum_k, const int num_lattices, const int num_iterations, float *d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector, float *d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector){
+__global__ void incremental_summation_of_product_of_magnetization_and_boltzmann_factor(float *d_store_energy, thrust::complex<float> *d_store_sum_0, thrust::complex<float> *d_store_sum_k, const int num_lattices, float *d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector, float *d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector){
 
     const long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
 
-    if (tid >= num_iterations*num_lattices) return;
+    if (tid >= num_lattices) return;
 
     d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector[tid] += d_store_energy[tid]*d_store_sum_0[tid].real();
     d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector[tid] += d_store_energy[tid]*d_store_sum_k[tid].real();
 
 }
 
-__global__ void incremental_summation_of_partition_function(float *d_store_energy, const int num_lattices, const int num_iterations, float *d_store_partition_function){
+__global__ void incremental_summation_of_partition_function(float *d_store_energy, const int num_lattices, float *d_store_partition_function){
 
     const long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
 
-    if (tid >= num_iterations*num_lattices) return;
+    if (tid >= num_lattices) return;
 
     d_store_partition_function[tid] += d_store_energy[tid];
 

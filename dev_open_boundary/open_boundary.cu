@@ -230,6 +230,7 @@ int main(int argc, char **argv){
 
             init_spins_with_seed(lattice_b, lattice_w, seeds_spins, lattice_rng, lattice_randvals, L, L, num_lattices, up, blocks_spins);
 
+            // what exactly does this and why after using the spin?
             CHECK_CURAND(curandSetPseudoRandomGeneratorSeed(update_rng, seeds_spins));
 
                 for (int j = 0; j < nwarmup; j++) {
@@ -241,14 +242,12 @@ int main(int argc, char **argv){
                 for (int j = 0; j < niters; j++){
                     update_ob(lattice_b, lattice_w, randvals, update_rng, d_interactions, d_inv_temp, L, L, num_lattices, d_coupling_constant, blocks_spins, d_energy);
 
-                    // device sync needed here?
+                    // device sync needed here somewhere?
 
-                    // For loop over num lattices must be changed to kernel parallel over num lattices
-                    // combine cross term hamiltonian values from d_energy array (dim: num_lattices*sublattice_dof) and store in d_store_energy array (dim: num_lattices*num_spin_seeds) to whole lattice energy at each temperature iteration for each spin seed seperately.
+                    // combine cross term hamiltonian values from d_energy array (dim: num_lattices*sublattice_dof) and store in d_store_energy array (dim: num_lattices) to whole lattice energy at each temperature iteration.
                     combine_cross_subset_hamiltonians_to_whole_lattice_hamiltonian(d_energy, d_store_energy, L, L, num_lattices);
 
-                    // Calculate suscetibilitites for each temperation iteration and spin seed configuration (hence dimension of d_store_sum equals num_lattices*num_spin_seeds)
-                    // !!!! Have to change here as well parallization in spin configs !!!
+                    // Calculate suscetibilitites for each temperation iteration (hence dimension of d_store_sum equals num_lattices)
                     calculate_B2(d_sum, lattice_b, lattice_w, d_store_sum_0, d_wave_vector_0, L, L, num_lattices, blocks_spins);
                     calculate_B2(d_sum, lattice_b, lattice_w, d_store_sum_k, d_wave_vector_k, L, L, num_lattices, blocks_spins);
 

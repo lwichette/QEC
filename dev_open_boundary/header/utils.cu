@@ -246,19 +246,19 @@ __global__ void update_lattice(
     }
 }
 
-void update(
-    signed char *lattice_b, signed char *lattice_w, float* randvals, curandGenerator_t rng, signed char* interactions,
-    float *inv_temp, long long nx, long long ny, const int num_lattices, float *coupling_constant, const int blocks
-) {
+// void update(
+//     signed char *lattice_b, signed char *lattice_w, float* randvals, curandGenerator_t rng, signed char* interactions,
+//     float *inv_temp, long long nx, long long ny, const int num_lattices, float *coupling_constant, const int blocks
+// ) {
 
-    // Update black
-    CHECK_CURAND(curandGenerateUniform(rng, randvals, num_lattices*nx*ny/2));
-    update_lattice<true><<<blocks, THREADS>>>(lattice_b, lattice_w, randvals,interactions, inv_temp, nx, ny/2, num_lattices, coupling_constant);
+//     // Update black
+//     CHECK_CURAND(curandGenerateUniform(rng, randvals, num_lattices*nx*ny/2));
+//     update_lattice<true><<<blocks, THREADS>>>(lattice_b, lattice_w, randvals,interactions, inv_temp, nx, ny/2, num_lattices, coupling_constant);
 
-    // Update white
-    CHECK_CURAND(curandGenerateUniform(rng, randvals, num_lattices*nx*ny/2));
-    update_lattice<false><<<blocks, THREADS>>>(lattice_w, lattice_b, randvals,interactions, inv_temp, nx, ny/2, num_lattices, coupling_constant);
-}
+//     // Update white
+//     CHECK_CURAND(curandGenerateUniform(rng, randvals, num_lattices*nx*ny/2));
+//     update_lattice<false><<<blocks, THREADS>>>(lattice_w, lattice_b, randvals,interactions, inv_temp, nx, ny/2, num_lattices, coupling_constant);
+// }
 
 __global__ void B2_lattices(
     signed char *lattice_b, signed char *lattice_w, const float *wave_vector,
@@ -363,20 +363,20 @@ __global__ void calc_energy(
 }
 
 void calculate_B2(
-    thrust::complex<float> *d_sum, signed char *lattice_b, signed char *lattice_w, thrust::complex<float> *d_store_sum, float *d_wave_vector,
-    int loc, const long nx, const long ny, const int num_lattices, const int num_iterations_seeds, const int blocks
+    thrust::complex<float> *d_sum, signed char *lattice_b, signed char *lattice_w, thrust::complex<float> *d_store_sum, float *d_wave_vector, const long nx, const long ny, const int num_lattices, const int blocks
 ){
     // Calculate B2 and reduce sum
     B2_lattices<<<blocks, THREADS>>>(lattice_b, lattice_w, d_wave_vector, d_sum, nx, ny/2, num_lattices);
 
+    // cant we parallalize this too?
     for (int i=0; i<num_lattices; i++){
 
         if (temp_storage_nx_thrust == 0){
-            CHECK_CUDA(cub::DeviceReduce::Sum(d_temp_nx_thrust, temp_storage_nx_thrust, d_sum + i*nx*ny/2, &d_store_sum[loc + i*num_iterations_seeds], nx*ny/2));
+            CHECK_CUDA(cub::DeviceReduce::Sum(d_temp_nx_thrust, temp_storage_nx_thrust, d_sum + i*nx*ny/2, &d_store_sum[i], nx*ny/2));
             CHECK_CUDA(cudaMalloc(&d_temp_nx_thrust, temp_storage_nx_thrust));
         }
 
-        CHECK_CUDA(cub::DeviceReduce::Sum(d_temp_nx_thrust, temp_storage_nx_thrust, d_sum + i*nx*ny/2, &d_store_sum[loc + i*num_iterations_seeds], nx*ny/2));
+        CHECK_CUDA(cub::DeviceReduce::Sum(d_temp_nx_thrust, temp_storage_nx_thrust, d_sum + i*nx*ny/2, &d_store_sum[i], nx*ny/2));
     }
 }
 
@@ -581,11 +581,11 @@ void update_ob(
     float *inv_temp, long long nx, long long ny, const int num_lattices, float *coupling_constant, const int blocks, float *d_energy
 ) {
 
-    // Update black
+    // Update black and store final Hamiltonian value for each cross term in d_energy
     CHECK_CURAND(curandGenerateUniform(rng, randvals, num_lattices*nx*ny/2));
     update_lattice_ob<true><<<blocks, THREADS>>>(lattice_b, lattice_w, randvals, interactions, inv_temp, nx, ny/2, num_lattices, coupling_constant, d_energy);
 
-    // Update white
+    // Update white and store final Hamiltonian value for each cross term in d_energy
     CHECK_CURAND(curandGenerateUniform(rng, randvals, num_lattices*nx*ny/2));
     update_lattice_ob<false><<<blocks, THREADS>>>(lattice_w, lattice_b, randvals, interactions, inv_temp, nx, ny/2, num_lattices, coupling_constant, d_energy);
 }
@@ -688,17 +688,17 @@ void calculate_energy_ob(
 }
 
 void combine_cross_subset_hamiltonians_to_whole_lattice_hamiltonian(
-    float* d_energy,  float *d_store_energy,
-  const int loc, const int nx, const int ny, const int num_lattices, const int num_iterations_seeds
+    float* d_energy,  float *d_store_energy, const int nx, const int ny, const int num_lattices
 ){
 
+    // can get parallized !!! Though small size of operations ?
     for (int i=0; i<num_lattices; i++){
 
         if (temp_storage_nx==0){
-            CHECK_CUDA(cub::DeviceReduce::Sum(d_temp_nx, temp_storage_nx, d_energy + i*nx*ny/2, &d_store_energy[loc + i*num_iterations_seeds], nx*ny/2));
+            CHECK_CUDA(cub::DeviceReduce::Sum(d_temp_nx, temp_storage_nx, d_energy + i*nx*ny/2, &d_store_energy[i], nx*ny/2));
             CHECK_CUDA(cudaMalloc(&d_temp_nx, temp_storage_nx));
         }
 
-        CHECK_CUDA(cub::DeviceReduce::Sum(d_temp_nx, temp_storage_nx, d_energy + i*nx*ny/2, &d_store_energy[loc + i*num_iterations_seeds], nx*ny/2));
+        CHECK_CUDA(cub::DeviceReduce::Sum(d_temp_nx, temp_storage_nx, d_energy + i*nx*ny/2, &d_store_energy[i], nx*ny/2));
     }
 }

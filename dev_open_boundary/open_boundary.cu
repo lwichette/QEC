@@ -272,23 +272,32 @@ int main(int argc, char **argv){
 
         }
 
-
-
-
-
-
-        //     calculate_weighted_energies(d_weighted_energies, d_error_weight_0, d_store_energy, d_store_sum_0, d_partition_function, num_lattices, num_iterations_seeds, num_iterations_error, blocks_nis, e);
-        //     calculate_weighted_energies(d_weighted_energies, d_error_weight_k, d_store_energy, d_store_sum_k, d_partition_function, num_lattices, num_iterations_seeds, num_iterations_error, blocks_nis, e);
-
         // copying new result to host.
-            // std::vector<float> h_store_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector(num_lattices*num_iterations_seeds);
-            // std::vector<float> h_store_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector(num_lattices*num_iterations_seeds);
-            // CHECK_CUDA(cudaMemcpy(h_store_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector.data(), d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector, num_lattices*num_iterations_seeds*sizeof(float), cudaMemcpyDeviceToHost));
+        std::vector<float> h_store_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector(num_lattices);
+        std::vector<float> h_store_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector(num_lattices);
+        CHECK_CUDA(cudaMemcpy(h_store_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector.data(), d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector, num_lattices*sizeof(float), cudaMemcpyDeviceToHost));
+        CHECK_CUDA(cudaMemcpy(h_store_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector.data(), d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector, num_lattices*sizeof(float), cudaMemcpyDeviceToHost));
 
-            // // printing results.
-            // printf("this is the magnetization susceptibility 0 for: T=%f, p=%f, L=%d, <X(0)>=%f", inv_temp[0], p, L, h_store_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector[0]);
-            // // exit return for test.
-            // return 0;
+
+
+
+        for (int i=0; i < num_lattices; i++){
+            cout << h_magnetic_susceptibility_0[i] << endl;
+            cout << h_magnetic_susceptibility_k[i] << endl;
+            cout << "Frac" << h_magnetic_susceptibility_0[i]/h_magnetic_susceptibility_k[i] - 1 << endl;
+        }
+
+        return;
+
+
+
+
+
+
+        // calculate_weighted_energies(d_weighted_energies, d_error_weight_0, d_store_energy, d_store_sum_0, d_partition_function, num_lattices, num_iterations_seeds, num_iterations_error, blocks_nis, e);
+        // calculate_weighted_energies(d_weighted_energies, d_error_weight_k, d_store_energy, d_store_sum_k, d_partition_function, num_lattices, num_iterations_seeds, num_iterations_error, blocks_nis, e);
+
+
 
         // float *d_magnetic_susceptibility_0, *d_magnetic_susceptibility_k;
         // CHECK_CUDA(cudaMalloc(&d_magnetic_susceptibility_0, num_lattices*sizeof(*d_magnetic_susceptibility_0)));
@@ -315,11 +324,7 @@ int main(int argc, char **argv){
 
         // cout << "Magnetic susceptibility" << endl;
 
-        // for (int i=0; i < num_lattices; i++){
-        //     cout << h_magnetic_susceptibility_0[i] << endl;
-        //     cout << h_magnetic_susceptibility_k[i] << endl;
-        //     cout << "Frac" << h_magnetic_susceptibility_0[i]/h_magnetic_susceptibility_k[i] - 1 << endl;
-        // }
+        //
 
         // std::vector<float> psi(num_lattices);
 

@@ -272,6 +272,8 @@ int main(int argc, char **argv){
 
         }
 
+        CHECK_CUDA(cudaDeviceSynchronize());
+
         // copying new result to host.
         std::vector<float> h_store_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector(num_lattices);
         std::vector<float> h_store_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector(num_lattices);
@@ -287,64 +289,27 @@ int main(int argc, char **argv){
             cout << "Frac" << h_store_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector[i]/h_store_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector[i] - 1 << endl;
         }
 
-        return;
+        std::vector<float> zeta(num_lattices);
 
+        CHECK_CUDA(cudaDeviceSynchronize());
 
+        for (int l=0; l < num_lattices; l++){
+            zeta[l] = (1/(2*sin(M_PI/L))*sqrt(h_store_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector[l]/h_store_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector[l] - 1))/L;
+        }
 
+        auto t1 = std::chrono::high_resolution_clock::now();
+        double duration = (double) std::chrono::duration_cast<std::chrono::seconds>(t1-t0).count();
 
+        printf("Elapsed time for temperature loop min %f \n", duration/60);
 
-
-        // calculate_weighted_energies(d_weighted_energies, d_error_weight_0, d_store_energy, d_store_sum_0, d_partition_function, num_lattices, num_iterations_seeds, num_iterations_error, blocks_nis, e);
-        // calculate_weighted_energies(d_weighted_energies, d_error_weight_k, d_store_energy, d_store_sum_k, d_partition_function, num_lattices, num_iterations_seeds, num_iterations_error, blocks_nis, e);
-
-
-
-        // float *d_magnetic_susceptibility_0, *d_magnetic_susceptibility_k;
-        // CHECK_CUDA(cudaMalloc(&d_magnetic_susceptibility_0, num_lattices*sizeof(*d_magnetic_susceptibility_0)));
-        // CHECK_CUDA(cudaMalloc(&d_magnetic_susceptibility_k, num_lattices*sizeof(*d_magnetic_susceptibility_k)));
-
-        // for (int l=0; l < num_lattices; l++){
-        //     if (temp_storage_nie == 0){
-        //         CHECK_CUDA(cub::DeviceReduce::Sum(d_temp_nie, temp_storage_nie, d_error_weight_0 + l*num_iterations_error, &d_magnetic_susceptibility_0[l], num_iterations_error));
-        //         CHECK_CUDA(cudaMalloc(&d_temp_nie, temp_storage_nie));
-        //     }
-
-        //     CHECK_CUDA(cub::DeviceReduce::Sum(d_temp_nie, temp_storage_nie, d_error_weight_0 + l*num_iterations_error, &d_magnetic_susceptibility_0[l], num_iterations_error));
-        //     CHECK_CUDA(cub::DeviceReduce::Sum(d_temp_nie, temp_storage_nie, d_error_weight_k + l*num_iterations_error, &d_magnetic_susceptibility_k[l], num_iterations_error));
-        // }
-
-        // CHECK_CUDA(cudaDeviceSynchronize());
-
-        // std::vector<float> h_magnetic_susceptibility_0(num_lattices);
-        // std::vector<float> h_magnetic_susceptibility_k(num_lattices);
-
-
-        // CHECK_CUDA(cudaMemcpy(h_magnetic_susceptibility_0.data(), d_magnetic_susceptibility_0, num_lattices*sizeof(float), cudaMemcpyDeviceToHost));
-        // CHECK_CUDA(cudaMemcpy(h_magnetic_susceptibility_k.data(), d_magnetic_susceptibility_k, num_lattices*sizeof(float), cudaMemcpyDeviceToHost));
-
-        // cout << "Magnetic susceptibility" << endl;
-
-        //
-
-        // std::vector<float> psi(num_lattices);
-
-        // for (int l=0; l < num_lattices; l++){
-        //     psi[l] = (1/(2*sin(M_PI/L))*sqrt(h_magnetic_susceptibility_0[l] / h_magnetic_susceptibility_k[l] - 1))/L;
-        // }
-
-        // auto t1 = std::chrono::high_resolution_clock::now();
-        // double duration = (double) std::chrono::duration_cast<std::chrono::seconds>(t1-t0).count();
-
-        // printf("Elapsed time for temperature loop min %f \n", duration/60);
-
-        // std::ofstream f;
-        // f.open(folderPath + "/" + result_name);
-        // if (f.is_open()) {
-        //     for (int i = 0; i < num_lattices; i++) {
-        //         f << psi[i] << " " << 1/inv_temp[i] << "\n";
-        //     }
-        // }
-        // f.close();
+        std::ofstream f;
+        f.open(folderPath + "/" + result_name);
+        if (f.is_open()) {
+            for (int i = 0; i < num_lattices; i++) {
+                f << zeta[i] << " " << 1/inv_temp[i] << "\n";
+            }
+        }
+        f.close();
 
         CHECK_CUDA(cudaFree(d_wave_vector_0));
         CHECK_CUDA(cudaFree(d_wave_vector_k));
@@ -366,9 +331,6 @@ int main(int argc, char **argv){
         CHECK_CUDA(cudaFree(lattice_randvals));
         CHECK_CUDA(cudaFree(interaction_randvals));
         CHECK_CUDA(cudaFree(d_partition_function));
-        // CHECK_CUDA(cudaFree(d_magnetic_susceptibility_0));
-        // CHECK_CUDA(cudaFree(d_magnetic_susceptibility_k));
-
         CHECK_CUDA(cudaFree(d_temp_nie));
         CHECK_CUDA(cudaFree(d_temp_nis));
         CHECK_CUDA(cudaFree(d_temp_nx));

@@ -284,7 +284,7 @@ int main(int argc, char **argv){
         for (int i=0; i < num_lattices; i++){
             cout << h_store_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector[i] << endl;
             cout << h_store_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector[i] << endl;
-            cout << "Frac" << h_store_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector[i]h_store_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector[i] - 1 << endl;
+            cout << "Frac" << h_store_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector[i]/h_store_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector[i] - 1 << endl;
         }
 
         return;

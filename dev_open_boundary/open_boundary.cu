@@ -142,7 +142,6 @@ int main(int argc, char **argv){
 
         int blocks_inter = (num_lattices*L*L*2 + THREADS - 1)/THREADS;
         int blocks_spins = (L*L/2*num_lattices + THREADS - 1)/THREADS;
-        int blocks_nis = (num_lattices + THREADS - 1)/THREADS;
         int blocks_temperature_parallel = (num_lattices + THREADS - 1)/THREADS;
 
         auto t0 = std::chrono::high_resolution_clock::now();

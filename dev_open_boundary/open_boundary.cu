@@ -294,7 +294,7 @@ int main(int argc, char **argv){
         CHECK_CUDA(cudaDeviceSynchronize());
 
         for (int l=0; l < num_lattices; l++){
-            zeta[l] = (1/(2*sin(M_PI/L))*sqrt(h_store_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector[l]/h_store_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector[l] - 1))/L;
+            zeta[l] = (1/(2*sin(M_PI/L))*sqrt(h_store_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector[l]/h_store_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector[l] - 1));
         }
 
         auto t1 = std::chrono::high_resolution_clock::now();

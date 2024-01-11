@@ -248,6 +248,8 @@ int main(int argc, char **argv){
                 // combine cross term hamiltonian values from d_energy array (dim: num_lattices*sublattice_dof) and store in d_store_energy array (dim: num_lattices) to whole lattice energy for each temperature.
                 combine_cross_subset_hamiltonians_to_whole_lattice_hamiltonian(d_energy, d_store_energy, L, L, num_lattices);
 
+                // maybe include here storage of energy values to plot over time to see thermalization process for a specific error maybe not all?
+
                 // Calculate suscetibilitites for each temperature (hence dimension of d_store_sum equals num_lattices)
                 calculate_B2(d_sum, lattice_b, lattice_w, d_store_sum_0, d_wave_vector_0, L, L, num_lattices, blocks_spins);
                 calculate_B2(d_sum, lattice_b, lattice_w, d_store_sum_k, d_wave_vector_k, L, L, num_lattices, blocks_spins);

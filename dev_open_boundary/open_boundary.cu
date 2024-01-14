@@ -27,7 +27,7 @@ namespace fs = std::filesystem;
 int main(int argc, char **argv){
 
     float p, start_temp, step;
-    int num_iterations_error, num_iterations_seeds, niters, nwarmup, num_lattices, num_reps_temp;
+    int num_iterations_error, num_iterations_seeds, niters, nwarmup, num_lattices, num_reps_temp, normalization_factor;
     std::vector<int> L_size;
     std::string folderName;
     bool up;
@@ -125,6 +125,8 @@ int main(int argc, char **argv){
     for(int ls = 0; ls < L_size.size(); ls++){
 
         int L = L_size[ls];
+
+        normalization_factor = 0;
 
         std::string result_name = std::string("L_") + std::to_string(L) + std::string("_p_") + std::to_string(p) + std::string("_ns_") + std::to_string(num_iterations_seeds) + std::string("_ne_") + std::to_string(num_iterations_error) + std::string("_ni_") + std::to_string(niters) + std::string("_nw_") + std::to_string(nwarmup) + std::string("_up_") + std::to_string(up) + std::string(".txt");
 
@@ -246,28 +248,33 @@ int main(int argc, char **argv){
 
                 // device sync needed here somewhere?
                 // combine cross term hamiltonian values from d_energy array (dim: num_lattices*sublattice_dof) and store in d_store_energy array (dim: num_lattices) to whole lattice energy for each temperature.
-                combine_cross_subset_hamiltonians_to_whole_lattice_hamiltonian(d_energy, d_store_energy, L, L, num_lattices);
+                // reduce autocorrelation between snapshots with this if ?
+                if(j%2){
+                    combine_cross_subset_hamiltonians_to_whole_lattice_hamiltonian(d_energy, d_store_energy, L, L, num_lattices);
 
-                // maybe include here storage of energy values to plot over time to see thermalization process for a specific error maybe not all?
+                    // maybe include here storage of energy values to plot over time to see thermalization process for a specific error maybe not all?
 
-                // Calculate suscetibilitites for each temperature (hence dimension of d_store_sum equals num_lattices)
-                calculate_B2(d_sum, lattice_b, lattice_w, d_store_sum_0, d_wave_vector_0, L, L, num_lattices, blocks_spins);
-                calculate_B2(d_sum, lattice_b, lattice_w, d_store_sum_k, d_wave_vector_k, L, L, num_lattices, blocks_spins);
+                    // Calculate suscetibilitites for each temperature (hence dimension of d_store_sum equals num_lattices)
+                    calculate_B2(d_sum, lattice_b, lattice_w, d_store_sum_0, d_wave_vector_0, L, L, num_lattices, blocks_spins);
+                    calculate_B2(d_sum, lattice_b, lattice_w, d_store_sum_k, d_wave_vector_k, L, L, num_lattices, blocks_spins);
 
-                // Take abs squares of previous B2 sums for each temperature and store again to d_store_sum array.
-                abs_square<<<blocks_temperature_parallel, THREADS>>>(d_store_sum_0, num_lattices);
-                abs_square<<<blocks_temperature_parallel, THREADS>>>(d_store_sum_k, num_lattices);
+                    // Take abs squares of previous B2 sums for each temperature and store again to d_store_sum array.
+                    abs_square<<<blocks_temperature_parallel, THREADS>>>(d_store_sum_0, num_lattices);
+                    abs_square<<<blocks_temperature_parallel, THREADS>>>(d_store_sum_k, num_lattices);
 
-                // Calculate boltzman factor time lattice dim normalization factor for each temperature.
-                exp_beta<<<blocks_temperature_parallel, THREADS>>>(d_store_energy, d_inv_temp, num_lattices, L);
+                    // Calculate boltzman factor time lattice dim normalization factor for each temperature.
+                    // exp_beta<<<blocks_temperature_parallel, THREADS>>>(d_store_energy, d_inv_temp, num_lattices, L);
 
-                // Summation over errors and update steps is incrementally executed and stored in the d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_._wave_vector arrays for each temperature.
-                incremental_summation_of_product_of_magnetization_and_boltzmann_factor<<<blocks_temperature_parallel, THREADS>>>(d_store_energy, d_store_sum_0, d_store_sum_k, num_lattices, d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector, d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector);
+                    // Summation over errors and update steps is incrementally executed and stored in the d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_._wave_vector arrays for each temperature.
+                    incremental_summation_of_product_of_magnetization_and_boltzmann_factor<<<blocks_temperature_parallel, THREADS>>>(d_store_energy, d_store_sum_0, d_store_sum_k, num_lattices, d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector, d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector);
 
-                // missing normalization factor of number errors times partitition function times number of update steps (this should be computed here incrementally)
-                // though this is not contributing to correlation function
-                // partition function computation. d_store_energy contains for current update config the e^-beta*H value which gets added up incrementally for each temperature in parallel.
-                incremental_summation_of_partition_function<<<blocks_temperature_parallel, THREADS>>>(d_store_energy, num_lattices, d_store_partition_function);
+                    normalization_factor += 1;
+
+                    // missing normalization factor of number errors times partitition function times number of update steps (this should be computed here incrementally)
+                    // though this is not contributing to correlation function
+                    // partition function computation. d_store_energy contains for current update config the e^-beta*H value which gets added up incrementally for each temperature in parallel.
+                    // incremental_summation_of_partition_function<<<blocks_temperature_parallel, THREADS>>>(d_store_energy, num_lattices, d_store_partition_function);
+                }
             }
 
             CHECK_CUDA(cudaDeviceSynchronize());
@@ -285,30 +292,41 @@ int main(int argc, char **argv){
 
 
 
-        for (int i=0; i < num_lattices; i++){
-            cout << h_store_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector[i] << endl;
-            cout << h_store_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector[i] << endl;
-            cout << "Frac" << h_store_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector[i]/h_store_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector[i] - 1 << endl;
-        }
+        // for (int i=0; i < num_lattices; i++){
+        //     cout << h_store_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector[i] << endl;
+        //     cout << h_store_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector[i] << endl;
+        //     cout << "Frac" << h_store_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector[i]/h_store_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector[i] - 1 << endl;
+        // }
 
-        std::vector<float> zeta(num_lattices);
+        // std::vector<float> zeta(num_lattices);
 
-        CHECK_CUDA(cudaDeviceSynchronize());
+        // CHECK_CUDA(cudaDeviceSynchronize());
 
-        for (int l=0; l < num_lattices; l++){
-            zeta[l] = (1/(2*sin(M_PI/L))*sqrt(h_store_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector[l]/h_store_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector[l] - 1));
-        }
+        // for (int l=0; l < num_lattices; l++){
+        //     zeta[l] = (1/(2*sin(M_PI/L))*sqrt(h_store_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector[l]/h_store_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector[l] - 1));
+        // }
 
-        auto t1 = std::chrono::high_resolution_clock::now();
-        double duration = (double) std::chrono::duration_cast<std::chrono::seconds>(t1-t0).count();
+        // auto t1 = std::chrono::high_resolution_clock::now();
+        // double duration = (double) std::chrono::duration_cast<std::chrono::seconds>(t1-t0).count();
 
-        printf("Elapsed time for temperature loop min %f \n", duration/60);
+        // printf("Elapsed time for temperature loop min %f \n", duration/60);
+
+        // std::ofstream f;
+        // f.open(folderPath + "/" + result_name);
+        // if (f.is_open()) {
+        //     for (int i = 0; i < num_lattices; i++) {
+        //         f << zeta[i] << " " << 1/inv_temp[i] << "\n";
+        //     }
+        // }
+        // f.close();
+
+        cout << normalization_factor << endl;
 
         std::ofstream f;
         f.open(folderPath + "/" + result_name);
         if (f.is_open()) {
             for (int i = 0; i < num_lattices; i++) {
-                f << zeta[i] << " " << 1/inv_temp[i] << "\n";
+                f << h_store_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector[i]/(normalization_factor*L*L) << " " << 1/inv_temp[i] << "\n";
             }
         }
         f.close();

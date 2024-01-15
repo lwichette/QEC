@@ -258,9 +258,20 @@ int main(int argc, char **argv){
                     calculate_B2(d_sum, lattice_b, lattice_w, d_store_sum_0, d_wave_vector_0, L, L, num_lattices, blocks_spins);
                     calculate_B2(d_sum, lattice_b, lattice_w, d_store_sum_k, d_wave_vector_k, L, L, num_lattices, blocks_spins);
 
+
                     // Take abs squares of previous B2 sums for each temperature and store again to d_store_sum array.
                     abs_square<<<blocks_temperature_parallel, THREADS>>>(d_store_sum_0, num_lattices);
                     abs_square<<<blocks_temperature_parallel, THREADS>>>(d_store_sum_k, num_lattices);
+
+                    // std::vector<thrust::complex<float>> h_sum_0_after(num_lattices);
+
+                    // CHECK_CUDA(cudaMemcpy(h_sum_0_after.data(), d_store_sum_0, num_lattices*sizeof(thrust::complex<float>), cudaMemcpyDeviceToHost));
+
+                    // for (int i=0; i<num_lattices; i++){
+                    //     printf("%f \n", h_sum_0_after[i].real());
+                    // }
+
+                    // return;
 
                     // Calculate boltzman factor time lattice dim normalization factor for each temperature.
                     // exp_beta<<<blocks_temperature_parallel, THREADS>>>(d_store_energy, d_inv_temp, num_lattices, L);
@@ -298,38 +309,38 @@ int main(int argc, char **argv){
         //     cout << "Frac" << h_store_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector[i]/h_store_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector[i] - 1 << endl;
         // }
 
-        // std::vector<float> zeta(num_lattices);
+        std::vector<float> zeta(num_lattices);
 
         // CHECK_CUDA(cudaDeviceSynchronize());
 
-        // for (int l=0; l < num_lattices; l++){
-        //     zeta[l] = (1/(2*sin(M_PI/L))*sqrt(h_store_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector[l]/h_store_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector[l] - 1));
-        // }
+        for (int l=0; l < num_lattices; l++){
+            zeta[l] = sqrt(h_store_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector[l]/h_store_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector[l] - 1);
+        }
 
         // auto t1 = std::chrono::high_resolution_clock::now();
         // double duration = (double) std::chrono::duration_cast<std::chrono::seconds>(t1-t0).count();
 
         // printf("Elapsed time for temperature loop min %f \n", duration/60);
 
-        // std::ofstream f;
-        // f.open(folderPath + "/" + result_name);
-        // if (f.is_open()) {
-        //     for (int i = 0; i < num_lattices; i++) {
-        //         f << zeta[i] << " " << 1/inv_temp[i] << "\n";
-        //     }
-        // }
-        // f.close();
-
-        cout << normalization_factor << endl;
-
         std::ofstream f;
         f.open(folderPath + "/" + result_name);
         if (f.is_open()) {
             for (int i = 0; i < num_lattices; i++) {
-                f << h_store_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector[i]/(normalization_factor*L*L) << " " << 1/inv_temp[i] << "\n";
+                f << zeta[i] << " " << 1/inv_temp[i] << "\n";
             }
         }
         f.close();
+
+        cout << normalization_factor << endl;
+
+        // std::ofstream f;
+        // f.open(folderPath + "/" + result_name);
+        // if (f.is_open()) {
+        //     for (int i = 0; i < num_lattices; i++) {
+        //         f << h_store_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector[i]/(normalization_factor*L*L) << " " << 1/inv_temp[i] << "\n";
+        //     }
+        // }
+        // f.close();
 
         CHECK_CUDA(cudaFree(d_wave_vector_0));
         CHECK_CUDA(cudaFree(d_wave_vector_k));

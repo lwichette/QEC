@@ -413,7 +413,7 @@ __global__ void exp_beta(float *d_store_energy, float *inv_temp, const int num_l
 
     if (tid >= num_lattices) return;
 
-    d_store_energy[tid] = exp(-inv_temp[tid]*d_store_energy[tid]);
+    d_store_energy[tid] = exp(-inv_temp[tid]*std::abs(d_store_energy[tid]));
 }
 
 __global__ void incremental_summation_of_product_of_magnetization_and_boltzmann_factor(float *d_store_energy, thrust::complex<float> *d_store_sum_0, thrust::complex<float> *d_store_sum_k, const int num_lattices, float *d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector, float *d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector){
@@ -422,11 +422,11 @@ __global__ void incremental_summation_of_product_of_magnetization_and_boltzmann_
 
     if (tid >= num_lattices) return;
 
-    // d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector[tid] += d_store_energy[tid]*d_store_sum_0[tid].real();
-    // d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector[tid] += d_store_energy[tid]*d_store_sum_k[tid].real();
+    d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector[tid] += d_store_energy[tid]*d_store_sum_0[tid].real();
+    d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector[tid] += d_store_energy[tid]*d_store_sum_k[tid].real();
 
-    d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector[tid] += d_store_sum_0[tid].real();
-    d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector[tid] += d_store_sum_k[tid].real();
+    // d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector[tid] += d_store_sum_0[tid].real();
+    // d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector[tid] += d_store_sum_k[tid].real();
 
 }
 
@@ -568,11 +568,12 @@ __global__ void update_lattice_ob(
     signed char lij = lattice[offset + i*ny + j];
 
     // set device energy for each temp and each spin on lattice
-    d_energy[tid]=-coupling_constant[l_id]*nn_sum*lij;
+    d_energy[tid]=coupling_constant[l_id]*nn_sum*lij;
 
-    float acceptance_ratio = exp(2*d_energy[tid]);
+    float acceptance_ratio = exp(-2*d_energy[tid]);
     if (randvals[offset + i*ny + j] < acceptance_ratio) {
         lattice[offset + i*ny + j] = -lij;
+        d_energy[tid] *= -1;
     }
 }
 

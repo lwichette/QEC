@@ -14,23 +14,44 @@
 \begin{document}
 
 \begin{algorithm}
-    \caption{Building expectation value along Markov Chain}
-    \KwData{Lattice sizes, temperatures}
-    \KwResult{Expectation value per lattice size and temperatures}
 
-    initialization\;
+$iter\_sum_{0, k} = 0;$ \qquad \# for~ $(0, 0)$ ~and~ $(2\pi/L, 0)$\\
+normalization\_factor = 0\;
+\For{every lattice size L}{
+    \For{every disorder e}{
+        initialize interaction configuration\;
+        initialize spin configuration\;
+        \For{warm up period}{
+            update lattice\;
+          }
+        \For{sample period}{
+            update lattice\;
+            iter\_sum += magnetic susceptibility for current spin config\;
+            normalization\_factor $+= 1$\;
+          }
+      }
+  }
 
-    \While{condition}{
-      instructions inside the loop\;
-    }
+$\zeta$ calculation from iter\_sums;\
 
-    \If{condition}{
-      instructions inside the if statement\;
-    }
-
-    \Return{output data}\;
-
-    \caption{Your Pseudocode Caption}
 \end{algorithm}
+
+\newpage
+
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=1\textwidth]{/home/dfki.uni-bremen.de/lpwichette/Desktop/p06_no_boltzmann_no_up.png}
+  \caption{$p=6\%$ plain mean computation}
+  \label{fig:your_label}
+\end{figure}
+
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=1\textwidth]{/home/dfki.uni-bremen.de/lpwichette/Desktop/p06_boltzmann_no_up.png}
+  \caption{$p=6\%$ included Boltzmann weight inside incremental summation}
+  \label{fig:your_label}
+\end{figure}
+
+
 
 \end{document}

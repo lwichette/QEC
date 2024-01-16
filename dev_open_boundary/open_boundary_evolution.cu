@@ -228,7 +228,7 @@ int main(int argc, char **argv){
         std::vector<float> h_store_local_step_result(num_lattices);
 
         std::ofstream stream;
-        stream.open(folderPath + "/" + "magnetization_evolution_" + std::to_string(L));
+        stream.open(folderPath + "/" + "energy_evolution_" + std::to_string(L));
 
         // summation over errors can be parallized right?
         // Change this !!!
@@ -245,6 +245,17 @@ int main(int argc, char **argv){
 
             for (int j = 0; j < nwarmup; j++) {
                 update_ob(lattice_b, lattice_w, randvals, update_rng, d_interactions, d_inv_temp, L, L, num_lattices, d_coupling_constant, blocks_spins, d_energy);
+
+                // following only for print energy time evolution
+                combine_cross_subset_hamiltonians_to_whole_lattice_hamiltonian(d_energy, d_store_energy, L, L, num_lattices);
+                normalization_factor += 1;
+                CHECK_CUDA(cudaMemcpy(h_store_local_step_result.data(), d_store_energy, num_lattices*sizeof(float), cudaMemcpyDeviceToHost));
+                if (stream.is_open() && !j%1000) {
+                    for (int i = 0; i < num_lattices; i++) {
+                        stream << h_store_local_step_result[i] << " " << normalization_factor << " " << 1/inv_temp[i] << "\n";
+                    }
+                }
+
             }
 
             CHECK_CUDA(cudaDeviceSynchronize());
@@ -272,16 +283,26 @@ int main(int argc, char **argv){
                     // exp_beta<<<blocks_temperature_parallel, THREADS>>>(d_store_energy, d_inv_temp, num_lattices, L);
 
                     // Summation over errors and update steps is incrementally executed and stored in the d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_._wave_vector arrays for each temperature.
-                    incremental_summation_of_product_of_magnetization_and_boltzmann_factor<<<blocks_temperature_parallel, THREADS>>>(d_store_energy, d_store_sum_0, d_store_sum_k, num_lattices, d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector, d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector);
+
+                    // incremental_summation_of_product_of_magnetization_and_boltzmann_factor<<<blocks_temperature_parallel, THREADS>>>(d_store_energy, d_store_sum_0, d_store_sum_k, num_lattices, d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector, d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector);
 
                     normalization_factor += 1;
 
                     // write time evolution of magnetization
-                    CHECK_CUDA(cudaMemcpy(h_store_local_step_result.data(), d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector, num_lattices*sizeof(float), cudaMemcpyDeviceToHost));
+                    // CHECK_CUDA(cudaMemcpy(h_store_local_step_result.data(), d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector, num_lattices*sizeof(float), cudaMemcpyDeviceToHost));
+
+                    // if (stream.is_open() && !j%1000) {
+                    //     for (int i = 0; i < num_lattices; i++) {
+                    //         stream << h_store_local_step_result[i]/(normalization_factor*L*L) << " " << normalization_factor << " " << 1/inv_temp[i] << "\n";
+                    //     }
+                    // }
+
+                    // write time evolution of energy
+                    CHECK_CUDA(cudaMemcpy(h_store_local_step_result.data(), d_store_energy, num_lattices*sizeof(float), cudaMemcpyDeviceToHost));
 
                     if (stream.is_open() && !j%1000) {
                         for (int i = 0; i < num_lattices; i++) {
-                            stream << h_store_local_step_result[i]/(normalization_factor*L*L) << " " << normalization_factor << " " << 1/inv_temp[i] << "\n";
+                            stream << h_store_local_step_result[i] << " " << normalization_factor << " " << 1/inv_temp[i] << "\n";
                         }
                     }
 
@@ -300,7 +321,7 @@ int main(int argc, char **argv){
 
         CHECK_CUDA(cudaDeviceSynchronize());
 
-        // copying new result to host.
+        // copying incrmental sums to host.
         std::vector<float> h_store_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector(num_lattices);
         std::vector<float> h_store_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector(num_lattices);
         CHECK_CUDA(cudaMemcpy(h_store_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector.data(), d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector, num_lattices*sizeof(float), cudaMemcpyDeviceToHost));
@@ -339,14 +360,14 @@ int main(int argc, char **argv){
 
         // cout << normalization_factor << endl;
 
-        std::ofstream f;
-        f.open(folderPath + "/" + result_name);
-        if (f.is_open()) {
-            for (int i = 0; i < num_lattices; i++) {
-                f << h_store_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector[i]/(normalization_factor*L*L) << " " << 1/inv_temp[i] << "\n";
-            }
-        }
-        f.close();
+        // std::ofstream f;
+        // f.open(folderPath + "/" + result_name);
+        // if (f.is_open()) {
+        //     for (int i = 0; i < num_lattices; i++) {
+        //         f << h_store_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector[i]/(normalization_factor*L*L) << " " << 1/inv_temp[i] << "\n";
+        //     }
+        // }
+        // f.close();
 
         CHECK_CUDA(cudaFree(d_wave_vector_0));
         CHECK_CUDA(cudaFree(d_wave_vector_k));
@@ -360,7 +381,7 @@ int main(int argc, char **argv){
         CHECK_CUDA(cudaFree(d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector));
         CHECK_CUDA(cudaFree(d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector));
         CHECK_CUDA(cudaFree(d_store_energy));
-         CHECK_CUDA(cudaFree(d_store_partition_function));
+        CHECK_CUDA(cudaFree(d_store_partition_function));
         CHECK_CUDA(cudaFree(d_sum));
         CHECK_CUDA(cudaFree(d_weighted_energies));
         CHECK_CUDA(cudaFree(d_energy));

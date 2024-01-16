@@ -230,6 +230,8 @@ int main(int argc, char **argv){
         std::ofstream stream;
         stream.open(folderPath + "/" + "energy_evolution_" + std::to_string(L));
 
+         normalization_factor = 0;
+
         // summation over errors can be parallized right?
         // Change this !!!
         for (int e = 0; e < num_iterations_error; e++){
@@ -250,7 +252,7 @@ int main(int argc, char **argv){
                 combine_cross_subset_hamiltonians_to_whole_lattice_hamiltonian(d_energy, d_store_energy, L, L, num_lattices);
                 normalization_factor += 1;
                 CHECK_CUDA(cudaMemcpy(h_store_local_step_result.data(), d_store_energy, num_lattices*sizeof(float), cudaMemcpyDeviceToHost));
-                if (stream.is_open() && !j%1000) {
+                if (stream.is_open() && !(normalization_factor%1000)) {
                     for (int i = 0; i < num_lattices; i++) {
                         stream << h_store_local_step_result[i] << " " << normalization_factor << " " << 1/inv_temp[i] << "\n";
                     }
@@ -298,9 +300,10 @@ int main(int argc, char **argv){
                     // }
 
                     // write time evolution of energy
+
                     CHECK_CUDA(cudaMemcpy(h_store_local_step_result.data(), d_store_energy, num_lattices*sizeof(float), cudaMemcpyDeviceToHost));
 
-                    if (stream.is_open() && !j%1000) {
+                    if (stream.is_open() && !(j%1000)) {
                         for (int i = 0; i < num_lattices; i++) {
                             stream << h_store_local_step_result[i] << " " << normalization_factor << " " << 1/inv_temp[i] << "\n";
                         }

@@ -413,7 +413,7 @@ __global__ void exp_beta(float *d_store_energy, float *inv_temp, const int num_l
 
     if (tid >= num_lattices) return;
 
-    d_store_energy[tid] = exp(-inv_temp[tid]*std::abs(d_store_energy[tid]));
+    d_store_energy[tid] = exp(-inv_temp[tid]*d_store_energy[tid]);
 }
 
 __global__ void incremental_summation_of_product_of_magnetization_and_boltzmann_factor(float *d_store_energy, thrust::complex<float> *d_store_sum_0, thrust::complex<float> *d_store_sum_k, const int num_lattices, float *d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector, float *d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector){

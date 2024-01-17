@@ -15,6 +15,8 @@
 % package for code
 \usepackage{algorithm2e}
 
+\usepackage{braket}
+
 \begin{document}
 
 \begin{algorithm}
@@ -39,6 +41,10 @@ normalization\_factor = 0\;
 $\zeta$ calculation from iter\_sums;\
 
 \end{algorithm}
+
+
+Basically only changed expectation value estimator to:
+$\frac{1}{norm\_fac}\sum_{u, e}\hat{\chi}_{u, e} \rightarrow \braket{\hat{\chi}}=\sum_{e}Pr(e)\sum_{s}\frac{e^{-\beta H_{e}(s)}}{Z_{e}}\hat{\chi}(s)$
 
 \begin{figure}[h!]
 

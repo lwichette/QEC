@@ -60,11 +60,11 @@ using namespace std;
 // 2*SPIN_X_WORD*2*BLOCK_X*BMULT_X
 // BMULT_X Block Multiple X Direction
 // Unclear
-#define BLOCK_X (8)
-#define BLOCK_Y (8)
+#define BLOCK_X (16)
+#define BLOCK_Y (16)
 
 // Unclear
-#define BMULT_X (1)
+#define BMULT_X (2)
 #define BMULT_Y (1)
 
 // Maximum number of GPUs
@@ -114,14 +114,9 @@ __global__  void latticeInit_k(const int devid,
                                const long long begY,
                                const long long dimX, // ld
                                      INT2_T *__restrict__ vDst) {
-    /*
-	const int it: ???
-	const long long begY: ???
-	const long long dimX: lld/2 
-	pointer to beginning of black or white lattice
-	*/
 
-	// i, j position in grid lattice
+	// i linearized position of y position in block and thread blocks
+	// j linearized position of x position in block and thread image
 	const int __i = blockIdx.y*BDIM_Y*LOOP_Y + threadIdx.y;
 	const int __j = blockIdx.x*BDIM_X*LOOP_X + threadIdx.x;
 	
@@ -134,9 +129,10 @@ __global__  void latticeInit_k(const int devid,
 	
 	// Random number generator
 	curandStatePhilox4_32_10_t st;
+	// Unclear what exactly
 	curand_init(seed, tid, static_cast<long long>(2*SPIN_X_WORD)*LOOP_X*LOOP_Y*(2*it+COLOR), &st);
 	
-	// tmp 2D array of type INT2_T (2x1)
+	// tmp 2D array of type unsigned long long of size (1x2)
 	INT2_T __tmp[LOOP_Y][LOOP_X];
 
 	// Initialize array with (0,0)
@@ -1275,27 +1271,10 @@ int main(int argc, char **argv) {
 
 	// v_d whole lattice
 	// black_d black lattice --> white_d white lattice
-	//unsigned long long *v_d=NULL;
+	unsigned long long *v_d=NULL;
 	unsigned long long *black_d=NULL;
 	unsigned long long *white_d=NULL;
 	
-	unsigned long long *v_d = (unsigned long long *)Malloc(10*sizeof(*v_d));
-	
-	for (int i=0; i<10; i++){
-		cout << v_d[i] << endl;
-	}
-
-	printf("new \n"); 
-
-	ulonglong2 *v_new = reinterpret_cast<ulonglong2 *>(v_d);
-
-	for (int i=0; i<5; i++){
-		cout << v_new[i].x << v_new[i].y << endl;
-	}
-
-	printf("Ende");
-
-	return 0;
 	// Unclear yet
 	unsigned long long *ham_d=NULL;
 	unsigned long long *hamB_d=NULL;
@@ -1313,6 +1292,7 @@ int main(int argc, char **argv) {
 	int X = 0;
 	int Y = 0;
 
+	// Write results to txt file
 	int dumpOut = 0;
 
     char cname[256];
@@ -1539,7 +1519,7 @@ int main(int argc, char **argv) {
 			}
 		}
 
-		// Error handling
+		// X has to be multiple of XSL, XSL has to be even and != 0, XSL multiple of SPIN_X_WORD
 		if ((X%XSL) || !XSL || (XSL%2) || ((XSL/2)%(SPIN_X_WORD*2*BLOCK_X*BMULT_X))) {
 			fprintf(stderr,
 				"\nPlease specify an X sub-lattice dim multiple of %d and divisor of %d\n\n",
@@ -1547,6 +1527,7 @@ int main(int argc, char **argv) {
 			usage(SPIN_X_WORD, argv[0]);
 			exit(EXIT_FAILURE);
 		}
+		// Y multiple of YSL, YSL != 0, Y multiple of Block_Y*..
 		if ((Y%YSL) || !YSL || (YSL%(BLOCK_Y*BMULT_Y))) {
 			fprintf(stderr,
 				"\nPlease specify a Y sub-lattice dim multiple of %d divisor of %d\n\n",
@@ -1555,6 +1536,7 @@ int main(int argc, char **argv) {
 			exit(EXIT_FAILURE);
 		}
 
+		// Set number of Sublattices per GPU
 		NSLX = X / XSL;
 		NSLY = Y / YSL;
 	} 
@@ -1666,8 +1648,7 @@ int main(int argc, char **argv) {
 	size_t llen = 2ull*ndev*llenLoc;
 
 	// Create blocks and Threads grid
-	// lld/2 Tupel im Init
-	// #define DIV_UP(a,b)     (((a)+((b)-1))/(b))
+	// lld/2 Tupel in Initialization?
 	dim3 grid(DIV_UP(lld/2, BLOCK_X*BMULT_X),
 		  DIV_UP(    Y, BLOCK_Y*BMULT_Y));
 
@@ -1788,7 +1769,7 @@ int main(int argc, char **argv) {
 			//CHECK_CUDA(cudaMemPrefetchAsync(v_d +            i*llenLoc, llenLoc*sizeof(*v_d), i, 0));
 			//CHECK_CUDA(cudaMemPrefetchAsync(v_d + (llen/2) + i*llenLoc, llenLoc*sizeof(*v_d), i, 0));
 
-			// reset black/white
+			// Set black/white to all 0s
 			CHECK_CUDA(cudaMemset(v_d +            i*llenLoc, 0, llenLoc*sizeof(*v_d)));
 			CHECK_CUDA(cudaMemset(v_d + (llen/2) + i*llenLoc, 0, llenLoc*sizeof(*v_d)));
 

@@ -168,11 +168,6 @@ int main(int argc, char **argv){
         CHECK_CUDA(cudaMalloc(&lattice_b, num_lattices * L * L/2 * sizeof(*lattice_b)));
         CHECK_CUDA(cudaMalloc(&lattice_w, num_lattices * L * L/2 * sizeof(*lattice_w)));
 
-        // Weighted error
-        float *d_error_weight_0, *d_error_weight_k;
-        CHECK_CUDA(cudaMalloc(&d_error_weight_0, num_lattices*num_iterations_error*sizeof(*d_error_weight_0)));
-        CHECK_CUDA(cudaMalloc(&d_error_weight_k, num_lattices*num_iterations_error*sizeof(*d_error_weight_k)));
-
         // Initialize arrays on the GPU to store results per spin system for energy and sum of B2
         thrust::complex<float> *d_store_sum_0, *d_store_sum_k;
         float *d_store_energy, *d_store_partition_function;
@@ -189,10 +184,6 @@ int main(int argc, char **argv){
         // B2 Sum
         thrust::complex<float> *d_sum;
         CHECK_CUDA(cudaMalloc(&d_sum, num_lattices*L*L/2*sizeof(thrust::complex<float>)));
-
-        // Weighted energies
-        float *d_weighted_energies;
-        CHECK_CUDA(cudaMalloc(&d_weighted_energies, num_lattices*sizeof(*d_weighted_energies)));
 
         // energy
         float *d_energy;
@@ -218,11 +209,6 @@ int main(int argc, char **argv){
 
         float *interaction_randvals;
         CHECK_CUDA(cudaMalloc(&interaction_randvals,num_lattices*L*L*2*sizeof(*interaction_randvals)));
-
-        // Initialize array for partition function
-        // Not really needed !!!
-        float *d_partition_function;
-        CHECK_CUDA(cudaMalloc(&d_partition_function, num_lattices*sizeof(float)));
 
         // copying new result to host.
         std::vector<float> h_store_local_step_result(num_lattices);
@@ -331,8 +317,6 @@ int main(int argc, char **argv){
         CHECK_CUDA(cudaMemcpy(h_store_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector.data(), d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector, num_lattices*sizeof(float), cudaMemcpyDeviceToHost));
 
 
-
-
         // for (int i=0; i < num_lattices; i++){
         //     cout << h_store_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector[i] << endl;
         //     cout << h_store_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector[i] << endl;
@@ -377,8 +361,6 @@ int main(int argc, char **argv){
         CHECK_CUDA(cudaFree(d_interactions));
         CHECK_CUDA(cudaFree(lattice_b));
         CHECK_CUDA(cudaFree(lattice_w));
-        CHECK_CUDA(cudaFree(d_error_weight_0));
-        CHECK_CUDA(cudaFree(d_error_weight_k));
         CHECK_CUDA(cudaFree(d_store_sum_0));
         CHECK_CUDA(cudaFree(d_store_sum_k));
         CHECK_CUDA(cudaFree(d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector));
@@ -386,7 +368,6 @@ int main(int argc, char **argv){
         CHECK_CUDA(cudaFree(d_store_energy));
         CHECK_CUDA(cudaFree(d_store_partition_function));
         CHECK_CUDA(cudaFree(d_sum));
-        CHECK_CUDA(cudaFree(d_weighted_energies));
         CHECK_CUDA(cudaFree(d_energy));
         CHECK_CUDA(cudaFree(randvals));
         CHECK_CUDA(cudaFree(lattice_randvals));

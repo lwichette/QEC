@@ -65,18 +65,15 @@ __global__ void init_spins(
 }
 
 void init_interactions_with_seed(
-    signed char* interactions, const long long seed, curandGenerator_t interaction_rng, float* interaction_randvals,
+    signed char* interactions, curandGenerator_t interaction_rng, float* interaction_randvals,
     const long long nx, const long long ny, const int num_lattices, const float p, const int blocks
 ){
-    // Set Seed
-    CHECK_CURAND(curandSetPseudoRandomGeneratorSeed(interaction_rng,seed));
-
     CHECK_CURAND(curandGenerateUniform(interaction_rng,interaction_randvals, num_lattices*nx*ny*2));
     init_randombond<<<blocks, THREADS>>>(interactions, interaction_randvals, nx, ny, num_lattices, p);
 }
 
 void init_spins_with_seed(
-    signed char* lattice_b, signed char* lattice_w, const long long seed, curandGenerator_t lattice_rng, float* lattice_randvals,
+    signed char* lattice_b, signed char* lattice_w, curandGenerator_t lattice_rng, float* lattice_randvals,
     const long long nx, const long long ny, const int num_lattices, bool up, const int blocks
 ){
 
@@ -86,9 +83,6 @@ void init_spins_with_seed(
     }
 
     else{
-        // Set seed
-        CHECK_CURAND(curandSetPseudoRandomGeneratorSeed(lattice_rng, seed));
-
         //Initialize the arrays for white and black lattice
         CHECK_CURAND(curandGenerateUniform(lattice_rng, lattice_randvals, nx*ny/2*num_lattices));
         init_spins<<<blocks, THREADS>>>(lattice_b, lattice_randvals, nx, ny/2, num_lattices);

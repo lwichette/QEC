@@ -27,7 +27,7 @@ namespace fs = std::filesystem;
 int main(int argc, char **argv){
 
     float p, start_temp, step;
-    int num_iterations_error, num_iterations_seeds, niters, nwarmup, num_lattices, num_reps_temp, normalization_factor;
+    int num_iterations_error, niters, nwarmup, num_lattices, num_reps_temp, normalization_factor;
     std::vector<int> L_size;
     std::string folderName;
     bool up;
@@ -68,9 +68,6 @@ int main(int argc, char **argv){
     }
     if (vm.count("nie")) {
         num_iterations_error = vm["nie"].as<int>();
-    }
-    if (vm.count("nis")) {
-        num_iterations_seeds = vm["nis"].as<int>();
     }
     if (vm.count("nit")) {
         niters = vm["nit"].as<int>();
@@ -128,7 +125,7 @@ int main(int argc, char **argv){
 
         normalization_factor = 0;
 
-        std::string result_name = std::string("L_") + std::to_string(L) + std::string("_p_") + std::to_string(p) + std::string("_ns_") + std::to_string(num_iterations_seeds) + std::string("_ne_") + std::to_string(num_iterations_error) + std::string("_ni_") + std::to_string(niters) + std::string("_nw_") + std::to_string(nwarmup) + std::string("_up_") + std::to_string(up) + std::string(".txt");
+        std::string result_name = std::string("L_") + std::to_string(L) + std::string("_p_") + std::to_string(p) + std::string("_ne_") + std::to_string(num_iterations_error) + std::string("_ni_") + std::to_string(niters) + std::string("_nw_") + std::to_string(nwarmup) + std::string("_up_") + std::to_string(up) + std::string("_temp_") + std::to_string(start_temp) + std::string("_step_") + std::to_string(step) + std::string("_nl_") + std::to_string(num_lattices/num_reps_temp) + std::string("_nrt_") + std::to_string(num_reps_temp) + std::string(".txt");
 
         if (fs::exists(folderPath + "/" + result_name)){
             cout << "Results already exist" << result_name << std::endl;
@@ -190,8 +187,6 @@ int main(int argc, char **argv){
         // Setup cuRAND generator
         curandGenerator_t rng;
         CHECK_CURAND(curandCreateGenerator(&rng, CURAND_RNG_PSEUDO_PHILOX4_32_10));
-
-        // what exactly does this and why after using the spin?
         CHECK_CURAND(curandSetPseudoRandomGeneratorSeed(rng, seeds_spins));
 
         float *randvals;

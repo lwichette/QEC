@@ -115,8 +115,8 @@ __global__  void latticeInit_k(const int devid,
                                const long long dimX, // ld
                                      INT2_T *__restrict__ vDst) {
 
-	// i linearized position of y position in block and thread blocks
-	// j linearized position of x position in block and thread image
+	// i linearized y position in blocks and threads
+	// j linearized x position in blocks and threads
 	const int __i = blockIdx.y*BDIM_Y*LOOP_Y + threadIdx.y;
 	const int __j = blockIdx.x*BDIM_X*LOOP_X + threadIdx.x;
 	
@@ -169,7 +169,7 @@ __global__  void latticeInit_k(const int devid,
 	for(int i = 0; i < LOOP_Y; i++) {
 		#pragma unroll
 		for(int j = 0; j < LOOP_X; j++) {
-			vDst[(begY + __i+i*BDIM_Y)*dimX + __j+j*BDIM_X] = __tmp[i][j];
+			vDst[(begY + __i + i*BDIM_Y)*dimX + __j+j*BDIM_X] = __tmp[i][j];
 		}
 	}
 	return;
@@ -416,45 +416,61 @@ __device__ void loadTile(const int slX,
 			 const INT2_T *__restrict__ v,
 			       INT2_T tile[][TILE_X+2*FRAME_X]) {
 
+	// x,y block indices				
 	const int blkx = blockIdx.x;
 	const int blky = blockIdx.y;
 
+	// x,y thread indices
 	const int tidx = threadIdx.x;
 	const int tidy = threadIdx.y;
 
+	// TILE_X = BLOCK_X*BMULT_X, TILE = [16,32]
+	// X and Y startpoint, Y offset by begY depending on GPU
 	const int startX =        blkx*TILE_X;
 	const int startY = begY + blky*TILE_Y;
 
+	// Loop over BMULT_Y and BMULT_X
+	// For each block load Spinwords of size 16x32 in tiles
 	#pragma unroll
 	for(int j = 0; j < TILE_Y; j += BDIM_Y) {
-		int yoff = startY + j+tidy;
+		// yoffset for current thread idy
+		int yoff = startY + j + tidy;
 
 		#pragma unroll
 		for(int i = 0; i < TILE_X; i += BDIM_X) {
-			const int xoff = startX + i+tidx;
-			tile[FRAME_Y + j+tidy][FRAME_X + i+tidx] = v[yoff*dimX + xoff];
+			// xoffset for current thread idx
+			const int xoff = startX + i + tidx;
+			tile[FRAME_Y + j + tidy][FRAME_X + i + tidx] = v[yoff*dimX + xoff];
 		}
 	}
+
+	// if tidy == 0
 	if (tidy == 0) {
+		// if beginning of Y % size of sublattice == 0 --> if we are at start of a new sublattice
+		// set offset to last row, else to startY - 1
 		int yoff = (startY % slY) == 0 ? startY+slY-1 : startY-1;
 
 		#pragma unroll
+		// Loop over BMULT_Y
+		// Get up neighbors
 		for(int i = 0; i < TILE_X; i += BDIM_X) {
-			const int xoff = startX + i+tidx;
-			tile[0][FRAME_X + i+tidx] = v[yoff*dimX + xoff];
+			const int xoff = startX + i + tidx;
+			tile[0][FRAME_X + i + tidx] = v[yoff*dimX + xoff];
 		}
 
+		// Down neighbors
 		yoff = ((startY+TILE_Y) % slY) == 0 ? startY+TILE_Y - slY : startY+TILE_Y;
 
 		#pragma unroll
 		for(int i = 0; i < TILE_X; i += BDIM_X) {
 			const int xoff = startX + i+tidx;
-			tile[FRAME_Y + TILE_Y][FRAME_X + i+tidx] = v[yoff*dimX + xoff];
+			tile[FRAME_Y + TILE_Y][FRAME_X + i + tidx] = v[yoff*dimX + xoff];
 		}
 
 		// the other branch in slower so skip it if possible
+		// if BLOCK_X <= TILE_Y
 		if (BDIM_X <= TILE_Y) {
-
+			// Find left neighbors
 			int xoff = (startX % slX) == 0 ? startX+slX-1 : startX-1;
 
 			#pragma unroll
@@ -463,6 +479,7 @@ __device__ void loadTile(const int slX,
 				tile[FRAME_Y + j+tidx][0] = v[yoff*dimX + xoff];
 			}
 
+			// right neighbors
 			xoff = ((startX+TILE_X) % slX) == 0 ? startX+TILE_X - slX : startX+TILE_X;
 
 			#pragma unroll
@@ -471,6 +488,7 @@ __device__ void loadTile(const int slX,
 				tile[FRAME_Y + j+tidx][FRAME_X + TILE_X] = v[yoff*dimX + xoff];
 			}
 		} else {
+			// get left and right neighbors
 			if (tidx < TILE_Y) {
 				int xoff = (startX % slX) == 0 ? startX+slX-1 : startX-1;
 
@@ -513,10 +531,10 @@ void spinUpdateV_2D_k(const int devid,
 	const int tidx = threadIdx.x;
 	const int tidy = threadIdx.y;
 	
-	// Initialize shared memory of Block size + 2?
+	// Initialize shared memory of Block size + neighbors
 	__shared__ INT2_T shTile[BDIM_Y*LOOP_Y+2][BDIM_X*LOOP_X+2];
     
-	// Load spin tiles of given thread to shared memory
+	// Load spin tiles of opposite lattice
 	loadTile<BDIM_X, BDIM_Y,
 		 BDIM_X*LOOP_X,
 		 BDIM_Y*LOOP_Y, 
@@ -564,7 +582,7 @@ void spinUpdateV_2D_k(const int devid,
 	INT2_T __ct[LOOP_Y][LOOP_X];
 	INT2_T __dw[LOOP_Y][LOOP_X];
 
-	// Load up, down, center arrays
+	// Load up, down, center neighbors from other word lattice
 	#pragma unroll
 	for(int i = 0; i < LOOP_Y; i++) {
 		#pragma unroll
@@ -576,13 +594,13 @@ void spinUpdateV_2D_k(const int devid,
 	}
 
 	// BDIM_Y is power of two so row parity won't change across loops
-	// Check if color is black --> Offset
+	// Check which color and whether row (__i) is even or odd 
+	// Example: black lattice, even row --> readBack = 1
 	const int readBack = (COLOR == C_BLACK) ? !(__i%2) : (__i%2);
 
-	// Create array of size BMULT_Y x BMULT_X of a unsigned long long tuple
+	// Load missing side neighbors
 	INT2_T __sd[LOOP_Y][LOOP_X];
 
-	// Load word into array
 	#pragma unroll
 	for(int i = 0; i < LOOP_Y; i++) {
 		#pragma unroll
@@ -592,6 +610,7 @@ void spinUpdateV_2D_k(const int devid,
 		}
 	}
 
+	// Where we ended
 	if (readBack) {
 		#pragma unroll
 		for(int i = 0; i < LOOP_Y; i++) {
@@ -1638,13 +1657,13 @@ int main(int argc, char **argv) {
 		}
 	}
 	
-	// Size of X-dimension of the black (white) word lattice per GPU
+	// Size of X-dimension of the word lattice per GPU
 	size_t lld = (X/2)/SPIN_X_WORD;
 
 	// length of a single color section per GPU (Word lattice)
 	size_t llenLoc = static_cast<size_t>(Y)*lld;
 
-	// total word lattice length (all GPUs, all colors)
+	// total lattice length (all GPUs, all colors)
 	size_t llen = 2ull*ndev*llenLoc;
 
 	// Create blocks and Threads grid
@@ -1838,7 +1857,7 @@ int main(int argc, char **argv) {
 	CHECK_CUDA(cudaEventCreate(&stop));
 
 	for(int i = 0; i < ndev; i++) {
-		// Init black lattice
+		// Init black lattice, lld/2 because of tuples
 		CHECK_CUDA(cudaSetDevice(i));
 		latticeInit_k<BLOCK_X, BLOCK_Y,
 			      BMULT_X, BMULT_Y,

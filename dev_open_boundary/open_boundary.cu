@@ -130,11 +130,11 @@ int main(int argc, char **argv){
 
         std::string result_name = std::string("L_") + std::to_string(L) + std::string("_p_") + std::to_string(p) + std::string("_ns_") + std::to_string(num_iterations_seeds) + std::string("_ne_") + std::to_string(num_iterations_error) + std::string("_ni_") + std::to_string(niters) + std::string("_nw_") + std::to_string(nwarmup) + std::string("_up_") + std::to_string(up) + std::string(".txt");
 
-        if (fs::exists(folderPath + "/" + result_name)){
-            cout << "Results already exist" << result_name << std::endl;
-            cout << "Continuing with next lattice size" << endl;
-            continue;
-        }
+        // if (fs::exists(folderPath + "/" + result_name)){
+        //     cout << "Results already exist" << result_name << std::endl;
+        //     cout << "Continuing with next lattice size" << endl;
+        //     continue;
+        // }
 
         cout << "Started Simulation of Lattice " << L << endl;
 
@@ -208,6 +208,7 @@ int main(int argc, char **argv){
         for (int e = 0; e < num_iterations_error; e++){
 
             const string lattice_b_file_name = folderPath + "/lattice_b_e" + std::to_string(e) + "_nl" + std::to_string(num_lattices) + "_l" + std::to_string(L) + "_starttemp" + std::to_string(start_temp) + ".txt";
+            const string lattice_w_file_name = folderPath + "/lattice_w_e" + std::to_string(e) + "_nl" + std::to_string(num_lattices) + "_l" + std::to_string(L) + "_starttemp" + std::to_string(start_temp) + ".txt";
 
             cout << "Error " << e << " of " << num_iterations_error << endl;
 
@@ -253,8 +254,16 @@ int main(int argc, char **argv){
             CHECK_CUDA(cudaMemcpy(h_lattice_b.data(), lattice_b, num_lattices * L * L/2 * sizeof(*lattice_b), cudaMemcpyDeviceToHost));
             CHECK_CUDA(cudaMemcpy(h_lattice_w.data(), lattice_w, num_lattices * L * L/2 * sizeof(*lattice_w), cudaMemcpyDeviceToHost));
 
+            // Print the contents to stdout
+            std::cout << "Contents of h_lattice_b:" << std::endl;
+            for (signed char value : h_lattice_b) {
+                std::cout << static_cast<int>(value) << " ";  // Assuming you want to print as integers
+            }
+
+            std::cout << std::endl;
+
             // Open a file for writing
-            std::ofstream outFile(lattice_b_file_name, std::ios::out | std::ios::trunc);
+            std::ofstream outFile(lattice_b_file_name, std::ios::out | std::ios::binary | std::ios::trunc);
 
             // Check if the file is open
             if (!outFile.is_open()) {
@@ -262,10 +271,12 @@ int main(int argc, char **argv){
                 return 1;
             }
 
-            // Write the contents of the vector to the file
-            if (outFile.is_open()) {
-                outFile.write(reinterpret_cast<const char*>(h_lattice_b.data()), h_lattice_b.size());
+            // Write each element of the vector to the file
+            for (const auto& element : h_lattice_b) {
+                outFile << static_cast<int>(element) << " ";
             }
+
+            return 1;
 
             // if (outFile.is_open()) {
             //     for (signed char value : h_lattice_b) {
@@ -279,12 +290,7 @@ int main(int argc, char **argv){
             std::string write_lattice_filename = folderPath + "/write_lattice_e" + std::to_string(e) + "_nl" + std::to_string(num_lattices) + "_l" + std::to_string(L) + "_starttemp" + std::to_string(start_temp) + ".txt";
             write_lattice(lattice_b, lattice_w, write_lattice_filename, L, L, num_lattices);
 
-            // // Print the contents to stdout
-            // std::cout << "Contents of h_lattice_b:" << std::endl;
-            // for (signed char value : h_lattice_b) {
-            //     std::cout << static_cast<int>(value) << " ";  // Assuming you want to print as integers
-            // }
-            // std::cout << std::endl;
+
 
 
         }

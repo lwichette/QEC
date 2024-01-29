@@ -98,7 +98,6 @@ void initialize_spins(
             // Reverse the mapping: 0 to -1 and 1 to 1
             charVector_b.push_back((value == 0) ? -1 : 1);
         }
-
         // Close the file
         inFile_b.close();
 
@@ -148,7 +147,7 @@ void initialize_spins(
             cout << static_cast<int>(element) << " ";
         }
 
-        CHECK_CUDA(cudaMemcpy(lattice_b, charVector_w.data(), num_lattices * nx * ny /2 * sizeof(*lattice_w), cudaMemcpyHostToDevice));
+        CHECK_CUDA(cudaMemcpy(lattice_w, charVector_w.data(), num_lattices * nx * ny /2 * sizeof(*lattice_w), cudaMemcpyHostToDevice));
 
     }
     else {

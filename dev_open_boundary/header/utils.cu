@@ -10,6 +10,7 @@
 #include <vector>
 #include <string>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #include "defines.h"
 #include "utils.cuh"
@@ -72,12 +73,28 @@ void init_interactions_with_seed(
     init_randombond<<<blocks, THREADS>>>(interactions, interaction_randvals, nx, ny, num_lattices, p);
 }
 
-void init_spins_with_seed(
+void initialize_spins(
     signed char* lattice_b, signed char* lattice_w, curandGenerator_t lattice_rng, float* lattice_randvals,
-    const long long nx, const long long ny, const int num_lattices, bool up, const int blocks
+    const long long nx, const long long ny, const int num_lattices, bool up, const int blocks, std::string filename
 ){
 
-    if (up){
+    if (access(filename.c_str(), F_OK) != -1){
+        FILE *file = fopen(filename.c_str(), "rb");
+        if (file == NULL) {
+            perror("Error opening file");
+            return;
+        }
+        std::vector<signed char> h_lattice_b(num_lattices * nx * ny/2);
+        std::vector<signed char> h_lattice_w(num_lattices * nx * ny/2);
+
+        fseek(file, 0, SEEK_END);  // Move to the end of the file to get its size
+        long file_size = ftell(file);
+        rewind(file);
+
+        std::cout << "filesize:" << file_size << std::endl;
+    }
+
+    else if (up){
         init_spins_up<<<blocks,THREADS>>>(lattice_b, nx, ny/2, num_lattices);
         init_spins_up<<<blocks,THREADS>>>(lattice_w, nx, ny/2, num_lattices);
     }

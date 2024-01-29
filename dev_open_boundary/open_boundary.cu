@@ -207,11 +207,13 @@ int main(int argc, char **argv){
         // Change this !!!
         for (int e = 0; e < num_iterations_error; e++){
 
+            const string lattice_b_file_name = folderPath + "/lattice_b_e" + std::to_string(e) + "_nl" + std::to_string(num_lattices) + "_l" + std::to_string(L) + "_starttemp" + std::to_string(start_temp);
+
             cout << "Error " << e << " of " << num_iterations_error << endl;
 
             init_interactions_with_seed(d_interactions, rng, interaction_randvals, L, L, num_lattices, p, blocks_inter);
 
-            init_spins_with_seed(lattice_b, lattice_w, rng, lattice_randvals, L, L, num_lattices, up, blocks_spins);
+            initialize_spins(lattice_b, lattice_w, rng, lattice_randvals, L, L, num_lattices, up, blocks_spins, lattice_b_file_name);
 
             for (int j = 0; j < nwarmup; j++) {
                 update_ob(lattice_b, lattice_w, randvals, rng, d_interactions, d_inv_temp, L, L, num_lattices, d_coupling_constant, blocks_spins, d_energy);
@@ -246,13 +248,13 @@ int main(int argc, char **argv){
             CHECK_CUDA(cudaDeviceSynchronize());
 
             // copy to host
-            std::vector<char> h_lattice_b(num_lattices * L * L/2);
-            std::vector<char> h_lattice_w(num_lattices * L * L/2);
+            std::vector<signed char> h_lattice_b(num_lattices * L * L/2);
+            std::vector<signed char> h_lattice_w(num_lattices * L * L/2);
             CHECK_CUDA(cudaMemcpy(h_lattice_b.data(), lattice_b, num_lattices * L * L/2 * sizeof(*lattice_b), cudaMemcpyDeviceToHost));
             CHECK_CUDA(cudaMemcpy(h_lattice_w.data(), lattice_w, num_lattices * L * L/2 * sizeof(*lattice_w), cudaMemcpyDeviceToHost));
 
             // Open a file for writing
-            std::ofstream outFile(folderPath + "/lattice_b_e" + std::to_string(e) + "_nl" + std::to_string(num_lattices) + "_l" + std::to_string(L) + "_starttemp" + std::to_string(start_temp));
+            std::ofstream outFile(lattice_b_file_name);
 
             // Check if the file is open
             if (!outFile.is_open()) {
@@ -261,10 +263,17 @@ int main(int argc, char **argv){
             }
 
             // Write the contents of the vector to the file
-            outFile.write(h_lattice_b.data(), h_lattice_b.size());
+            outFile.write(reinterpret_cast<const char*>(h_lattice_b.data()), h_lattice_b.size());
 
             // Close the file
             outFile.close();
+
+            // // Print the contents to stdout
+            // std::cout << "Contents of h_lattice_b:" << std::endl;
+            // for (signed char value : h_lattice_b) {
+            //     std::cout << static_cast<int>(value) << " ";  // Assuming you want to print as integers
+            // }
+            // std::cout << std::endl;
 
 
         }

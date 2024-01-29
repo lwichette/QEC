@@ -78,6 +78,7 @@ void initialize_spins(
     const long long nx, const long long ny, const int num_lattices, bool up, const int blocks, std::string filename_b, std::string filename_w
 ){
 
+    // Initialization of black lattice
     if (std::filesystem::exists(filename_b)){
 
         std::vector<signed char> charVector_b;
@@ -109,9 +110,17 @@ void initialize_spins(
 
     }
     else {
-        init_spins_up<<<blocks,THREADS>>>(lattice_b, nx, ny/2, num_lattices);
+        if (up){
+            init_spins_up<<<blocks,THREADS>>>(lattice_b, nx, ny/2, num_lattices);
+        }
+        else{
+            //Initialize the arrays for white and black lattice
+            CHECK_CURAND(curandGenerateUniform(lattice_rng, lattice_randvals, nx*ny/2*num_lattices));
+            init_spins<<<blocks, THREADS>>>(lattice_b, lattice_randvals, nx, ny/2, num_lattices);
+        }
     }
 
+    // Initialization of white lattice
     if (std::filesystem::exists(filename_w)){
 
         std::vector<signed char> charVector_w;
@@ -143,7 +152,14 @@ void initialize_spins(
 
     }
     else {
-        init_spins_up<<<blocks,THREADS>>>(lattice_w, nx, ny/2, num_lattices);
+        if (up){
+            init_spins_up<<<blocks,THREADS>>>(lattice_w, nx, ny/2, num_lattices);
+        }
+        else{
+            //Initialize the arrays for white and black lattice
+            CHECK_CURAND(curandGenerateUniform(lattice_rng, lattice_randvals, nx*ny/2*num_lattices));
+            init_spins<<<blocks, THREADS>>>(lattice_w, lattice_randvals, nx, ny/2, num_lattices);
+        }
     }
 
 }

@@ -13,6 +13,8 @@ void initialize_spins(signed char* lattice_b, signed char* lattice_w, curandGene
 
 void write_lattice(signed char *lattice_b, signed char *lattice_w, std::string filename, long long nx, long long ny, const int num_lattices);
 
+void write_updated_lattices(signed char *lattice_b, signed char *lattice_w, long long nx, long long ny, const int num_lattices, std::string lattice_b_file_name, std::string lattice_w_file_name);
+
 void write_bonds(signed char* interactions, std::string filename, long nx, long ny, const int num_lattices);
 
 template<bool is_black>

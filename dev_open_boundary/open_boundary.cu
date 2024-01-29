@@ -248,43 +248,8 @@ int main(int argc, char **argv){
 
             CHECK_CUDA(cudaDeviceSynchronize());
 
+            // Write last results from updates to txt format
             write_updated_lattices(lattice_b, lattice_w, L, L, num_lattices, lattice_b_file_name, lattice_w_file_name);
-
-            // // copy to host
-            // std::vector<signed char> h_lattice_b(num_lattices * L * L/2);
-            // std::vector<signed char> h_lattice_w(num_lattices * L * L/2);
-            // CHECK_CUDA(cudaMemcpy(h_lattice_b.data(), lattice_b, num_lattices * L * L/2 * sizeof(*lattice_b), cudaMemcpyDeviceToHost));
-            // CHECK_CUDA(cudaMemcpy(h_lattice_w.data(), lattice_w, num_lattices * L * L/2 * sizeof(*lattice_w), cudaMemcpyDeviceToHost));
-
-            // // Open a file for writing the black lattice
-            // std::ofstream outFile_b(lattice_b_file_name, std::ios::out | std::ios::binary | std::ios::trunc);
-            // // Check if the file is open
-            // if (!outFile_b.is_open()) {
-            //     std::cerr << "Error opening file for writing." << std::endl;
-            //     return 1;
-            // }
-            // // Write each element of the black lattice vector to the file
-            // for (const auto& element : h_lattice_b) {
-            //     char mappedValue = (element == 1) ? '1' : '0';
-            //     outFile_b << mappedValue << " ";
-            // }
-            // // Close the black lattice file
-            // outFile_b.close();
-
-            // // Open a file for writing the white lattice
-            // std::ofstream outFile_w(lattice_w_file_name, std::ios::out | std::ios::binary | std::ios::trunc);
-            // // Check if the file is open
-            // if (!outFile_w.is_open()) {
-            //     std::cerr << "Error opening file for writing." << std::endl;
-            //     return 1;
-            // }
-            // // Write each element of the white lattice vector to the file
-            // for (const auto& element : h_lattice_w) {
-            //     char mappedValue = (element == 1) ? '1' : '0';
-            //     outFile_w << mappedValue << " ";
-            // }
-            // // Close the white lattice file
-            // outFile_w.close();
 
         }
 

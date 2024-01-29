@@ -265,6 +265,18 @@ int main(int argc, char **argv){
             // Write the contents of the vector to the file
             outFile.write(reinterpret_cast<const char*>(h_lattice_b.data()), h_lattice_b.size());
 
+            // if (outFile.is_open()) {
+            //     for (int i = 0; i < L*L/2; i++) {
+            //         outFile << (int)h_lattice_b[i] << " ";
+            //     }
+            // }
+
+            outFile.close();
+
+
+
+
+
             // Close the file
             outFile.close();
 

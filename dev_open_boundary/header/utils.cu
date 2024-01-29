@@ -84,14 +84,36 @@ void initialize_spins(
             perror("Error opening file");
             return;
         }
-        std::vector<signed char> h_lattice_b(num_lattices * nx * ny/2);
-        std::vector<signed char> h_lattice_w(num_lattices * nx * ny/2);
+        signed char* h_lattice_b = (signed char *)malloc(num_lattices * nx * ny/2);
+        signed char* h_lattice_w = (signed char *)malloc(num_lattices * nx * ny/2);
 
         fseek(file, 0, SEEK_END);  // Move to the end of the file to get its size
         long file_size = ftell(file);
         rewind(file);
 
         std::cout << "filesize:" << file_size << std::endl;
+
+        // Read the contents of the file into the signed char array
+        size_t elements_read = fread(h_lattice_b, sizeof(signed char), file_size, file);
+
+        if (elements_read != file_size) {
+            perror("Error reading file");
+            free(h_lattice_b);
+            fclose(file);
+            return;
+        }
+
+        printf("Contents of the array: ");
+        for (long i = 0; i < file_size; ++i) {
+            printf("%d ", h_lattice_b[i]);
+        }
+        printf("\n");
+
+        // Cleanup: free the allocated memory and close the file
+        free(h_lattice_b);
+        free(h_lattice_w);
+        fclose(file);
+
     }
 
     else if (up){

@@ -15,18 +15,7 @@
             "type": "cuda-gdb",
             "request": "launch",
             "program": "${workspaceFolder}/dev_open_boundary/dev_open_boundary",
-            "args": [
-                "--p", "0.10",
-                "--temp", "0.8",
-                "--step", "0.05",
-                "--up", "false",
-                "--nie", "10",
-                "--nit", "100",
-                "--nw", "10000",
-                "--nl", "10",
-                "--nrt", "1",
-                "--L", "128"
-            ]
+            "args": ["--p 0.10 --temp 0.8 --step 0.05 --up false --nie 10 --nit 100 --nw 10000 --nl 10 --nrt 1 --L 128 --folder test_folder"]
         },
         {
             "name": "CUDA C++: Attach",

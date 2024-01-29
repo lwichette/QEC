@@ -207,7 +207,7 @@ int main(int argc, char **argv){
         // Change this !!!
         for (int e = 0; e < num_iterations_error; e++){
 
-            const string lattice_b_file_name = folderPath + "/lattice_b_e" + std::to_string(e) + "_nl" + std::to_string(num_lattices) + "_l" + std::to_string(L) + "_starttemp" + std::to_string(start_temp);
+            const string lattice_b_file_name = folderPath + "/lattice_b_e" + std::to_string(e) + "_nl" + std::to_string(num_lattices) + "_l" + std::to_string(L) + "_starttemp" + std::to_string(start_temp) + ".txt";
 
             cout << "Error " << e << " of " << num_iterations_error << endl;
 
@@ -248,37 +248,41 @@ int main(int argc, char **argv){
             CHECK_CUDA(cudaDeviceSynchronize());
 
             // copy to host
-            std::vector<signed char> h_lattice_b(num_lattices * L * L/2);
-            std::vector<signed char> h_lattice_w(num_lattices * L * L/2);
-            CHECK_CUDA(cudaMemcpy(h_lattice_b.data(), lattice_b, num_lattices * L * L/2 * sizeof(*lattice_b), cudaMemcpyDeviceToHost));
-            CHECK_CUDA(cudaMemcpy(h_lattice_w.data(), lattice_w, num_lattices * L * L/2 * sizeof(*lattice_w), cudaMemcpyDeviceToHost));
+            // std::vector<signed char> h_lattice_b(num_lattices * L * L/2);
+            // std::vector<signed char> h_lattice_w(num_lattices * L * L/2);
+            // CHECK_CUDA(cudaMemcpy(h_lattice_b.data(), lattice_b, num_lattices * L * L/2 * sizeof(*lattice_b), cudaMemcpyDeviceToHost));
+            // CHECK_CUDA(cudaMemcpy(h_lattice_w.data(), lattice_w, num_lattices * L * L/2 * sizeof(*lattice_w), cudaMemcpyDeviceToHost));
 
             // Open a file for writing
-            std::ofstream outFile(lattice_b_file_name);
+            // std::ofstream outFile(lattice_b_file_name);
 
             // Check if the file is open
-            if (!outFile.is_open()) {
-                std::cerr << "Error opening file for writing." << std::endl;
-                return 1;
-            }
+            // if (!outFile.is_open()) {
+            //     std::cerr << "Error opening file for writing." << std::endl;
+            //     return 1;
+            // }
 
             // Write the contents of the vector to the file
-            outFile.write(reinterpret_cast<const char*>(h_lattice_b.data()), h_lattice_b.size());
+            // outFile.write(reinterpret_cast<const char*>(h_lattice_b.data()), h_lattice_b.size());
 
             // if (outFile.is_open()) {
-            //     for (int i = 0; i < L*L/2; i++) {
+            //     for (int i = 0; i < L*L/2*num_lattices; i++) {
             //         outFile << (int)h_lattice_b[i] << " ";
             //     }
             // }
 
-            outFile.close();
+            write_lattice(lattice_b, lattice_w, "test_write_lattice", L, L, num_lattices);
+
+
+
+            // outFile.close();
 
 
 
 
 
-            // Close the file
-            outFile.close();
+            // // Close the file
+            // outFile.close();
 
             // // Print the contents to stdout
             // std::cout << "Contents of h_lattice_b:" << std::endl;

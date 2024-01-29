@@ -9,7 +9,7 @@ __global__ void init_spins(signed char* lattice, const float* __restrict__ randv
 
 void init_interactions_with_seed(signed char* interactions, curandGenerator_t interaction_rng, float* interaction_randvals, const long long nx, const long long ny, const int num_lattices, const float p, const int blocks);
 
-void initialize_spins(signed char* lattice_b, signed char* lattice_w, curandGenerator_t lattice_rng, float* lattice_randvals, const long long nx, const long long ny, const int num_lattices, bool up, const int blocks, std::string filename);
+void initialize_spins(signed char* lattice_b, signed char* lattice_w, curandGenerator_t lattice_rng, float* lattice_randvals, const long long nx, const long long ny, const int num_lattices, bool up, const int blocks, std::string filename_b, std::string filename_w);
 
 void write_lattice(signed char *lattice_b, signed char *lattice_w, std::string filename, long long nx, long long ny, const int num_lattices);
 

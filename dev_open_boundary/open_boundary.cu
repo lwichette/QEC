@@ -214,7 +214,7 @@ int main(int argc, char **argv){
 
             init_interactions_with_seed(d_interactions, rng, interaction_randvals, L, L, num_lattices, p, blocks_inter);
 
-            initialize_spins(lattice_b, lattice_w, rng, lattice_randvals, L, L, num_lattices, up, blocks_spins, lattice_b_file_name);
+            initialize_spins(lattice_b, lattice_w, rng, lattice_randvals, L, L, num_lattices, up, blocks_spins, lattice_b_file_name, lattice_w_file_name);
 
             for (int j = 0; j < nwarmup; j++) {
                 update_ob(lattice_b, lattice_w, randvals, rng, d_interactions, d_inv_temp, L, L, num_lattices, d_coupling_constant, blocks_spins, d_energy);
@@ -254,44 +254,35 @@ int main(int argc, char **argv){
             CHECK_CUDA(cudaMemcpy(h_lattice_b.data(), lattice_b, num_lattices * L * L/2 * sizeof(*lattice_b), cudaMemcpyDeviceToHost));
             CHECK_CUDA(cudaMemcpy(h_lattice_w.data(), lattice_w, num_lattices * L * L/2 * sizeof(*lattice_w), cudaMemcpyDeviceToHost));
 
-            // Print the contents to stdout
-            std::cout << "Contents of h_lattice_b:" << std::endl;
-            for (signed char value : h_lattice_b) {
-                std::cout << static_cast<int>(value) << " ";  // Assuming you want to print as integers
-            }
-
-            std::cout << std::endl;
-
-            // Open a file for writing
-            std::ofstream outFile(lattice_b_file_name, std::ios::out | std::ios::binary | std::ios::trunc);
-
+            // Open a file for writing the black lattice
+            std::ofstream outFile_b(lattice_b_file_name, std::ios::out | std::ios::binary | std::ios::trunc);
             // Check if the file is open
-            if (!outFile.is_open()) {
+            if (!outFile_b.is_open()) {
                 std::cerr << "Error opening file for writing." << std::endl;
                 return 1;
             }
-
-            // Write each element of the vector to the file
+            // Write each element of the black lattice vector to the file
             for (const auto& element : h_lattice_b) {
-                outFile << static_cast<int>(element) << " ";
+                char mappedValue = (element == 1) ? '1' : '0';
+                outFile_b << mappedValue << " ";
             }
+            // Close the black lattice file
+            outFile_b.close();
 
-            return 1;
-
-            // if (outFile.is_open()) {
-            //     for (signed char value : h_lattice_b) {
-            //         outFile << static_cast<int>(value) << " ";
-            //     }
-            // }
-
-            // Close the file
-            outFile.close();
-
-            std::string write_lattice_filename = folderPath + "/write_lattice_e" + std::to_string(e) + "_nl" + std::to_string(num_lattices) + "_l" + std::to_string(L) + "_starttemp" + std::to_string(start_temp) + ".txt";
-            write_lattice(lattice_b, lattice_w, write_lattice_filename, L, L, num_lattices);
-
-
-
+            // Open a file for writing the white lattice
+            std::ofstream outFile_w(lattice_w_file_name, std::ios::out | std::ios::binary | std::ios::trunc);
+            // Check if the file is open
+            if (!outFile_w.is_open()) {
+                std::cerr << "Error opening file for writing." << std::endl;
+                return 1;
+            }
+            // Write each element of the white lattice vector to the file
+            for (const auto& element : h_lattice_w) {
+                char mappedValue = (element == 1) ? '1' : '0';
+                outFile_w << mappedValue << " ";
+            }
+            // Close the white lattice file
+            outFile_w.close();
 
         }
 

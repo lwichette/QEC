@@ -11,7 +11,7 @@
 #include <string>
 #include <sys/stat.h>
 #include <unistd.h>
-
+#include <filesystem>
 #include "defines.h"
 #include "utils.cuh"
 #include "cudamacro.h"
@@ -75,60 +75,77 @@ void init_interactions_with_seed(
 
 void initialize_spins(
     signed char* lattice_b, signed char* lattice_w, curandGenerator_t lattice_rng, float* lattice_randvals,
-    const long long nx, const long long ny, const int num_lattices, bool up, const int blocks, std::string filename
+    const long long nx, const long long ny, const int num_lattices, bool up, const int blocks, std::string filename_b, std::string filename_w
 ){
 
-    if (access(filename.c_str(), F_OK) != -1){
-        FILE *file = fopen(filename.c_str(), "rb");
-        if (file == NULL) {
-            perror("Error opening file");
-            return;
-        }
-        signed char* h_lattice_b = (signed char *)malloc(num_lattices * nx * ny/2);
-        signed char* h_lattice_w = (signed char *)malloc(num_lattices * nx * ny/2);
+    if (std::filesystem::exists(filename_b)){
 
-        fseek(file, 0, SEEK_END);  // Move to the end of the file to get its size
-        long file_size = ftell(file);
-        rewind(file);
+        std::vector<signed char> charVector_b;
 
-        std::cout << "filesize:" << file_size << std::endl;
+        // black lattice read
+        std::ifstream inFile_b(filename_b);
 
-        // Read the contents of the file into the signed char array
-        size_t elements_read = fread(h_lattice_b, sizeof(signed char), file_size, file);
+        int value;
 
-        if (elements_read != file_size) {
-            perror("Error reading file");
-            free(h_lattice_b);
-            fclose(file);
-            return;
+        if (!inFile_b.is_open()) {
+            std::cerr << "Error opening file for reading." << std::endl;
+            return;  // Return an empty vector in case of an error
         }
 
-        printf("Contents of the array: ");
-        for (long i = 0; i < file_size; ++i) {
-            printf("%d ", h_lattice_b[i]);
+        // Read each value from the file
+        while (inFile_b >> value) {
+            // Reverse the mapping: 0 to -1 and 1 to 1
+            charVector_b.push_back((value == 0) ? -1 : 1);
         }
-        printf("\n");
 
-        // Cleanup: free the allocated memory and close the file
-        free(h_lattice_b);
-        free(h_lattice_w);
-        fclose(file);
+        // Close the file
+        inFile_b.close();
+
+        for (const auto& element : charVector_b) {
+            cout << static_cast<int>(element) << " ";
+        }
+
+        CHECK_CUDA(cudaMemcpy(lattice_b, charVector_b.data(), num_lattices * nx * ny /2 * sizeof(*lattice_b), cudaMemcpyHostToDevice));
 
     }
-
-    else if (up){
+    else {
         init_spins_up<<<blocks,THREADS>>>(lattice_b, nx, ny/2, num_lattices);
+    }
+
+    if (std::filesystem::exists(filename_w)){
+
+        std::vector<signed char> charVector_w;
+
+        // black lattice read
+        std::ifstream inFile_w(filename_w);
+
+        int value;
+
+        if (!inFile_w.is_open()) {
+            std::cerr << "Error opening file for reading." << std::endl;
+            return;  // Return an empty vector in case of an error
+        }
+
+        // Read each value from the file
+        while (inFile_w >> value) {
+            // Reverse the mapping: 0 to -1 and 1 to 1
+            charVector_w.push_back((value == 0) ? -1 : 1);
+        }
+
+        // Close the file
+        inFile_w.close();
+
+        for (const auto& element : charVector_w) {
+            cout << static_cast<int>(element) << " ";
+        }
+
+        CHECK_CUDA(cudaMemcpy(lattice_b, charVector_w.data(), num_lattices * nx * ny /2 * sizeof(*lattice_w), cudaMemcpyHostToDevice));
+
+    }
+    else {
         init_spins_up<<<blocks,THREADS>>>(lattice_w, nx, ny/2, num_lattices);
     }
 
-    else{
-        //Initialize the arrays for white and black lattice
-        CHECK_CURAND(curandGenerateUniform(lattice_rng, lattice_randvals, nx*ny/2*num_lattices));
-        init_spins<<<blocks, THREADS>>>(lattice_b, lattice_randvals, nx, ny/2, num_lattices);
-
-        CHECK_CURAND(curandGenerateUniform(lattice_rng, lattice_randvals, nx*ny/2*num_lattices));
-        init_spins<<<blocks, THREADS>>>(lattice_w, lattice_randvals, nx, ny/2, num_lattices);
-    }
 }
 
 void write_lattice(signed char *lattice_b, signed char *lattice_w, std::string filename, long long nx, long long ny, const int num_lattices) {

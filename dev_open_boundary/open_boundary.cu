@@ -219,7 +219,7 @@ int main(int argc, char **argv){
 
             CHECK_CUDA(cudaDeviceSynchronize());
 
-            for (int j = 0; j < niters; j++){
+            for(int j = 0; j < niters; j++){
                 update_ob(lattice_b, lattice_w, randvals, rng, d_interactions, d_inv_temp, L, L, num_lattices, d_coupling_constant, blocks_spins, d_energy);
 
                 // combine cross term hamiltonian values from d_energy array (dim: num_lattices*sublattice_dof) and store in d_store_energy array (dim: num_lattices) to whole lattice energy for each temperature.
@@ -244,6 +244,29 @@ int main(int argc, char **argv){
             }
 
             CHECK_CUDA(cudaDeviceSynchronize());
+
+            // copy to host
+            std::vector<char> h_lattice_b(num_lattices * L * L/2);
+            std::vector<char> h_lattice_w(num_lattices * L * L/2);
+            CHECK_CUDA(cudaMemcpy(h_lattice_b.data(), lattice_b, num_lattices * L * L/2 * sizeof(*lattice_b), cudaMemcpyDeviceToHost));
+            CHECK_CUDA(cudaMemcpy(h_lattice_w.data(), lattice_w, num_lattices * L * L/2 * sizeof(*lattice_w), cudaMemcpyDeviceToHost));
+
+            // Open a file for writing
+            std::ofstream outFile(folderPath + "/lattice_b_e" + std::to_string(e) + "_nl" + std::to_string(num_lattices) + "_l" + std::to_string(L) + "_starttemp" + std::to_string(start_temp));
+
+            // Check if the file is open
+            if (!outFile.is_open()) {
+                std::cerr << "Error opening file for writing." << std::endl;
+                return 1;
+            }
+
+            // Write the contents of the vector to the file
+            outFile.write(h_lattice_b.data(), h_lattice_b.size());
+
+            // Close the file
+            outFile.close();
+
+
         }
 
         // copying new result to host.

@@ -102,10 +102,11 @@ void initialize_spins(
             // Close the file
             inFile_b.close();
 
-            cout << "Initialized black lattice with preceeding results: ";
-            for (const auto& element : charVector_b) {
-                cout << static_cast<int>(element) << " ";
-            }
+            cout << "Initialized black lattice with preceeding results. ";
+            // // printing initialized elements
+            // for (const auto& element : charVector_b) {
+            //     cout << static_cast<int>(element) << " ";
+            // }
             cout << endl;
 
             CHECK_CUDA(cudaMemcpy(lattice_b, charVector_b.data(), num_lattices * nx * ny /2 * sizeof(*lattice_b), cudaMemcpyHostToDevice));
@@ -139,10 +140,11 @@ void initialize_spins(
             // Close the file
             inFile_w.close();
 
-            cout << "Initialized white lattice with preceeding results: ";
-            for (const auto& element : charVector_w) {
-                cout << static_cast<int>(element) << " ";
-            }
+            cout << "Initialized white lattice with preceeding results. ";
+            // // printing initialized elements
+            // for (const auto& element : charVector_w) {
+            //     cout << static_cast<int>(element) << " ";
+            // }
             cout << endl;
 
             CHECK_CUDA(cudaMemcpy(lattice_w, charVector_w.data(), num_lattices * nx * ny /2 * sizeof(*lattice_w), cudaMemcpyHostToDevice));

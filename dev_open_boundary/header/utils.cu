@@ -75,11 +75,11 @@ void init_interactions_with_seed(
 
 void initialize_spins(
     signed char* lattice_b, signed char* lattice_w, curandGenerator_t lattice_rng, float* lattice_randvals,
-    const long long nx, const long long ny, const int num_lattices, bool up, const int blocks, std::string filename_b, std::string filename_w
+    const long long nx, const long long ny, const int num_lattices, bool up, const int blocks, bool read_lattice, std::string filename_b, std::string filename_w
 ){
 
     // Initialization of black lattice
-    if (std::filesystem::exists(filename_b)){
+    if (std::filesystem::exists(filename_b) && read_lattice){
 
         std::vector<signed char> charVector_b;
 
@@ -122,7 +122,7 @@ void initialize_spins(
     }
 
     // Initialization of white lattice
-    if (std::filesystem::exists(filename_w)){
+    if (std::filesystem::exists(filename_w) && read_lattice){
 
         std::vector<signed char> charVector_w;
 

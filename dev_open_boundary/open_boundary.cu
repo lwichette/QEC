@@ -30,7 +30,7 @@ int main(int argc, char **argv){
     int num_iterations_error, num_iterations_seeds, niters, nwarmup, num_lattices, num_reps_temp, normalization_factor;
     std::vector<int> L_size;
     std::string folderName;
-    bool up;
+    bool up, write_lattice, read_lattice;
 
     // Declare the supported options.
     po::options_description desc("Allowed options");
@@ -48,6 +48,8 @@ int main(int argc, char **argv){
       ("nrt", po::value<int>(), "num reps temp")
       ("L", po::value<std::vector<int>>()->multitoken(), "Lattice")
       ("folder", po::value<std::string>(), "folder")
+      ("write_lattice", po::value<bool>(), "signifier if updated lattices shall be written to file")
+      ("read_lattice", po::value<bool>(), "signifier if lattice shall be initialized from file")
     ;
 
     po::variables_map vm;
@@ -89,6 +91,12 @@ int main(int argc, char **argv){
     }
     if (vm.count("folder")) {
         folderName = vm["folder"].as<std::string>();
+    }
+    if (vm.count("write_lattice")) {
+        write_lattice = vm["write_lattice"].as<bool>();
+    }
+    if (vm.count("read_lattice")) {
+        read_lattice = vm["read_lattice"].as<bool>();
     }
 
     std::string folderPath = "results/" + folderName;
@@ -205,14 +213,14 @@ int main(int argc, char **argv){
 
         for (int e = 0; e < num_iterations_error; e++){
 
-            std::string lattice_b_file_name = folderPath + "/lattice_b_e" + std::to_string(e) + "_nl" + std::to_string(num_lattices) + "_l" + std::to_string(L) + "_starttemp" + std::to_string(start_temp) + ".txt";
-            std::string lattice_w_file_name = folderPath + "/lattice_w_e" + std::to_string(e) + "_nl" + std::to_string(num_lattices) + "_l" + std::to_string(L) + "_starttemp" + std::to_string(start_temp) + ".txt";
+            std::string lattice_b_file_name = folderPath + "/lattice_b_e" + std::to_string(e) + std::string("L_") + std::to_string(L) + std::string("_p_") + std::to_string(p) + std::string("_ns_") + std::to_string(num_iterations_seeds) + std::string("_ne_") + std::to_string(num_iterations_error) + std::string("_ni_") + std::to_string(niters) + std::string("_nw_") + std::to_string(nwarmup) + std::string("_up_") + std::to_string(up) + std::string(".txt");
+            std::string lattice_w_file_name = folderPath + "/lattice_w_e" + std::to_string(e) + std::string("L_") + std::to_string(L) + std::string("_p_") + std::to_string(p) + std::string("_ns_") + std::to_string(num_iterations_seeds) + std::string("_ne_") + std::to_string(num_iterations_error) + std::string("_ni_") + std::to_string(niters) + std::string("_nw_") + std::to_string(nwarmup) + std::string("_up_") + std::to_string(up) + std::string(".txt");
 
             cout << "Error " << e << " of " << num_iterations_error << endl;
 
             init_interactions_with_seed(d_interactions, rng, interaction_randvals, L, L, num_lattices, p, blocks_inter);
 
-            initialize_spins(lattice_b, lattice_w, rng, lattice_randvals, L, L, num_lattices, up, blocks_spins, lattice_b_file_name, lattice_w_file_name);
+            initialize_spins(lattice_b, lattice_w, rng, lattice_randvals, L, L, num_lattices, up, blocks_spins, read_lattice, lattice_b_file_name, lattice_w_file_name);
 
             for (int j = 0; j < nwarmup; j++) {
                 update_ob(lattice_b, lattice_w, randvals, rng, d_interactions, d_inv_temp, L, L, num_lattices, d_coupling_constant, blocks_spins, d_energy);
@@ -246,8 +254,10 @@ int main(int argc, char **argv){
 
             CHECK_CUDA(cudaDeviceSynchronize());
 
-            // Write last results from updates to txt format
-            write_updated_lattices(lattice_b, lattice_w, L, L, num_lattices, lattice_b_file_name, lattice_w_file_name);
+            if(write_lattice){
+                // Write last results from updates to txt format
+                write_updated_lattices(lattice_b, lattice_w, L, L, num_lattices, lattice_b_file_name, lattice_w_file_name);
+            }
 
         }
 

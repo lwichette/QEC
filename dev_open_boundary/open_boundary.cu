@@ -203,12 +203,10 @@ int main(int argc, char **argv){
         float *interaction_randvals;
         CHECK_CUDA(cudaMalloc(&interaction_randvals,num_lattices*L*L*2*sizeof(*interaction_randvals)));
 
-        // summation over errors can be parallized right?
-        // Change this !!!
         for (int e = 0; e < num_iterations_error; e++){
 
-            const string lattice_b_file_name = folderPath + "/lattice_b_e" + std::to_string(e) + "_nl" + std::to_string(num_lattices) + "_l" + std::to_string(L) + "_starttemp" + std::to_string(start_temp) + ".txt";
-            const string lattice_w_file_name = folderPath + "/lattice_w_e" + std::to_string(e) + "_nl" + std::to_string(num_lattices) + "_l" + std::to_string(L) + "_starttemp" + std::to_string(start_temp) + ".txt";
+            std::string lattice_b_file_name = folderPath + "/lattice_b_e" + std::to_string(e) + "_nl" + std::to_string(num_lattices) + "_l" + std::to_string(L) + "_starttemp" + std::to_string(start_temp) + ".txt";
+            std::string lattice_w_file_name = folderPath + "/lattice_w_e" + std::to_string(e) + "_nl" + std::to_string(num_lattices) + "_l" + std::to_string(L) + "_starttemp" + std::to_string(start_temp) + ".txt";
 
             cout << "Error " << e << " of " << num_iterations_error << endl;
 

@@ -78,93 +78,94 @@ void initialize_spins(
     const long long nx, const long long ny, const int num_lattices, bool up, const int blocks, bool read_lattice, std::string filename_b, std::string filename_w
 ){
 
-    // Initialization of black lattice
-    if (std::filesystem::exists(filename_b) && read_lattice){
+    if (read_lattice){
+        // Initialization of black lattice
+        if (std::filesystem::exists(filename_b)){
 
-        std::vector<signed char> charVector_b;
+            std::vector<signed char> charVector_b;
 
-        // black lattice read
-        std::ifstream inFile_b(filename_b);
+            // black lattice read
+            std::ifstream inFile_b(filename_b);
 
-        int value;
+            int value;
 
-        if (!inFile_b.is_open()) {
-            std::cerr << "Error opening file for reading." << std::endl;
+            if (!inFile_b.is_open()) {
+                std::cerr << "Error opening file for reading." << std::endl;
+                return;  // Return an empty vector in case of an error
+            }
+
+            // Read each value from the file
+            while (inFile_b >> value) {
+                // Reverse the mapping: 0 to -1 and 1 to 1
+                charVector_b.push_back((value == 0) ? -1 : 1);
+            }
+            // Close the file
+            inFile_b.close();
+
+            cout << "Initialized black lattice with preceeding results: ";
+            for (const auto& element : charVector_b) {
+                cout << static_cast<int>(element) << " ";
+            }
+            cout << endl;
+
+            CHECK_CUDA(cudaMemcpy(lattice_b, charVector_b.data(), num_lattices * nx * ny /2 * sizeof(*lattice_b), cudaMemcpyHostToDevice));
+        }
+        else{
+            std::cerr << "Error opening file for reading. Could not find black lattice file." << std::endl;
             return;  // Return an empty vector in case of an error
         }
 
-        // Read each value from the file
-        while (inFile_b >> value) {
-            // Reverse the mapping: 0 to -1 and 1 to 1
-            charVector_b.push_back((value == 0) ? -1 : 1);
+        // Initialization of white lattice
+        if (std::filesystem::exists(filename_w)){
+
+            std::vector<signed char> charVector_w;
+
+            // black lattice read
+            std::ifstream inFile_w(filename_w);
+
+            int value;
+
+            if (!inFile_w.is_open()) {
+                std::cerr << "Error opening file for reading." << std::endl;
+                return;  // Return an empty vector in case of an error
+            }
+
+            // Read each value from the file
+            while (inFile_w >> value) {
+                // Reverse the mapping: 0 to -1 and 1 to 1
+                charVector_w.push_back((value == 0) ? -1 : 1);
+            }
+
+            // Close the file
+            inFile_w.close();
+
+            cout << "Initialized white lattice with preceeding results: ";
+            for (const auto& element : charVector_w) {
+                cout << static_cast<int>(element) << " ";
+            }
+            cout << endl;
+
+            CHECK_CUDA(cudaMemcpy(lattice_w, charVector_w.data(), num_lattices * nx * ny /2 * sizeof(*lattice_w), cudaMemcpyHostToDevice));
         }
-        // Close the file
-        inFile_b.close();
-
-        cout << "Initialized black lattice with preceeding results: ";
-        for (const auto& element : charVector_b) {
-            cout << static_cast<int>(element) << " ";
+        else{
+            std::cerr << "Error opening file for reading. Could not find white lattice file." << std::endl;
+            return;  // Return an empty vector in case of an error
         }
-        cout << endl;
-
-        CHECK_CUDA(cudaMemcpy(lattice_b, charVector_b.data(), num_lattices * nx * ny /2 * sizeof(*lattice_b), cudaMemcpyHostToDevice));
-
     }
     else {
         if (up){
             init_spins_up<<<blocks,THREADS>>>(lattice_b, nx, ny/2, num_lattices);
-        }
-        else{
-            //Initialize the arrays for white and black lattice
-            CHECK_CURAND(curandGenerateUniform(lattice_rng, lattice_randvals, nx*ny/2*num_lattices));
-            init_spins<<<blocks, THREADS>>>(lattice_b, lattice_randvals, nx, ny/2, num_lattices);
-        }
-    }
-
-    // Initialization of white lattice
-    if (std::filesystem::exists(filename_w) && read_lattice){
-
-        std::vector<signed char> charVector_w;
-
-        // black lattice read
-        std::ifstream inFile_w(filename_w);
-
-        int value;
-
-        if (!inFile_w.is_open()) {
-            std::cerr << "Error opening file for reading." << std::endl;
-            return;  // Return an empty vector in case of an error
-        }
-
-        // Read each value from the file
-        while (inFile_w >> value) {
-            // Reverse the mapping: 0 to -1 and 1 to 1
-            charVector_w.push_back((value == 0) ? -1 : 1);
-        }
-
-        // Close the file
-        inFile_w.close();
-
-        cout << "Initialized white lattice with preceeding results: ";
-        for (const auto& element : charVector_w) {
-            cout << static_cast<int>(element) << " ";
-        }
-        cout << endl;
-
-        CHECK_CUDA(cudaMemcpy(lattice_w, charVector_w.data(), num_lattices * nx * ny /2 * sizeof(*lattice_w), cudaMemcpyHostToDevice));
-
-    }
-    else {
-        if (up){
             init_spins_up<<<blocks,THREADS>>>(lattice_w, nx, ny/2, num_lattices);
         }
         else{
             //Initialize the arrays for white and black lattice
             CHECK_CURAND(curandGenerateUniform(lattice_rng, lattice_randvals, nx*ny/2*num_lattices));
+            init_spins<<<blocks, THREADS>>>(lattice_b, lattice_randvals, nx, ny/2, num_lattices);
+            //Initialize the arrays for white and black lattice
+            CHECK_CURAND(curandGenerateUniform(lattice_rng, lattice_randvals, nx*ny/2*num_lattices));
             init_spins<<<blocks, THREADS>>>(lattice_w, lattice_randvals, nx, ny/2, num_lattices);
         }
     }
-
 }
 
 void write_updated_lattices(signed char *lattice_b, signed char *lattice_w, long long nx, long long ny, const int num_lattices, std::string lattice_b_file_name, std::string lattice_w_file_name){

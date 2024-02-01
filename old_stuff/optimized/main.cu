@@ -189,15 +189,20 @@ __global__  void hamiltInitB_k(const int devid,
                                const long long dimX, // ld
                                      INT2_T *__restrict__ hamB) {
 
+	// i column index in block thread picture, j row index in block thread picture 									
 	const int __i = blockIdx.y*BDIM_Y*LOOP_Y + threadIdx.y;
 	const int __j = blockIdx.x*BDIM_X*LOOP_X + threadIdx.x;
 
+	// Thread id
 	const long long tid = ((devid*gridDim.y + blockIdx.y)*gridDim.x + blockIdx.x)*BDIM_X*BDIM_Y +
 	                       threadIdx.y*BDIM_X + threadIdx.x;
 
+	// Random number generator
 	curandStatePhilox4_32_10_t st;
 	curand_init(seed, tid, 0, &st);
 
+	// array of tuples of size (1,2) unsigned long long
+	// Set entries to zero tuples of unsigned long long
 	INT2_T __tmp[LOOP_Y][LOOP_X];
 	#pragma unroll
 	for(int i = 0; i < LOOP_Y; i++) {
@@ -207,6 +212,7 @@ __global__  void hamiltInitB_k(const int devid,
 		}
 	}
 
+	// For each black spin, randomly generate 4 interactions
 	#pragma unroll
 	for(int i = 0; i < LOOP_Y; i++) {
 		#pragma unroll
@@ -226,6 +232,7 @@ __global__  void hamiltInitB_k(const int devid,
 		}
 	}
 
+	// Fill array with the interaction terms
 	#pragma unroll
 	for(int i = 0; i < LOOP_Y; i++) {
 		#pragma unroll
@@ -249,13 +256,17 @@ __global__ void hamiltInitW_k(const int xsl,
 		              const long long dimX,
 		              const INT2_T *__restrict__ hamB,
 		                    INT2_T *__restrict__ hamW) {
-
+    
+	// Thread id x and y position
 	const int tidx = threadIdx.x;
 	const int tidy = threadIdx.y;
 
+	// row and column index of block-thread image
 	const int __i = blockIdx.y*BDIM_Y*LOOP_Y + tidy;
 	const int __j = blockIdx.x*BDIM_X*LOOP_X + tidx;
 
+	// Array of unsigned long long tuples
+	// Load corresponding interactions from hamB
 	INT2_T __me[LOOP_Y][LOOP_X];
 
 	#pragma unroll
@@ -266,11 +277,19 @@ __global__ void hamiltInitW_k(const int xsl,
 		}
 	}
 
+	// Initialize arrays for up/side/down neighbors for white words
 	INT2_T __up[LOOP_Y][LOOP_X];
 	INT2_T __ct[LOOP_Y][LOOP_X];
 	INT2_T __dw[LOOP_Y][LOOP_X];
 	INT2_T __sd[LOOP_Y][LOOP_X];
 
+	// the 4 bits of me codify: <upJ, downJ, leftJ, rightJ>
+	// 0x888888 --> 100010001000 ...
+	// Get first bit in every group of four and shift it by one to the right for up array
+	// i.e. get up neighbor of black spin and store it at second position
+	// 0x44444 --> 010001000100
+	// get second bit in every group of four and shift it by one to the left for down array
+	// get down neighbor of black spin and store it at first position
 	#pragma unroll
 	for(int i = 0; i < LOOP_Y; i++) {
 		#pragma unroll
@@ -283,8 +302,10 @@ __global__ void hamiltInitW_k(const int xsl,
 		}
 	}
 
+	// check row parity
 	const int readBack = !(__i%2); // this kernel reads only BLACK Js
 
+	// 8*8 = 64 bits per word
 	const int BITXWORD = 8*sizeof(INT_T);
 
 	if (!readBack) {
@@ -292,14 +313,23 @@ __global__ void hamiltInitW_k(const int xsl,
 		for(int i = 0; i < LOOP_Y; i++) {
 			#pragma unroll
 			for(int j = 0; j < LOOP_X; j++) {
-
+				
+				// 0x22222 --> 001000100010 
+				// get third bit in every group of four and shift it by one to the right for ct array
+				// i.e. get leftJ and move it to the fourth position
 				__ct[i][j].x = (__me[i][j].x & 0x2222222222222222ull) >> 1;
 				__ct[i][j].y = (__me[i][j].y & 0x2222222222222222ull) >> 1;
 
+				// 0x1111 --> 000100010001
+				// get fourth bit in every group of four and shift it by (BITXSP + 1) to the left or right ,i.e. to the third position in the 
+				// prior/next 4 bit group or by (BITXWORD-BITXSP - 1) to the right and perform logical or with already existing ct
+				// ct contains then at every 3rd and 4th position in the 4 bits an entry
 				__ct[i][j].x |= (__me[i][j].x & 0x1111111111111111ull) << (BITXSP+1);
 				__ct[i][j].y |= (__me[i][j].x & 0x1111111111111111ull) >> (BITXWORD-BITXSP - 1);
 				__ct[i][j].y |= (__me[i][j].y & 0x1111111111111111ull) << (BITXSP+1);
 
+				// get fourth bit of every four bit group and shift it by 59 to the right -- > Only one entry at the 63th bit
+				// set __sd[i][j] = 0
 				__sd[i][j].x = (__me[i][j].y & 0x1111111111111111ull) >> (BITXWORD-BITXSP - 1);
 				__sd[i][j].y = 0;
 			}
@@ -309,14 +339,18 @@ __global__ void hamiltInitW_k(const int xsl,
 		for(int i = 0; i < LOOP_Y; i++) {
 			#pragma unroll
 			for(int j = 0; j < LOOP_X; j++) {
-
+				// Get fourth bit in every group of four and shift it by one to the left, i.e. to the third position
 				__ct[i][j].x = (__me[i][j].x & 0x1111111111111111ull) << 1;
 				__ct[i][j].y = (__me[i][j].y & 0x1111111111111111ull) << 1;
 
+				// Right part: Get third bit in every group of four and shift it to the fourth position in the next group of four (first and third line)
+				// (Second line): Get third bit in every group of four and shift it by 59 to the left --> Only last third bit is at the fourth bit location
+				// Logical or: Perform logical or of existing ct with right part to have entries at third and fourth position in each block of four
 				__ct[i][j].y |= (__me[i][j].y & 0x2222222222222222ull) >> (BITXSP+1);
 				__ct[i][j].x |= (__me[i][j].y & 0x2222222222222222ull) << (BITXWORD-BITXSP - 1);
 				__ct[i][j].x |= (__me[i][j].x & 0x2222222222222222ull) >> (BITXSP+1);
 
+				// Get every third bit and shift it by 59 to the left --> last third bit to the fourth position in sd[i][j].y
 				__sd[i][j].y = (__me[i][j].x & 0x2222222222222222ull) << (BITXWORD-BITXSP - 1);
 				__sd[i][j].x = 0;
 			}
@@ -326,16 +360,25 @@ __global__ void hamiltInitW_k(const int xsl,
 	#pragma unroll
 	for(int i = 0; i < LOOP_Y; i++) {
 
+		// calc row index
 		const int yoff = begY+__i + i*BDIM_Y;
-			
+		
+		// upOff if we are at a boarder of a lattice then take last row, else take row -1
 		const int upOff = ( yoff   %ysl) == 0 ? yoff+ysl-1 : yoff-1;
+		// downOff: if we are at a lower boarder of a sublattice, take first row, else take row + 1
 		const int dwOff = ((yoff+1)%ysl) == 0 ? yoff-ysl+1 : yoff+1;
 
 		#pragma unroll
 		for(int j = 0; j < LOOP_X; j++) {
-
+			
+			// get column index
 			const int xoff = __j + j*BDIM_X;
 
+			// perform logical or with given binary entry
+			// yoff*dimX + xoff = pointer at given tuple word lattice entry
+			// upOff*dimX + xoff = pointer to upper neighbor
+			// dwOff*dimX + xoff = pointer to down neighbor
+			// subsequently fills all 64 bits with the up, down, left, right neighbors
 			atomicOr(&hamW[yoff*dimX + xoff].x, __ct[i][j].x);
 			atomicOr(&hamW[yoff*dimX + xoff].y, __ct[i][j].y);
 			
@@ -345,6 +388,10 @@ __global__ void hamiltInitW_k(const int xsl,
 			atomicOr(&hamW[dwOff*dimX + xoff].x, __dw[i][j].x);
 			atomicOr(&hamW[dwOff*dimX + xoff].y, __dw[i][j].y);
 
+
+			// Depending on which row we are in 
+			// Check whether we are at bordering columns of sublattices
+			// Get column of left right neighbor and perform bitwise or
 			const int sideOff = readBack ? (  (xoff   %xsl) == 0 ? xoff+xsl-1 : xoff-1 ):
 						       ( ((xoff+1)%xsl) == 0 ? xoff-xsl+1 : xoff+1);
 
@@ -611,8 +658,12 @@ void spinUpdateV_2D_k(const int devid,
 	}
 
 	// Where we ended
+	// Rearrange left and right neighbors and update __sd[i,j] by filling it with the "right" neighbors 
+	// which become left neighbors
 	if (readBack) {
 		#pragma unroll
+		// (BLACK LATTICE) Shift __sd such that it contains the left neighbors of the corresponding __me word
+		// (BLACK LATTICE) __ct then contains the right neighbors
 		for(int i = 0; i < LOOP_Y; i++) {
 			#pragma unroll
 			for(int j = 0; j < LOOP_X; j++) {
@@ -621,6 +672,8 @@ void spinUpdateV_2D_k(const int devid,
 			}
 		}
 	} else {
+		// (BLACK LATTICE) Shift __sd such that it contains the right neighbors of the corresponding __me word
+		// (BLACK LATTICE) __ct then contains the left neighbors
 		#pragma unroll
 		for(int i = 0; i < LOOP_Y; i++) {
 			#pragma unroll
@@ -631,9 +684,12 @@ void spinUpdateV_2D_k(const int devid,
 		}
 	}
 
+	// When Hamiltonian is used
 	if (jDst != NULL) {
+		// Initialize array of size (1,2) to store the interaction terms
 		INT2_T __J[LOOP_Y][LOOP_X];
 
+		// Load interactions for current word tuple we are in
 		#pragma unroll
 		for(int i = 0; i < LOOP_Y; i++) {
 			#pragma unroll
@@ -648,27 +704,36 @@ void spinUpdateV_2D_k(const int devid,
 		for(int i = 0; i < LOOP_Y; i++) {
 			#pragma unroll
 			for(int j = 0; j < LOOP_X; j++) {
-
+				
+				// Perform bitwise or operation 
+				// Column of left side gets the first bit in every group of four which is then shifted by 3 to the right left because spins are only
+				// at the fourth location 
+				// XOR is then performed to change sign of spins
 				__up[i][j].x ^= (__J[i][j].x & 0x8888888888888888ull) >> 3;
 				__up[i][j].y ^= (__J[i][j].y & 0x8888888888888888ull) >> 3;
 
+				// get down interaction and shift it to the right place
 				__dw[i][j].x ^= (__J[i][j].x & 0x4444444444444444ull) >> 2;
 				__dw[i][j].y ^= (__J[i][j].y & 0x4444444444444444ull) >> 2;
 
 				if (readBack) {
 					// __sd[][] holds "left" spins
 					// __ct[][] holds "right" spins
+					// get left interaction and shift it to the right position
 					__sd[i][j].x ^= (__J[i][j].x & 0x2222222222222222ull) >> 1;
 					__sd[i][j].y ^= (__J[i][j].y & 0x2222222222222222ull) >> 1;
 
+					// get right interaction and shift it to the right position
 					__ct[i][j].x ^= (__J[i][j].x & 0x1111111111111111ull);
 					__ct[i][j].y ^= (__J[i][j].y & 0x1111111111111111ull);
 				} else {
 					// __ct[][] holds "left" spins
 					// __sd[][] holds "right" spins
+					// get left interaction and shift it to the right position and perform XOR
 					__ct[i][j].x ^= (__J[i][j].x & 0x2222222222222222ull) >> 1;
 					__ct[i][j].y ^= (__J[i][j].y & 0x2222222222222222ull) >> 1;
 
+					// get right interaction and perform XOR
 					__sd[i][j].x ^= (__J[i][j].x & 0x1111111111111111ull);
 					__sd[i][j].y ^= (__J[i][j].y & 0x1111111111111111ull);
 				}
@@ -679,10 +744,12 @@ void spinUpdateV_2D_k(const int devid,
 	curandStatePhilox4_32_10_t st;
 	curand_init(seed, tid, static_cast<long long>(2*SPIN_X_WORD)*LOOP_X*LOOP_Y*(2*it+COLOR), &st);
 
+	// Add binaries up but why though
 	#pragma unroll
 	for(int i = 0; i < LOOP_Y; i++) {
 		#pragma unroll
 		for(int j = 0; j < LOOP_X; j++) {
+			// __ct contains at the end number of neighboring up spins in binary for the two words x and y
 			__ct[i][j].x += __up[i][j].x;
 			__dw[i][j].x += __sd[i][j].x;
 			__ct[i][j].x += __dw[i][j].x;
@@ -700,14 +767,21 @@ void spinUpdateV_2D_k(const int devid,
 			#pragma unroll
 			for(int z = 0; z < 8*sizeof(INT_T); z += BITXSP) {
 
+				//__src tuple, perform bitwise operation with 4 bits of __me and 1111
+				// Extract information whether spin is up or down --> results in 0 or 1
 				const int2 __src = make_int2((__me[i][j].x >> z) & 0xF,
 							     (__me[i][j].y >> z) & 0xF);
 
+				// __sum tuple, perform bitwise operation with 4 bits of __ct and 1111
+				// Get number of up neighbors for each spin contained in the words --> results in range zero to 4
 				const int2 __sum = make_int2((__ct[i][j].x >> z) & 0xF,
 							     (__ct[i][j].y >> z) & 0xF);
 
+				// Create unsigned long long 1
 				const INT_T ONE = static_cast<INT_T>(1);
 
+				// perform logical XOR on the bits containing the spins 
+				// updates the spins from -1 to 1 or vice versa
 				if (curand_uniform(&st) <= __shExp[__src.x][__sum.x]) {
 					__me[i][j].x ^= ONE << z;
 				}
@@ -718,6 +792,7 @@ void spinUpdateV_2D_k(const int devid,
 		}
 	}
 
+	// Store updated spins in the lattice
 	#pragma unroll
 	for(int i = 0; i < LOOP_Y; i++) {
 		#pragma unroll
@@ -1606,7 +1681,7 @@ int main(int argc, char **argv) {
 	// use the props filled for the last GPU...
 
 
-	// If we use more dann one gpu
+	// If we use more than one gpu
 	if (ndev > 1) {
 		// Check if GPU allows concurrent managed memory access
 		for(int i = 0; i < ndev; i++) {
@@ -1829,7 +1904,9 @@ int main(int argc, char **argv) {
 	float  exp_h[2][5];
 
 	// precompute possible exponentials
-	// ?????
+	// Iterate over all possible spin configurations
+	// First loop over spin of interest, either 0 or 1
+	// Second loop over all possible up/down configurations of the neighbors
 	for(int i = 0; i < 2; i++) {
 		for(int j = 0; j < 5; j++) {
 			if(temp > 0) {
@@ -1841,7 +1918,6 @@ int main(int argc, char **argv) {
 					exp_h[i][j] = (i?-2.0f:2.0f)*static_cast<float>(j*2-4);
 				}
 			}
-			//printf("exp[%2d][%d]: %E\n", i?1:-1, j, exp_h[i][j]);
 		}
 	}
 

@@ -80,7 +80,7 @@ void initialize_spins(
 
     if (read_lattice){
         // Initialization of black lattice
-        if (std::filesystem::exists(filename_b)){
+        if (std::filesystem::exists(filename_b.c_str())){
 
             std::vector<signed char> charVector_b;
 

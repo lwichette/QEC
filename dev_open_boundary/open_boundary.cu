@@ -192,10 +192,14 @@ int main(int argc, char **argv){
         float *d_energy;
         CHECK_CUDA(cudaMalloc(&d_energy, num_lattices*L*L/2*sizeof(*d_energy)));
 
-        // Setup cuRAND generator
+        // Setup cuRAND generators
         curandGenerator_t rng;
         CHECK_CURAND(curandCreateGenerator(&rng, CURAND_RNG_PSEUDO_PHILOX4_32_10));
         CHECK_CURAND(curandSetPseudoRandomGeneratorSeed(rng, seeds_spins));
+
+        curandGenerator_t rng_errors;
+        CHECK_CURAND(curandCreateGenerator(&rng_errors, CURAND_RNG_PSEUDO_PHILOX4_32_10));
+        CHECK_CURAND(curandSetPseudoRandomGeneratorSeed(rng_errors, seeds_spins));
 
         float *randvals;
         CHECK_CUDA(cudaMalloc(&randvals, num_lattices * L * L/2 * sizeof(*randvals)));
@@ -209,12 +213,12 @@ int main(int argc, char **argv){
         for (int e = 0; e < num_iterations_error; e++){
 
             // the directory lattices inside the folderPath must already exist, there is no mkdir included here!
-            std::string lattice_b_file_name = folderPath + "/lattices/lattice_b_e" + std::to_string(e) + std::string("L_") + std::to_string(L) + std::string("_p_") + std::to_string(p) + std::string("_ne_") + std::to_string(num_iterations_error) + std::string("_ni_") + std::to_string(niters) + std::string("_nw_") + std::to_string(nwarmup) + std::string("_up_") + std::to_string(up) + std::string(".txt");
-            std::string lattice_w_file_name = folderPath + "/lattices/lattice_w_e" + std::to_string(e) + std::string("L_") + std::to_string(L) + std::string("_p_") + std::to_string(p) + std::string("_ne_") + std::to_string(num_iterations_error) + std::string("_ni_") + std::to_string(niters) + std::string("_nw_") + std::to_string(nwarmup) + std::string("_up_") + std::to_string(up) + std::string(".txt");
+            std::string lattice_b_file_name = folderPath + "/lattices/lattice_b_e" + std::to_string(e) + std::string("_L") + std::to_string(L) + std::string("_p") + std::to_string(p) + std::string("_num_lattices") + std::to_string(num_lattices) + std::string("_start_temp") + std::to_string(start_temp) + std::string("_step") + std::to_string(step) + std::string(".txt");
+            std::string lattice_w_file_name = folderPath + "/lattices/lattice_w_e" + std::to_string(e) + std::string("_L") + std::to_string(L) + std::string("_p") + std::to_string(p) + std::string("_num_lattices") + std::to_string(num_lattices) + std::string("_start_temp") + std::to_string(start_temp) + std::string("_step") + std::to_string(step) + std::string(".txt");
 
             cout << "Error " << e << " of " << num_iterations_error << endl;
 
-            init_interactions_with_seed(d_interactions, rng, interaction_randvals, L, L, num_lattices, p, blocks_inter);
+            init_interactions_with_seed(d_interactions, rng_errors, interaction_randvals, L, L, num_lattices, p, blocks_inter);
 
             initialize_spins(lattice_b, lattice_w, rng, lattice_randvals, L, L, num_lattices, up, blocks_spins, read_lattice, lattice_b_file_name, lattice_w_file_name);
 

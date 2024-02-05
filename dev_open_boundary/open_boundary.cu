@@ -27,7 +27,7 @@ namespace fs = std::filesystem;
 int main(int argc, char **argv){
 
     float p, start_temp, step;
-    int num_iterations_error, niters, nwarmup, num_lattices, num_reps_temp, normalization_factor;
+    int num_iterations_error, niters, nwarmup, num_lattices, num_reps_temp, normalization_factor, leave_out;
     std::vector<int> L_size;
     std::string folderName;
     bool up;
@@ -41,7 +41,7 @@ int main(int argc, char **argv){
       ("step", po::value<float>(), "step size temperature")
       ("up", po::value<bool>(), "step size temperature")
       ("nie", po::value<int>(), "num iterations error")
-      ("nis", po::value<int>(), "num iterations seeds")
+      ("leave_out", po::value<int>(), "leave_out")
       ("nit", po::value<int>(), "niters updates")
       ("nw", po::value<int>(), "nwarmup updates")
       ("nl", po::value<int>(), "num lattices")
@@ -71,6 +71,9 @@ int main(int argc, char **argv){
     }
     if (vm.count("nit")) {
         niters = vm["nit"].as<int>();
+    }
+    if (vm.count("leave_out")) {
+        leave_out = vm["leave_out"].as<int>();
     }
     if (vm.count("nw")) {
         nwarmup = vm["nw"].as<int>();
@@ -125,7 +128,7 @@ int main(int argc, char **argv){
 
         normalization_factor = 0;
 
-        std::string result_name = std::string("L_") + std::to_string(L) + std::string("_p_") + std::to_string(p) + std::string("_ne_") + std::to_string(num_iterations_error) + std::string("_ni_") + std::to_string(niters) + std::string("_nw_") + std::to_string(nwarmup) + std::string("_up_") + std::to_string(up) + std::string("_temp_") + std::to_string(start_temp) + std::string("_step_") + std::to_string(step) + std::string("_nl_") + std::to_string(num_lattices/num_reps_temp) + std::string("_nrt_") + std::to_string(num_reps_temp) + std::string(".txt");
+        std::string result_name = std::string("L_") + std::to_string(L) + std::string("_p_") + std::to_string(p) + std::string("_lo_") + std::to_string(leave_out) + std::string("_ne_") + std::to_string(num_iterations_error) + std::string("_ni_") + std::to_string(niters) + std::string("_nw_") + std::to_string(nwarmup) + std::string("_up_") + std::to_string(up) + std::string("_temp_") + std::to_string(start_temp) + std::string("_step_") + std::to_string(step) + std::string("_nl_") + std::to_string(num_lattices/num_reps_temp) + std::string("_nrt_") + std::to_string(num_reps_temp) + std::string(".txt");
 
         if (fs::exists(folderPath + "/" + result_name)){
             cout << "Results already exist" << result_name << std::endl;
@@ -214,12 +217,12 @@ int main(int argc, char **argv){
 
             CHECK_CUDA(cudaDeviceSynchronize());
 
-            for (int j = 0; j < niters; j++){
+            for (int j = 0; j < leave_out*niters; j++){
                 update_ob(lattice_b, lattice_w, randvals, rng, d_interactions, d_inv_temp, L, L, num_lattices, d_coupling_constant, blocks_spins, d_energy);
 
                 // combine cross term hamiltonian values from d_energy array (dim: num_lattices*sublattice_dof) and store in d_store_energy array (dim: num_lattices) to whole lattice energy for each temperature.
                 // reduce autocorrelation between snapshots with this if ?
-                if(j%2){
+                if(j%leave_out == 0){
                     combine_cross_subset_hamiltonians_to_whole_lattice_hamiltonian(d_energy, d_store_energy, L, L, num_lattices);
 
                     // Calculate suscetibilitites for each temperature (hence dimension of d_store_sum equals num_lattices)

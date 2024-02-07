@@ -133,7 +133,7 @@ int main(int argc, char **argv){
 
         normalization_factor = 0;
 
-        std::string result_name = std::string("L_") + std::to_string(L) + std::string("_p_") + std::to_string(p) + std::string("_ne_") + std::to_string(num_iterations_error) + std::string("_ni_") + std::to_string(niters) + std::string("_nw_") + std::to_string(nwarmup) + std::string("_up_") + std::to_string(up) + std::string("_temp_") + std::to_string(start_temp) + std::string("_step_") + std::to_string(step) + std::string("_nl_") + std::to_string(num_lattices/num_reps_temp) + std::string("_nrt_") + std::to_string(num_reps_temp) + std::string(".txt");
+        std::string result_name = std::string("L_") + std::to_string(L) + std::string("_p_") + std::to_string(p) + std::string("_ne_") + std::to_string(num_iterations_error) + std::string("_ni_") + std::to_string(niters) + std::string("_nw_") + std::to_string(nwarmup) + std::string("_up_") + std::to_string(up) + std::string("_temp_") + std::to_string(start_temp) + std::string("_step_") + std::to_string(step) + std::string("_nl_") + std::to_string(num_lattices/num_reps_temp) + std::string("_nrt_") + std::to_string(num_reps_temp) + std::string("_read_lattice_") + std::to_string(read_lattice) + std::string("_write_lattice_") + std::to_string(write_lattice)  + std::string(".txt");
 
         // if (fs::exists(folderPath + "/" + result_name)){
         //     cout << "Results already exist" << result_name << std::endl;

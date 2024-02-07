@@ -259,6 +259,9 @@ int main(int argc, char **argv){
                 write_updated_lattices(lattice_b, lattice_w, L, L, num_lattices, lattice_b_file_name, lattice_w_file_name);
             }
 
+            std::string bond_filename = folderPath + "/bonds/" + std::to_string(e) + "_";
+            write_bonds(d_interactions, bond_filename, L, L, num_lattices);
+
         }
 
         // copying new result to host.

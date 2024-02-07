@@ -22,4 +22,4 @@
 singularity exec --home /mnt/beegfs/data/QuDA-KI/qec --nv /mnt/beegfs/public/images/boost.sif /bin/bash -c "
 cd dev_open_boundary \
 && make \
-&& ./dev_open_boundary --p 0.10 --temp 1.15 --step 0.03 --up true --nie 3000 --leave_out 2 --nit 1000 --nw 2000000 --nl 6 --nrt 1 --L 128 --folder dev_cluster"
+&& ./dev_open_boundary --p 0.10 --temp 1 --step 0.05 --up true --nie 10000 --leave_out 2 --nit 1000 --nw 1000000 --nl 15 --nrt 1 --L 64 --folder comparison_errors"

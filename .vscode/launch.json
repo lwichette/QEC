@@ -11,12 +11,15 @@
             "request": "launch",
             "program": "${workspaceFolder}/old_stuff/optimized/cuIsing"
         },
+
         {
             "name": "Optim new",
             "type": "cuda-gdb",
             "request": "launch",
-            "program": "${workspaceFolder}/optim/cuIsing"
+            "program": "${workspaceFolder}/optim/cuIsing",
+            "args": "--X 2048 --Y 2048 --XSL 256 --YSL 256 --prob 0.1 --nw 0 --nit 0 --temp 1 --ndev 1 --out"
         },
+        
         {
             "name": "CUDA C++: Attach",
             "type": "cuda-gdb",

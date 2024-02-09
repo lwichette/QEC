@@ -33,7 +33,8 @@
 #include "cudamacro.h" /* for time() */
 #include "utils.h"
 #include <iostream>
-#include <vector>
+#include <thrust/complex.h>
+#include <cmath>
 
 using namespace std;
 
@@ -43,10 +44,6 @@ using namespace std;
 
 // Bits per spin
 #define BIT_X_SPIN (4)
-
-#define CRIT_TEMP	(2.26918531421f)
-#define	ALPHA_DEF	(0.1f)
-#define MIN_TEMP	(0.05f*CRIT_TEMP)
 
 // MIN & MAX Operator
 #define MIN(a,b)	(((a)<(b))?(a):(b))
@@ -61,20 +58,15 @@ using namespace std;
 // BMULT_X Block Multiple X Direction
 
 // Unclear
-#define BLOCK_X (16)
-#define BLOCK_Y (16)
+#define BLOCK_X (2)
+#define BLOCK_Y (8)
 
 // Unclear
-#define BMULT_X (2)
+#define BMULT_X (1)
 #define BMULT_Y (1)
 
 // Maximum number of GPUs
 #define MAX_GPU	(256)
-
-#define TGT_MAGN_MAX_DIFF (1.0E-3)
-
-#define MAX_EXP_TIME (200)
-#define MIN_EXP_TIME (152)
 
 __device__ __forceinline__ unsigned int __mypopc(const unsigned int x) {
 	return __popc(x);
@@ -605,8 +597,7 @@ void spinUpdateV_2D_k(const int devid,
 						  shTile[i*BDIM_Y + 1+tidy][j*BDIM_X + 2+tidx];
 		}
 	}
-
-	// Where we ended
+	
 	// Rearrange left and right neighbors and update __sd[i,j] by filling it with the "right" neighbors 
 	// which become left neighbors
 	if (readBack) {
@@ -752,103 +743,6 @@ void spinUpdateV_2D_k(const int devid,
 	return;
 }
 
-/*
-static void usage(const int SPIN_X_WORD, const char *pname) {
-
-        const char *bname = rindex(pname, '/');
-        if (!bname) {bname = pname;}
-        else        {bname++;}
-
-        fprintf(stdout,
-                "Usage: %1$s [options]\n"
-                "options:\n"
-                "\t-x|--x <HORIZ_DIM>\n"
-		"\t\tSpecifies the horizontal dimension of the entire  lattice  (black+white  spins),\n"
-		"\t\tper GPU. This dimension must be a multiple of %2$d.\n"
-                "\n"
-                "\t-y|--y <VERT_DIM>\n"
-		"\t\tSpecifies the vertical dimension of the entire lattice (black+white spins),  per\n"
-		"\t\tGPU. This dimension must be a multiple of %3$d.\n"
-                "\n"
-                "\t-n|--n <NSTEPS>\n"
-		"\t\tSpecifies the number of iteration to run.\n"
-		"\t\tDefualt: %4$d\n"
-                "\n"
-                "\t-d|--devs <NUM_DEVICES>\n"
-		"\t\tSpecifies the number of GPUs to use. Will use devices with ids [0, NUM_DEVS-1].\n"
-		"\t\tDefualt: 1.\n"
-                "\n"
-                "\t-s|--seed <SEED>\n"
-		"\t\tSpecifies the seed used to generate random numbers.\n"
-		"\t\tDefault: %5$llu\n"
-                "\n"
-                "\t-a|--alpha <ALPHA>\n"
-		"\t\tSpecifies the temperature in T_CRIT units.  If both this  option  and  '-t'  are\n"
-		"\t\tspecified then the '-t' option is used.\n"
-		"\t\tDefault: %6$f\n"
-                "\n"
-                "\t-t|--temp <TEMP>\n"
-		"\t\tSpecifies the temperature in absolute units.  If both this option and  '-a'  are\n"
-		"\t\tspecified then this option is used.\n"
-		"\t\tDefault: %7$f\n"
-                "\n"
-                "\t-p|--print <STAT_FREQ>\n"
-		"\t\tSpecifies the frequency, in no.  of  iteration,  with  which  the  magnetization\n"
-		"\t\tstatistics is printed.  If this option is used together to the '-e' option, this\n"
-		"\t\toption is ignored.\n"
-		"\t\tDefault: only at the beginning and at end of the simulation\n"
-                "\n"
-                "\t-e|--exppr\n"
-		"\t\tPrints the magnetization at time steps in the series 0 <= 2^(x/4) < NSTEPS.   If\n"
-		"\t\tthis option is used  together  to  the  '-p'  option,  the  latter  is  ignored.\n"
-		"\t\tDefault: disabled\n"
-                "\n"
-                "\t-c|--corr\n"
-		"\t\tDumps to a  file  named  corr_{X}x{Y}_T_{TEMP}  the  correlation  of each  point\n"
-		"\t\twith the  %8$d points on the right and below.  The correlation is computed  every\n"
-		"\t\ttime the magnetization is printed on screen (based on either the  '-p'  or  '-e'\n"
-		"\t\toption) and it is written in the file one line per measure.\n"
-		"\t\tDefault: disabled\n"
-                "\n"
-                "\t-m|--magn <TGT_MAGN>\n"
-		"\t\tSpecifies the magnetization value at which the simulation is  interrupted.   The\n"
-		"\t\tmagnetization of the system is checked against TGT_MAGN every STAT_FREQ, if  the\n"
-		"\t\t'-p' option is specified, or according to the exponential  timestep  series,  if\n"
-		"\t\tthe '-e' option is specified.  If neither '-p' not '-e' are specified then  this\n"
-		"\t\toption is ignored.\n"
-		"\t\tDefault: unset\n"
-                "\n"
-		"\t-J|--J <PROB>\n"
-		"\t\tSpecifies the probability [0.0-1.0] that links  connecting  any  two  spins  are\n"
-		"\t\tanti-ferromagnetic. \n"
-		"\t\tDefault: 0.0\n"
-                "\n"
-		"\t   --xsl <HORIZ_SUB_DIM>\n"
-		"\t\tSpecifies the horizontal dimension of each sub-lattice (black+white spins),  per\n"
-		"\t\tGPU.  This dimension must be a divisor of the horizontal dimension of the entire\n"
-		"\t\tlattice per  GPU  (specified  with  the  '-x'  option) and a multiple of %2$d.\n"
-		"\t\tDefault: sub-lattices are disabled.\n"
-                "\n"
-		"\t   --ysl <VERT_SUB_DIM>\n"
-		"\t\tSpecifies the vertical  dimension of each  sub-lattice (black+white spins),  per\n"
-		"\t\tGPU.  This dimension must be a divisor of the vertical dimension of  the  entire\n"
-		"\t\tlattice per  GPU  (specified  with  the  '-y'  option) and a multiple of %3$d.\n"
-                "\n"
-                "\t-o|--o\n"
-		"\t\tEnables the file dump of  the lattice  every time  the magnetization is printed.\n"
-		"\t\tDefault: off\n\n",
-                bname,
-		2*SPIN_X_WORD*2*BLOCK_X*BMULT_X,
-		BLOCK_Y*BMULT_Y,
-		NUMIT_DEF,
-		SEED_DEF,
-		ALPHA_DEF,
-		ALPHA_DEF*CRIT_TEMP,
-		MAX_CORR_LEN);
-        exit(EXIT_SUCCESS);
-}
-*/
-
 template<int BDIM_X,
 	 int WSIZE,
 	 typename T>
@@ -903,7 +797,7 @@ __global__ void getMagn_k(const long long n, // llen
 		// Check if still in range
 		if (i+tid < n) {
 			// counts the number of non_zero bits in v[i+tid]
-			// Add up correspondingl
+			// Add up correspondingly
 			const int __c = __mypopc(v[i+tid]);
 			__cntP += __c;
 			__cntN += SPIN_X_WORD - __c;
@@ -1030,6 +924,115 @@ static void dumpLattice(const char *fprefix,
 		}
 	}
 	return;
+}
+
+template<int BDIM_X,
+	 int BDIM_Y,
+	 int LOOP_X, 
+	 int LOOP_Y,
+	 int BITXSP,
+	 typename INT_T,
+	 typename INT2_T>
+__global__ void calculate_average_magnetization(const int devid, 
+			const int slX, 
+			const int slY, 
+			const long long begY, 
+			const long long dimX, 
+			const INT2_T *__restrict__ v_white,
+			const INT2_T *__restrict__ v_black,
+			int *sum_per_block) {
+	
+	// calc how many spins per word
+	const int SPIN_X_WORD = 8*sizeof(INT_T)/BITXSP;
+	
+	// x and y location in Thread lattice
+	const int tidx = threadIdx.x;
+	const int tidy = threadIdx.y;
+	
+	// Initialize shared memory of Block size + neighbors
+	__shared__ INT2_T shTile_w[BDIM_Y*LOOP_Y+2][BDIM_X*LOOP_X+2];
+	__shared__ INT2_T shTile_b[BDIM_Y*LOOP_Y+2][BDIM_X*LOOP_X+2];
+	
+	// Store sum
+	__shared__ int sum[BDIM_Y*BDIM_X];
+    
+	// Load spin tiles of lattice
+	loadTile<BDIM_X, BDIM_Y,
+		 BDIM_X*LOOP_X,
+		 BDIM_Y*LOOP_Y, 
+		 1, 1, INT2_T>(slX, slY, begY, dimX, v_white, shTile_w);
+	
+	__syncthreads();
+
+		loadTile<BDIM_X, BDIM_Y,
+		 BDIM_X*LOOP_X,
+		 BDIM_Y*LOOP_Y, 
+		 1, 1, INT2_T>(slX, slY, begY, dimX, v_black, shTile_b);
+	
+	__syncthreads();
+
+	// array of size BMULT_Y x BMULT_X of unsigned long long
+	INT2_T __me_w[LOOP_Y][LOOP_X];
+	INT2_T __me_b[LOOP_Y][LOOP_X];
+
+	// Store spin words in array
+	#pragma unroll
+	for(int i = 0; i < LOOP_Y; i++) {
+		#pragma unroll
+		for(int j = 0; j < LOOP_X; j++) {
+			__me_w[i][j] = shTile_w[1 + tidy + i*BDIM_Y][1 + tidx + j*BDIM_X];
+			__me_b[i][j] = shTile_b[1 + tidy + i*BDIM_Y][1 + tidx + j*BDIM_X];
+		}
+	}
+
+	int __cntP = 0;
+	int __cntN = 0;
+
+	// Store spin words in array
+	#pragma unroll
+	for(int i = 0; i < LOOP_Y; i++) {
+		#pragma unroll
+		for(int j = 0; j < LOOP_X; j++) {
+			const int __cx = __popcll(__me_w[i][j].x) + __popcll(__me_b[i][j].x);
+			const int __cy = __popcll(__me_w[i][j].y) + __popcll(__me_b[i][j].y);
+
+			__cntP += (__cx + __cy);
+			__cntN += 4*SPIN_X_WORD - __cx - __cy;
+		}
+	}
+
+	sum[tidy*BDIM_X + tidx] = __cntP - __cntN;
+
+	__syncthreads();
+
+	for (int s = blockDim.y*blockDim.x/2; s>0; s >>= 1){
+		if (tidy*BDIM_X + tidx < s){
+			sum[tidy*BDIM_X + tidx] += sum[tidy*BDIM_X + tidx + s]; 
+		}
+		__syncthreads();
+	}
+
+	if ((tidx == 0) & (tidy == 0)){
+		sum_per_block[blockIdx.y*gridDim.x + blockIdx.x] = sum[0];
+	}
+}	
+
+template<int BDIM_X,
+	 int BDIM_Y,
+	 int LOOP_X, 
+	 int LOOP_Y,
+	 int BITXSP,
+	 typename INT_T,
+	 typename INT2_T>
+__global__ void calculate_weighted_magnetization(const int devid, 
+			const int slX, 
+			const int slY, 
+			const long long begY, 
+			const long long dimX, 
+			const INT2_T *__restrict__ v_white,
+			const INT2_T *__restrict__ v_black,
+			int *sum_per_block) {
+
 }
 
 int main(int argc, char **argv) {
@@ -1457,6 +1460,23 @@ int main(int argc, char **argv) {
 		CHECK_CUDA(cudaMemcpy(exp_d[i], exp_h, 2*5*sizeof(**exp_d), cudaMemcpyHostToDevice));
 	}
 
+	// Weighted exp
+	thrust::complex<float> *weighted_exp_d;
+	thrust::complex<float> weighted_exp_h[YSL];
+	thrust::complex<float> imag(0,1);
+
+	// Calculate all exp used for weighted summation
+	for(int i = 0; i < YSL; i++) {
+		weighted_exp_h[i] = exp(imag*2*M_PI/XSL*i);
+	}
+	
+	// Copy exponentials to GPU
+	for(int i = 0; i < ndev; i++) {
+		CHECK_CUDA(cudaSetDevice(i));
+		CHECK_CUDA(cudaMalloc(&weighted_exp_d, YSL*sizeof(*weighted_exp_d)));
+		CHECK_CUDA(cudaMemcpy(weighted_exp_d, weighted_exp_h, YSL*sizeof(*weighted_exp_d), cudaMemcpyHostToDevice));
+	}
+
 	// Start and Stop event
 	CHECK_CUDA(cudaEventCreate(&start));
 	CHECK_CUDA(cudaEventCreate(&stop));
@@ -1474,6 +1494,7 @@ int main(int argc, char **argv) {
 							seed+1, // just use a different seed
 							i*Y, lld/2,
 							reinterpret_cast<ulonglong2 *>(hamB_d));
+							
 		hamiltInitW_k<BLOCK_X, BLOCK_Y,
 					BMULT_X, BMULT_Y,
 					BIT_X_SPIN,
@@ -1501,10 +1522,57 @@ int main(int argc, char **argv) {
 								   reinterpret_cast<ulonglong2 *>(white_d));
 		CHECK_ERROR("initLattice_k");
 	}
+
+
+	// Get sum for each sublattice
+	// For now only with the use of a host
+	int *h_sums_per_block = (int *)malloc(grid.x*grid.y*sizeof(int));
+	int *d_blocks_per_sum;
+	CHECK_CUDA(cudaMalloc(&d_blocks_per_sum, grid.x*grid.y*sizeof(*d_blocks_per_sum)));
 	
+	calculate_average_magnetization<BLOCK_X, BLOCK_Y,
+	 					BMULT_X, BMULT_Y,
+						BIT_X_SPIN, unsigned long long><<<grid, block>>>(0,
+							 		XSL, YSL, 0*Y, lld/2,
+									reinterpret_cast<ulonglong2 *>(white_d), 
+									reinterpret_cast<ulonglong2 *>(black_d),
+									d_blocks_per_sum);
+	
+	
+	
+	CHECK_CUDA(cudaMemcpy(h_sums_per_block, d_blocks_per_sum, grid.x*grid.y*sizeof(*d_blocks_per_sum), cudaMemcpyDeviceToHost));
+	
+	int blocks_per_slx = (XSL/2)/SPIN_X_WORD/2/(BLOCK_X*BMULT_X);
+	int blocks_per_sly = YSL/(BLOCK_Y*BMULT_Y);
+	
+	int h_sum = 0;
+	int *h_sum_sl = (int *)malloc(NSLX*NSLY*sizeof(int));
+	memset(h_sum_sl, 0, NSLX * NSLY * sizeof(int));
+
+	for (int i = 0; i < grid.x; i++){
+		for (int j = 0; j< grid.y; j++){
+			int sl_i = i/blocks_per_slx;
+			int sl_j = j/blocks_per_sly;
+
+			h_sum_sl[sl_j*NSLX + sl_i] += h_sums_per_block[j*grid.x + i];
+			h_sum += h_sums_per_block[j*grid.x + i];
+		}
+	}
+
+	for (int i = 0; i < NSLX*NSLY; i++){
+		cout << h_sum_sl[i] << endl;
+	}
+
+	cout << h_sum << endl;
+
+	char fname[256];
+	snprintf(fname, sizeof(fname), "lattice_%dx%d_T_%f_IT_%08d_", Y, X, temp, nsteps + nwarmup);
+	dumpLattice(fname, ndev, Y, lld, llen, llenLoc, v_d);
+
 	// Calculate sum of spins
 	countSpins(ndev, redBlocks, llen, llenLoc, black_d, white_d, sum_d, &cntPos, &cntNeg);
-	
+
+	/*
 	printf("\nInitial magnetization: %9.6lf, up_s: %12llu, dw_s: %12llu\n",
 	       abs(static_cast<double>(cntPos)-static_cast<double>(cntNeg)) / (llen*SPIN_X_WORD),
 	       cntPos, cntNeg);
@@ -1536,7 +1604,7 @@ int main(int argc, char **argv) {
 							 		      seed,
 									      j+1,
 									      (XSL/2)/SPIN_X_WORD/2, YSL,
-									      i*Y, /*ndev*Y,*/ lld/2,
+									      i*Y,  lld/2,
 							 		      reinterpret_cast<float (*)[5]>(exp_d[i]),
 									      reinterpret_cast<ulonglong2 *>(hamW_d),
 									      reinterpret_cast<ulonglong2 *>(white_d),
@@ -1561,7 +1629,7 @@ int main(int argc, char **argv) {
 							 		      seed,
 									      j+1,
 									      (XSL/2)/SPIN_X_WORD/2, YSL,
-									      i*Y, /*ndev*Y,*/ lld/2,
+									      i*Y, lld/2,
 							 		      reinterpret_cast<float (*)[5]>(exp_d[i]),
 									      reinterpret_cast<ulonglong2 *>(hamB_d),
 									      reinterpret_cast<ulonglong2 *>(black_d),
@@ -1591,7 +1659,7 @@ int main(int argc, char **argv) {
 							 		      seed,
 									      j+1,
 									      (XSL/2)/SPIN_X_WORD/2, YSL,
-									      i*Y, /*ndev*Y,*/ lld/2,
+									      i*Y, lld/2,
 							 		      reinterpret_cast<float (*)[5]>(exp_d[i]),
 									      reinterpret_cast<ulonglong2 *>(hamW_d),
 									      reinterpret_cast<ulonglong2 *>(white_d),
@@ -1616,7 +1684,7 @@ int main(int argc, char **argv) {
 							 		      seed,
 									      j+1,
 									      (XSL/2)/SPIN_X_WORD/2, YSL,
-									      i*Y, /*ndev*Y,*/ lld/2,
+									      i*Y, lld/2,
 							 		      reinterpret_cast<float (*)[5]>(exp_d[i]),
 									      reinterpret_cast<ulonglong2 *>(hamB_d),
 									      reinterpret_cast<ulonglong2 *>(black_d),
@@ -1694,6 +1762,8 @@ int main(int argc, char **argv) {
                 CHECK_CUDA(cudaSetDevice(i));
                 CHECK_CUDA(cudaDeviceReset());
         }
+	*/
+
 	return 0;
 }
 

@@ -60,11 +60,11 @@ using namespace std;
 // 2*SPIN_X_WORD*2*BLOCK_X*BMULT_X
 // BMULT_X Block Multiple X Direction
 // Unclear
-#define BLOCK_X (16)
-#define BLOCK_Y (16)
+#define BLOCK_X (2)
+#define BLOCK_Y (8)
 
 // Unclear
-#define BMULT_X (2)
+#define BMULT_X (1)
 #define BMULT_Y (1)
 
 // Maximum number of GPUs
@@ -1972,7 +1972,6 @@ int main(int argc, char **argv) {
 								   	   reinterpret_cast<ulonglong2 *>(hamW_d));
 		}
 	}
-	
 
 	// Calculate sum of spins
 	countSpins(ndev, redBlocks, llen, llenLoc, black_d, white_d, sum_d, &cntPos, &cntNeg);

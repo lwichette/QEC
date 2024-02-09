@@ -30,7 +30,9 @@ int main(int argc, char **argv){
     int num_iterations_error, niters, nwarmup, num_lattices, num_reps_temp, normalization_factor;
     std::vector<int> L_size;
     std::string folderName;
-    bool up, write_lattice, read_lattice;
+    bool up = false;
+    bool write_lattice = false;
+    bool read_lattice = false;
 
     // Declare the supported options.
     po::options_description desc("Allowed options");
@@ -100,10 +102,21 @@ int main(int argc, char **argv){
 
     if (!fs::exists(folderPath)) {
         if (fs::create_directory(folderPath)) {
+            fs::create_directory(folderPath + "/lattices");   
             std::cout << "Directory created successfully." << std::endl;
         } else {
             std::cout << "Failed to create directory." << std::endl;
         }
+    }
+    else {
+	if (!fs::exists(folderPath + "/lattices")){
+	   if (fs::create_directory(folderPath+"/lattices")){
+		std:cout << "Lattice folder created successfully" << std::endl;
+	   }
+	}
+	else {
+		std::cout << "Failed to create lattice directory" << std::endl;
+	}	
     }
 
     std::vector<float> inv_temp;
@@ -195,7 +208,7 @@ int main(int argc, char **argv){
         // Setup cuRAND generators
         curandGenerator_t rng;
         CHECK_CURAND(curandCreateGenerator(&rng, CURAND_RNG_PSEUDO_PHILOX4_32_10));
-        CHECK_CURAND(curandSetPseudoRandomGeneratorSeed(rng, seeds_spins));
+        CHECK_CURAND(curandSetPseudoRandomGeneratorSeed(rng, seeds_spins+1));
 
         curandGenerator_t rng_errors;
         CHECK_CURAND(curandCreateGenerator(&rng_errors, CURAND_RNG_PSEUDO_PHILOX4_32_10));
@@ -259,8 +272,8 @@ int main(int argc, char **argv){
                 write_updated_lattices(lattice_b, lattice_w, L, L, num_lattices, lattice_b_file_name, lattice_w_file_name);
             }
 
-            std::string bond_filename = folderPath + "/bonds/" + std::to_string(e) + "_";
-            write_bonds(d_interactions, bond_filename, L, L, num_lattices);
+            //std::string bond_filename = folderPath + "/bonds/" + std::to_string(e) + "_";
+            //write_bonds(d_interactions, bond_filename, L, L, num_lattices);
 
         }
 

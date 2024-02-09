@@ -1031,8 +1031,86 @@ __global__ void calculate_weighted_magnetization(const int devid,
 			const long long dimX, 
 			const INT2_T *__restrict__ v_white,
 			const INT2_T *__restrict__ v_black,
-			int *sum_per_block) {
+			const thrust::complex<float> exp,
+			thrust::complex<float> *sum_per_block) {
+	
+		// calc how many spins per word
+	const int SPIN_X_WORD = 8*sizeof(INT_T)/BITXSP;
+	
+	// get current row
+	const int __i = blockIdx.y*BDIM_Y*LOOP_Y + tidy;
 
+	// x and y location in Thread lattice
+	const int tidx = threadIdx.x;
+	const int tidy = threadIdx.y;
+	
+	// Initialize shared memory of Block size + neighbors
+	__shared__ INT2_T shTile_w[BDIM_Y*LOOP_Y+2][BDIM_X*LOOP_X+2];
+	__shared__ INT2_T shTile_b[BDIM_Y*LOOP_Y+2][BDIM_X*LOOP_X+2];
+	
+	// Store sum
+	__shared__ thrust::complex<float> sum[BDIM_Y*BDIM_X];
+    
+	// Load spin tiles of lattice
+	loadTile<BDIM_X, BDIM_Y,
+		 BDIM_X*LOOP_X,
+		 BDIM_Y*LOOP_Y, 
+		 1, 1, INT2_T>(slX, slY, begY, dimX, v_white, shTile_w);
+	
+	__syncthreads();
+
+		loadTile<BDIM_X, BDIM_Y,
+		 BDIM_X*LOOP_X,
+		 BDIM_Y*LOOP_Y, 
+		 1, 1, INT2_T>(slX, slY, begY, dimX, v_black, shTile_b);
+	
+	__syncthreads();
+
+	// array of size BMULT_Y x BMULT_X of unsigned long long
+	INT2_T __me_w[LOOP_Y][LOOP_X];
+	INT2_T __me_b[LOOP_Y][LOOP_X];
+
+	// Store spin words in array
+	#pragma unroll
+	for(int i = 0; i < LOOP_Y; i++) {
+		#pragma unroll
+		for(int j = 0; j < LOOP_X; j++) {
+			__me_w[i][j] = shTile_w[1 + tidy + i*BDIM_Y][1 + tidx + j*BDIM_X];
+			__me_b[i][j] = shTile_b[1 + tidy + i*BDIM_Y][1 + tidx + j*BDIM_X];
+		}
+	}
+
+	thrust::complex<float> run_sum(0.0f,0.0f);
+
+	#pragma unroll
+	for(int i = 0; i < LOOP_Y; i++) {
+		#pragma unroll
+		for(int j = 0; j < LOOP_X; j++) {
+			#pragma unroll
+			for(int k = 0; k < 8*sizeof(INT_T); k += BITXSP){
+				const int spin_w = (__me_w[i][j] >> k) & 0xF;
+				const int spin_b = (__me_b[i][j] >> k) & 0xF;
+
+				const int __sli = (__i+i*BDIM_Y) % slY;
+				run_sum += pow(-1, 1-spin_w)*exp[__sli] + pow(-1,1-spin_b)*exp[__sli];
+			}
+		}
+	}
+
+	sum[tidy*BDIM_X + tidx] = run_sum;
+
+	__syncthreads();
+
+	for (int s = blockDim.y*blockDim.x/2; s>0; s >>= 1){
+		if (tidy*BDIM_X + tidx < s){
+			sum[tidy*BDIM_X + tidx] += sum[tidy*BDIM_X + tidx + s]; 
+		}
+		__syncthreads();
+	}
+
+	if ((tidx == 0) & (tidy == 0)){
+		sum_per_block[blockIdx.y*gridDim.x + blockIdx.x] = sum[0];
+	}
 }
 
 int main(int argc, char **argv) {
@@ -1494,7 +1572,7 @@ int main(int argc, char **argv) {
 							seed+1, // just use a different seed
 							i*Y, lld/2,
 							reinterpret_cast<ulonglong2 *>(hamB_d));
-							
+
 		hamiltInitW_k<BLOCK_X, BLOCK_Y,
 					BMULT_X, BMULT_Y,
 					BIT_X_SPIN,

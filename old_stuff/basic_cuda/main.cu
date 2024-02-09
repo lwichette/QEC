@@ -194,7 +194,7 @@ int main(int argc, char **argv) {
         {         "alpha", required_argument, 0, 'a'},
         {          "seed", required_argument, 0, 's'},
         {       "nwarmup", required_argument, 0, 'w'},
-        {        "niters", required_argument, 0, 'n'},
+        {        "niterThe simplest choice of RNG is given by the linear congruential generator (LCG) of the forms", required_argument, 0, 'n'},
         { "write-lattice",       no_argument, 0, 'o'},
         {          "help",       no_argument, 0, 'h'},
         {               0,                 0, 0,   0}

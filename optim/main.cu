@@ -28,13 +28,16 @@
 #include <sys/stat.h>
 #include <getopt.h>
 #include <unistd.h>
+#include <cuda_fp16.h>
 #include <cuda_runtime.h>
 #include <curand_kernel.h>
 #include "cudamacro.h" /* for time() */
 #include "utils.h"
 #include <iostream>
 #include <thrust/complex.h>
+#include <cub/cub.cuh>
 #include <cmath>
+#include <ctime>
 
 using namespace std;
 
@@ -87,6 +90,12 @@ __device__ __forceinline__ ulonglong2 __mymake_int2(const unsigned long long x,
 		                                    const unsigned long long y) {
 	return make_ulonglong2(x, y);
 }
+
+void *d_temp = NULL;
+size_t temp_storage = 0;
+
+void *d_temp_complex = NULL;
+size_t temp_storage_complex = 0;
 
 template<int BDIM_X,
 	 int BDIM_Y,
@@ -940,7 +949,11 @@ __global__ void calculate_average_magnetization(const int devid,
 			const long long dimX, 
 			const INT2_T *__restrict__ v_white,
 			const INT2_T *__restrict__ v_black,
-			int *sum_per_block) {
+			const thrust::complex<float> *exp,
+			const int blocks_per_slx,
+			const int blocks_per_sly,
+			int *sum_per_block,
+			thrust::complex<float> *c_sum_per_block) {
 	
 	// calc how many spins per word
 	const int SPIN_X_WORD = 8*sizeof(INT_T)/BITXSP;
@@ -948,6 +961,8 @@ __global__ void calculate_average_magnetization(const int devid,
 	// x and y location in Thread lattice
 	const int tidx = threadIdx.x;
 	const int tidy = threadIdx.y;
+
+	const int __i = blockIdx.y*BDIM_Y*LOOP_Y + tidy;
 	
 	// Initialize shared memory of Block size + neighbors
 	__shared__ INT2_T shTile_w[BDIM_Y*LOOP_Y+2][BDIM_X*LOOP_X+2];
@@ -955,6 +970,7 @@ __global__ void calculate_average_magnetization(const int devid,
 	
 	// Store sum
 	__shared__ int sum[BDIM_Y*BDIM_X];
+	__shared__ thrust::complex<float> c_sum[BDIM_Y*BDIM_X];
     
 	// Load spin tiles of lattice
 	loadTile<BDIM_X, BDIM_Y,
@@ -964,7 +980,7 @@ __global__ void calculate_average_magnetization(const int devid,
 	
 	__syncthreads();
 
-		loadTile<BDIM_X, BDIM_Y,
+	loadTile<BDIM_X, BDIM_Y,
 		 BDIM_X*LOOP_X,
 		 BDIM_Y*LOOP_Y, 
 		 1, 1, INT2_T>(slX, slY, begY, dimX, v_black, shTile_b);
@@ -987,10 +1003,13 @@ __global__ void calculate_average_magnetization(const int devid,
 
 	int __cntP = 0;
 	int __cntN = 0;
+	
+	thrust::complex<float> run_sum = thrust::complex<float>(0.0, 0.0);
 
 	// Store spin words in array
 	#pragma unroll
 	for(int i = 0; i < LOOP_Y; i++) {
+		const int __sli = (__i+i*BDIM_Y) % slY;
 		#pragma unroll
 		for(int j = 0; j < LOOP_X; j++) {
 			const int __cx = __popcll(__me_w[i][j].x) + __popcll(__me_b[i][j].x);
@@ -998,120 +1017,87 @@ __global__ void calculate_average_magnetization(const int devid,
 
 			__cntP += (__cx + __cy);
 			__cntN += 4*SPIN_X_WORD - __cx - __cy;
+
+			int spin_sum = __cx + __cy - (4*SPIN_X_WORD - __cx - __cy);
+			run_sum += exp[__sli]*spin_sum;
+			//run_sum = cuCaddf(cuCmulf(exp[__sli], make_cuFloatComplex(spin_sum, 0)), run_sum);
 		}
 	}
 
 	sum[tidy*BDIM_X + tidx] = __cntP - __cntN;
+	c_sum[tidy*BDIM_X +tidx] = run_sum;
 
 	__syncthreads();
 
 	for (int s = blockDim.y*blockDim.x/2; s>0; s >>= 1){
 		if (tidy*BDIM_X + tidx < s){
 			sum[tidy*BDIM_X + tidx] += sum[tidy*BDIM_X + tidx + s]; 
+			c_sum[tidy*BDIM_X + tidx] += c_sum[tidy*BDIM_X + tidx + s];
 		}
 		__syncthreads();
 	}
 
 	if ((tidx == 0) & (tidy == 0)){
-		sum_per_block[blockIdx.y*gridDim.x + blockIdx.x] = sum[0];
+		const int current_x = blockIdx.x/blocks_per_slx;
+		const int current_y = blockIdx.y/blocks_per_sly;
+		const int offset = (current_y*gridDim.x/blocks_per_slx + current_x)*blocks_per_slx*blocks_per_sly;
+
+		const int block_lin_y = blockIdx.y%blocks_per_sly;
+		const int block_lin_x = blockIdx.x%blocks_per_slx;
+ 
+		sum_per_block[offset + block_lin_y*blocks_per_slx + block_lin_x] = sum[0];
+		c_sum_per_block[offset + block_lin_y*blocks_per_slx + block_lin_x] = c_sum[0];
 	}
 }	
 
-template<int BDIM_X,
-	 int BDIM_Y,
-	 int LOOP_X, 
-	 int LOOP_Y,
-	 int BITXSP,
-	 typename INT_T,
-	 typename INT2_T>
-__global__ void calculate_weighted_magnetization(const int devid, 
-			const int slX, 
-			const int slY, 
-			const long long begY, 
-			const long long dimX, 
-			const INT2_T *__restrict__ v_white,
-			const INT2_T *__restrict__ v_black,
-			const thrust::complex<float> exp,
-			thrust::complex<float> *sum_per_block) {
+__global__ void calculate_incremental_susceptibility(const int blocks_per_slx, 
+				const int blocks_per_sly,
+				const int num_lattices,
+				const int *d_sums_per_block,
+				const thrust::complex<float> *d_weighted_sums_per_block,
+				int *d_store_sum,
+				float *d_sus_k){
 	
-		// calc how many spins per word
-	const int SPIN_X_WORD = 8*sizeof(INT_T)/BITXSP;
+	int tid = blockIdx.x * blockDim.x + threadIdx.x;
+	int offset = tid*blocks_per_slx*blocks_per_sly;
 	
-	// get current row
-	const int __i = blockIdx.y*BDIM_Y*LOOP_Y + tidy;
+	if (tid >= num_lattices) return;
 
-	// x and y location in Thread lattice
-	const int tidx = threadIdx.x;
-	const int tidy = threadIdx.y;
-	
-	// Initialize shared memory of Block size + neighbors
-	__shared__ INT2_T shTile_w[BDIM_Y*LOOP_Y+2][BDIM_X*LOOP_X+2];
-	__shared__ INT2_T shTile_b[BDIM_Y*LOOP_Y+2][BDIM_X*LOOP_X+2];
-	
-	// Store sum
-	__shared__ thrust::complex<float> sum[BDIM_Y*BDIM_X];
-    
-	// Load spin tiles of lattice
-	loadTile<BDIM_X, BDIM_Y,
-		 BDIM_X*LOOP_X,
-		 BDIM_Y*LOOP_Y, 
-		 1, 1, INT2_T>(slX, slY, begY, dimX, v_white, shTile_w);
-	
-	__syncthreads();
+	int sum = 0;
+	thrust::complex<float> c_sum = thrust::complex<float> (0.0f, 0.0f);
 
-		loadTile<BDIM_X, BDIM_Y,
-		 BDIM_X*LOOP_X,
-		 BDIM_Y*LOOP_Y, 
-		 1, 1, INT2_T>(slX, slY, begY, dimX, v_black, shTile_b);
-	
-	__syncthreads();
-
-	// array of size BMULT_Y x BMULT_X of unsigned long long
-	INT2_T __me_w[LOOP_Y][LOOP_X];
-	INT2_T __me_b[LOOP_Y][LOOP_X];
-
-	// Store spin words in array
-	#pragma unroll
-	for(int i = 0; i < LOOP_Y; i++) {
-		#pragma unroll
-		for(int j = 0; j < LOOP_X; j++) {
-			__me_w[i][j] = shTile_w[1 + tidy + i*BDIM_Y][1 + tidx + j*BDIM_X];
-			__me_b[i][j] = shTile_b[1 + tidy + i*BDIM_Y][1 + tidx + j*BDIM_X];
-		}
+	for (int i=0; i < blocks_per_slx*blocks_per_sly; i++){
+		sum += d_sums_per_block[offset + i];
+		c_sum += d_weighted_sums_per_block[offset + i];
 	}
 
-	thrust::complex<float> run_sum(0.0f,0.0f);
+	d_store_sum[tid] += pow(abs(sum), 2);
+	d_sus_k[tid] += thrust::abs(c_sum)*thrust::abs(c_sum);
+}				
 
-	#pragma unroll
-	for(int i = 0; i < LOOP_Y; i++) {
-		#pragma unroll
-		for(int j = 0; j < LOOP_X; j++) {
-			#pragma unroll
-			for(int k = 0; k < 8*sizeof(INT_T); k += BITXSP){
-				const int spin_w = (__me_w[i][j] >> k) & 0xF;
-				const int spin_b = (__me_b[i][j] >> k) & 0xF;
 
-				const int __sli = (__i+i*BDIM_Y) % slY;
-				run_sum += pow(-1, 1-spin_w)*exp[__sli] + pow(-1,1-spin_b)*exp[__sli];
-			}
-		}
-	}
+__global__ void incremental_susceptibility(int *d_store_sum, 
+			thrust::complex<float> *d_store_weighted_sum, 
+			int *d_inc_sus_0, 
+			float *d_inc_sus_k, 
+			int num_lattices){
+	
+	int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-	sum[tidy*BDIM_X + tidx] = run_sum;
+	if (tid >= num_lattices) return;
 
-	__syncthreads();
-
-	for (int s = blockDim.y*blockDim.x/2; s>0; s >>= 1){
-		if (tidy*BDIM_X + tidx < s){
-			sum[tidy*BDIM_X + tidx] += sum[tidy*BDIM_X + tidx + s]; 
-		}
-		__syncthreads();
-	}
-
-	if ((tidx == 0) & (tidy == 0)){
-		sum_per_block[blockIdx.y*gridDim.x + blockIdx.x] = sum[0];
-	}
+	d_inc_sus_0[tid] += pow(abs(d_store_sum[tid]),2);
+	d_inc_sus_k[tid] += thrust::abs(d_store_weighted_sum[tid])*thrust::abs(d_store_weighted_sum[tid]);
 }
+/*
+cuComplex cuExp (cuComplex z){
+	float exp_real = expf(z.x)*cosf(z.y);
+	float exp_imag = expf(z.x)*sinf(z.y);
+
+	return make_cuComplex(exp_real,exp_imag);
+}
+*/
+
 
 int main(int argc, char **argv) {
 
@@ -1408,6 +1394,9 @@ int main(int argc, char **argv) {
 	// Creates a CUDA block with Block_X threads in the x dimension and block_Y threads in the y dimension
 	dim3 block(BLOCK_X, BLOCK_Y);
 
+	int blocks_per_slx = (XSL/2)/SPIN_X_WORD/2/(BLOCK_X*BMULT_X);
+	int blocks_per_sly = YSL/(BLOCK_Y*BMULT_Y);
+
 	// print stuff
 	printf("Run configuration:\n");
 	printf("\tspin/word: %d\n", SPIN_X_WORD);
@@ -1538,22 +1527,54 @@ int main(int argc, char **argv) {
 		CHECK_CUDA(cudaMemcpy(exp_d[i], exp_h, 2*5*sizeof(**exp_d), cudaMemcpyHostToDevice));
 	}
 
-	// Weighted exp
+	// Calculate all exp used for weighted summation
 	thrust::complex<float> *weighted_exp_d;
 	thrust::complex<float> weighted_exp_h[YSL];
-	thrust::complex<float> imag(0,1);
+	thrust::complex<float> imag = thrust::complex<float>(0,1);
 
-	// Calculate all exp used for weighted summation
 	for(int i = 0; i < YSL; i++) {
-		weighted_exp_h[i] = exp(imag*2*M_PI/XSL*i);
+		weighted_exp_h[i] = exp(imag*2*M_PI/YSL*i);
 	}
-	
+
 	// Copy exponentials to GPU
 	for(int i = 0; i < ndev; i++) {
 		CHECK_CUDA(cudaSetDevice(i));
 		CHECK_CUDA(cudaMalloc(&weighted_exp_d, YSL*sizeof(*weighted_exp_d)));
 		CHECK_CUDA(cudaMemcpy(weighted_exp_d, weighted_exp_h, YSL*sizeof(*weighted_exp_d), cudaMemcpyHostToDevice));
 	}
+
+	// Calculate sums
+	int *d_sum_per_block;
+	CHECK_CUDA(cudaMalloc(&d_sum_per_block, grid.x*grid.y*sizeof(*d_sum_per_block)));
+
+	thrust::complex<float> *d_weighted_sum_per_blocks; 
+	CHECK_CUDA(cudaMalloc(&d_weighted_sum_per_blocks, grid.x*grid.y*sizeof(*d_weighted_sum_per_blocks)));
+
+	int *d_sus_0;
+	CHECK_CUDA(cudaMalloc(&d_sus_0, NSLX*NSLY*sizeof(*d_sus_0)));
+	CHECK_CUDA(cudaMemset(d_sus_0, 0, NSLX*NSLY*sizeof(*d_sus_0)));
+
+	float *d_sus_k;
+	CHECK_CUDA(cudaMalloc(&d_sus_k, NSLX*NSLY*sizeof(*d_sus_k)));
+    CHECK_CUDA(cudaMemset(d_sus_k, 0, NSLY*NSLX*sizeof(*d_sus_k)));
+
+	/*
+	int *d_store_sum;
+	CHECK_CUDA(cudaMalloc(&d_store_sum, NSLX*NSLY*sizeof(*d_store_sum)));
+	CHECK_CUDA(cudaMemset(d_store_sum, 0, NSLX*NSLY*sizeof(*d_store_sum)));
+
+	thrust::complex<float> *d_store_weighted_sum;
+	CHECK_CUDA(cudaMalloc(&d_store_weighted_sum, NSLX*NSLY*sizeof(*d_store_weighted_sum)));
+	CHECK_CUDA(cudaMemset(d_store_weighted_sum, 0, NSLX*NSLY*sizeof(*d_store_weighted_sum)));
+
+	int *d_inc_sus_0;
+	CHECK_CUDA(cudaMalloc(&d_inc_sus_0, NSLX*NSLY*sizeof(*d_inc_sus_0)));
+	CHECK_CUDA(cudaMemset(d_inc_sus_0, 0, NSLX*NSLY*sizeof(*d_inc_sus_0)));
+
+	float *d_inc_sus_k;
+	CHECK_CUDA(cudaMalloc(&d_inc_sus_k, NSLX*NSLY*sizeof(*d_inc_sus_k)));
+	CHECK_CUDA(cudaMemset(d_inc_sus_k, 0, NSLX*NSLY*sizeof(*d_inc_sus_k)));
+	*/
 
 	// Start and Stop event
 	CHECK_CUDA(cudaEventCreate(&start));
@@ -1600,61 +1621,73 @@ int main(int argc, char **argv) {
 								   reinterpret_cast<ulonglong2 *>(white_d));
 		CHECK_ERROR("initLattice_k");
 	}
+	
 
+	calculate_average_magnetization<BLOCK_X, BLOCK_Y,
+			BMULT_X, BMULT_Y,
+			BIT_X_SPIN, unsigned long long><<<grid, block>>>(0,
+						XSL, YSL, 0*Y, lld/2,
+						reinterpret_cast<ulonglong2 *>(white_d), 
+						reinterpret_cast<ulonglong2 *>(black_d),
+						weighted_exp_d,
+						blocks_per_slx,
+						blocks_per_sly,
+						d_sum_per_block,
+						d_weighted_sum_per_blocks);
+	
+	clock_t start_timing = clock();
+	
+	calculate_incremental_susceptibility<<<1, NSLX*NSLY>>>(blocks_per_slx, blocks_per_sly, NSLX*NSLY, d_sum_per_block, d_weighted_sum_per_blocks, d_sus_0, d_sus_k);
+	
+	/*
+	for (int i=0; i < NSLX*NSLY; i++){
+		
+		if (temp_storage == 0){
+			CHECK_CUDA(cub::DeviceReduce::Sum(d_temp, temp_storage, d_sum_per_block + i*blocks_per_slx*blocks_per_sly, &d_store_sum[i], blocks_per_slx*blocks_per_sly));
+			CHECK_CUDA(cudaMalloc(&d_temp, temp_storage));
+		}
+
+		if (temp_storage_complex == 0){
+			CHECK_CUDA(cub::DeviceReduce::Sum(d_temp_complex, temp_storage_complex, d_weighted_sum_per_blocks + i*blocks_per_slx*blocks_per_sly, &d_store_weighted_sum[i], blocks_per_slx*blocks_per_sly));
+			CHECK_CUDA(cudaMalloc(&d_temp_complex, temp_storage_complex));
+		}
+
+		CHECK_CUDA(cub::DeviceReduce::Sum(d_temp, temp_storage, d_sum_per_block + i*blocks_per_slx*blocks_per_sly, &d_store_sum[i], blocks_per_slx*blocks_per_sly));
+		CHECK_CUDA(cub::DeviceReduce::Sum(d_temp_complex, temp_storage_complex, d_weighted_sum_per_blocks + i*blocks_per_slx*blocks_per_sly, &d_store_weighted_sum[i], blocks_per_slx*blocks_per_sly));
+	}
+
+	incremental_susceptibility<<<1,NSLX*NSLY>>>(d_store_sum, d_store_weighted_sum, d_inc_sus_0, d_inc_sus_k, NSLX*NSLX);
+	*/
+
+	clock_t end_timing = clock();
+	
+	double duration = double(end_timing - start_timing) / CLOCKS_PER_SEC;
+    std::cout << "Time taken: " << duration << " seconds" << std::endl;	
 
 	// Get sum for each sublattice
-	// For now only with the use of a host
-	int *h_sums_per_block = (int *)malloc(grid.x*grid.y*sizeof(int));
-	int *d_blocks_per_sum;
-	CHECK_CUDA(cudaMalloc(&d_blocks_per_sum, grid.x*grid.y*sizeof(*d_blocks_per_sum)));
+	int *h_sums_per_block = (int *)malloc(NSLX*NSLY*sizeof(int));
+	float *h_weighted_sums_per_block = (float *)malloc(NSLX*NSLY*sizeof(float));
 	
-	calculate_average_magnetization<BLOCK_X, BLOCK_Y,
-	 					BMULT_X, BMULT_Y,
-						BIT_X_SPIN, unsigned long long><<<grid, block>>>(0,
-							 		XSL, YSL, 0*Y, lld/2,
-									reinterpret_cast<ulonglong2 *>(white_d), 
-									reinterpret_cast<ulonglong2 *>(black_d),
-									d_blocks_per_sum);
-	
-	
-	
-	CHECK_CUDA(cudaMemcpy(h_sums_per_block, d_blocks_per_sum, grid.x*grid.y*sizeof(*d_blocks_per_sum), cudaMemcpyDeviceToHost));
-	
-	int blocks_per_slx = (XSL/2)/SPIN_X_WORD/2/(BLOCK_X*BMULT_X);
-	int blocks_per_sly = YSL/(BLOCK_Y*BMULT_Y);
-	
-	int h_sum = 0;
-	int *h_sum_sl = (int *)malloc(NSLX*NSLY*sizeof(int));
-	memset(h_sum_sl, 0, NSLX * NSLY * sizeof(int));
+	//CHECK_CUDA(cudaMemcpy(h_sums_per_block, d_sus_0, NSLX*NSLY*sizeof(*d_sus_0), cudaMemcpyDeviceToHost));
+	//CHECK_CUDA(cudaMemcpy(h_weighted_sums_per_block, d_sus_k, NSLX*NSLY*sizeof(*d_sus_k), cudaMemcpyDeviceToHost));
 
-	for (int i = 0; i < grid.x; i++){
-		for (int j = 0; j< grid.y; j++){
-			int sl_i = i/blocks_per_slx;
-			int sl_j = j/blocks_per_sly;
-
-			h_sum_sl[sl_j*NSLX + sl_i] += h_sums_per_block[j*grid.x + i];
-			h_sum += h_sums_per_block[j*grid.x + i];
-		}
-	}
-
+ 	CHECK_CUDA(cudaMemcpy(h_sums_per_block, d_sus_0, NSLX*NSLY*sizeof(*d_sus_0), cudaMemcpyDeviceToHost));
+	CHECK_CUDA(cudaMemcpy(h_weighted_sums_per_block, d_sus_k, NSLX*NSLY*sizeof(*d_sus_k), cudaMemcpyDeviceToHost));
+	
 	for (int i = 0; i < NSLX*NSLY; i++){
-		cout << h_sum_sl[i] << endl;
+		//cout << h_sums_per_block[i] << endl;
+		printf("%f\n", h_weighted_sums_per_block[i]);
 	}
-
-	cout << h_sum << endl;
-
-	char fname[256];
-	snprintf(fname, sizeof(fname), "lattice_%dx%d_T_%f_IT_%08d_", Y, X, temp, nsteps + nwarmup);
-	dumpLattice(fname, ndev, Y, lld, llen, llenLoc, v_d);
-
+	
 	// Calculate sum of spins
-	countSpins(ndev, redBlocks, llen, llenLoc, black_d, white_d, sum_d, &cntPos, &cntNeg);
+	//countSpins(ndev, redBlocks, llen, llenLoc, black_d, white_d, sum_d, &cntPos, &cntNeg);
 
 	/*
 	printf("\nInitial magnetization: %9.6lf, up_s: %12llu, dw_s: %12llu\n",
 	       abs(static_cast<double>(cntPos)-static_cast<double>(cntNeg)) / (llen*SPIN_X_WORD),
 	       cntPos, cntNeg);
-
+	*/
+	/*
 	// Device Synchronize
 	for(int i = 0; i < ndev; i++) {
 		CHECK_CUDA(cudaSetDevice(i));
@@ -1727,6 +1760,7 @@ int main(int argc, char **argv) {
 
 	// Perform Monte Carlo updates
 	for(int j = 0; j < nsteps; j++) {
+		
 		for(int i = 0; i < ndev; i++) {
 			CHECK_CUDA(cudaSetDevice(i));
 			// Update black lattice
@@ -1768,7 +1802,7 @@ int main(int argc, char **argv) {
 									      reinterpret_cast<ulonglong2 *>(black_d),
 									      reinterpret_cast<ulonglong2 *>(white_d));
 		}
-
+	
 		// Cuda device Synchronize
 		if (ndev > 1) {
 			for(int i = 0; i < ndev; i++) {
@@ -1812,7 +1846,7 @@ int main(int argc, char **argv) {
 		 	( sizeof(*v_d)*((llen/2) + (llen/2) + (llen/2)) + // src color read, dst color read, dst color write
 			  sizeof(*exp_d)*5*grid.x*grid.y ) /
 		1.0E+9) / (et/1.0E+3));
-
+	*/
 
 	// Write lattice
 	if (dumpOut) {
@@ -1837,10 +1871,9 @@ int main(int argc, char **argv) {
 		}
 	}
 	for(int i = 0; i < ndev; i++) {
-                CHECK_CUDA(cudaSetDevice(i));
-                CHECK_CUDA(cudaDeviceReset());
-        }
-	*/
+        CHECK_CUDA(cudaSetDevice(i));
+        CHECK_CUDA(cudaDeviceReset());
+    }
 
 	return 0;
 }

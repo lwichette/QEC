@@ -99,7 +99,7 @@ size_t temp_storage_complex = 0;
 
 template<int BDIM_X,
 	 int BDIM_Y,
-	 int LOOP_X, 
+	 int LOOP_X,
 	 int LOOP_Y,
 	 int BITXSP,
 	 int COLOR,
@@ -116,19 +116,19 @@ __global__  void latticeInit_k(const int devid,
 	// j linearized x position in blocks and threads
 	const int __i = blockIdx.y*BDIM_Y*LOOP_Y + threadIdx.y;
 	const int __j = blockIdx.x*BDIM_X*LOOP_X + threadIdx.x;
-	
+
 	// calculate number of spins per word
 	const int SPIN_X_WORD = 8*sizeof(INT_T)/BITXSP;
-	
+
 	// get thread id
 	const long long tid = ((devid*gridDim.y + blockIdx.y)*gridDim.x + blockIdx.x)*BDIM_X*BDIM_Y +
 	                       threadIdx.y*BDIM_X + threadIdx.x;
-	
+
 	// Random number generator
 	curandStatePhilox4_32_10_t st;
 	// Unclear what exactly
 	curand_init(seed, tid, static_cast<long long>(2*SPIN_X_WORD)*LOOP_X*LOOP_Y*(2*it+COLOR), &st);
-	
+
 	// tmp 2D array of type unsigned long long of size (1x2)
 	INT2_T __tmp[LOOP_Y][LOOP_X];
 
@@ -174,7 +174,7 @@ __global__  void latticeInit_k(const int devid,
 
 template<int BDIM_X,
 	 int BDIM_Y,
-	 int LOOP_X, 
+	 int LOOP_X,
 	 int LOOP_Y,
 	 int BITXSP,
 	 typename INT_T,
@@ -186,7 +186,7 @@ __global__  void hamiltInitB_k(const int devid,
                                const long long dimX, // ld
                                      INT2_T *__restrict__ hamB) {
 
-	// i column index in block thread picture, j row index in block thread picture 									
+	// i column index in block thread picture, j row index in block thread picture
 	const int __i = blockIdx.y*BDIM_Y*LOOP_Y + threadIdx.y;
 	const int __j = blockIdx.x*BDIM_X*LOOP_X + threadIdx.x;
 
@@ -242,7 +242,7 @@ __global__  void hamiltInitB_k(const int devid,
 
 template<int BDIM_X,
 	 int BDIM_Y,
-	 int LOOP_X, 
+	 int LOOP_X,
 	 int LOOP_Y,
 	 int BITXSP,
 	 typename INT_T,
@@ -253,7 +253,7 @@ __global__ void hamiltInitW_k(const int xsl,
 		              const long long dimX,
 		              const INT2_T *__restrict__ hamB,
 		                    INT2_T *__restrict__ hamW) {
-    
+
 	// Thread id x and y position
 	const int tidx = threadIdx.x;
 	const int tidy = threadIdx.y;
@@ -291,11 +291,11 @@ __global__ void hamiltInitW_k(const int xsl,
 	for(int i = 0; i < LOOP_Y; i++) {
 		#pragma unroll
 		for(int j = 0; j < LOOP_X; j++) {
-			__up[i][j].x = (__me[i][j].x & 0x8888888888888888ull) >> 1; 
-			__up[i][j].y = (__me[i][j].y & 0x8888888888888888ull) >> 1; 
+			__up[i][j].x = (__me[i][j].x & 0x8888888888888888ull) >> 1;
+			__up[i][j].y = (__me[i][j].y & 0x8888888888888888ull) >> 1;
 
-			__dw[i][j].x = (__me[i][j].x & 0x4444444444444444ull) << 1; 
-			__dw[i][j].y = (__me[i][j].y & 0x4444444444444444ull) << 1; 
+			__dw[i][j].x = (__me[i][j].x & 0x4444444444444444ull) << 1;
+			__dw[i][j].y = (__me[i][j].y & 0x4444444444444444ull) << 1;
 		}
 	}
 
@@ -310,15 +310,15 @@ __global__ void hamiltInitW_k(const int xsl,
 		for(int i = 0; i < LOOP_Y; i++) {
 			#pragma unroll
 			for(int j = 0; j < LOOP_X; j++) {
-				
-				// 0x22222 --> 001000100010 
+
+				// 0x22222 --> 001000100010
 				// get third bit in every group of four and shift it by one to the right for ct array
 				// i.e. get leftJ and move it to the fourth position
 				__ct[i][j].x = (__me[i][j].x & 0x2222222222222222ull) >> 1;
 				__ct[i][j].y = (__me[i][j].y & 0x2222222222222222ull) >> 1;
 
 				// 0x1111 --> 000100010001
-				// get fourth bit in every group of four and shift it by (BITXSP + 1) to the left or right ,i.e. to the third position in the 
+				// get fourth bit in every group of four and shift it by (BITXSP + 1) to the left or right ,i.e. to the third position in the
 				// prior/next 4 bit group or by (BITXWORD-BITXSP - 1) to the right and perform logical or with already existing ct
 				// ct contains then at every 3rd and 4th position in the 4 bits an entry
 				__ct[i][j].x |= (__me[i][j].x & 0x1111111111111111ull) << (BITXSP+1);
@@ -359,7 +359,7 @@ __global__ void hamiltInitW_k(const int xsl,
 
 		// calc row index
 		const int yoff = begY+__i + i*BDIM_Y;
-		
+
 		// upOff if we are at a boarder of a lattice then take last row, else take row -1
 		const int upOff = ( yoff   %ysl) == 0 ? yoff+ysl-1 : yoff-1;
 		// downOff: if we are at a lower boarder of a sublattice, take first row, else take row + 1
@@ -367,7 +367,7 @@ __global__ void hamiltInitW_k(const int xsl,
 
 		#pragma unroll
 		for(int j = 0; j < LOOP_X; j++) {
-			
+
 			// get column index
 			const int xoff = __j + j*BDIM_X;
 
@@ -378,7 +378,7 @@ __global__ void hamiltInitW_k(const int xsl,
 			// subsequently fills all 64 bits with the up, down, left, right neighbors
 			atomicOr(&hamW[yoff*dimX + xoff].x, __ct[i][j].x);
 			atomicOr(&hamW[yoff*dimX + xoff].y, __ct[i][j].y);
-			
+
 			atomicOr(&hamW[upOff*dimX + xoff].x, __up[i][j].x);
 			atomicOr(&hamW[upOff*dimX + xoff].y, __up[i][j].y);
 
@@ -386,7 +386,7 @@ __global__ void hamiltInitW_k(const int xsl,
 			atomicOr(&hamW[dwOff*dimX + xoff].y, __dw[i][j].y);
 
 
-			// Depending on which row we are in 
+			// Depending on which row we are in
 			// Check whether we are at bordering columns of sublattices
 			// Get column of left right neighbor and perform bitwise or
 			const int sideOff = readBack ? (  (xoff   %xsl) == 0 ? xoff+xsl-1 : xoff-1 ):
@@ -398,7 +398,7 @@ __global__ void hamiltInitW_k(const int xsl,
 	}
 	return;
 }
-			
+
 template<int BDIM_X,
 	 int BDIM_Y,
 	 int TILE_X,
@@ -413,7 +413,7 @@ __device__ void loadTile(const int slX,
 			 const INT2_T *__restrict__ v,
 			       INT2_T tile[][TILE_X+2*FRAME_X]) {
 
-	// x,y block indices				
+	// x,y block indices
 	const int blkx = blockIdx.x;
 	const int blky = blockIdx.y;
 
@@ -502,13 +502,316 @@ __device__ void loadTile(const int slX,
 
 template<int BDIM_X,
 	 int BDIM_Y,
-	 int LOOP_X, 
+	 int LOOP_X,
 	 int LOOP_Y,
 	 int BITXSP,
 	 int COLOR,
 	 typename INT_T,
 	 typename INT2_T>
-__global__ 
+__global__
+void spinUpdate_open_bdry(const int devid,
+		      const long long seed,
+		      const int it,
+		      const int slX, // sublattice size X of one color (in words or word tuples??)
+		      const int slY, // sublattice size Y
+		      const long long begY,
+		      const long long dimX, // ld
+		      const float vExp[][5],
+		      const INT2_T *__restrict__ jDst,
+		      const INT2_T *__restrict__ vSrc,
+		            INT2_T *__restrict__ vDst) {
+
+	// calc how many spins per word
+	const int SPIN_X_WORD = 8*sizeof(INT_T)/BITXSP;
+
+	// x and y location in Thread lattice
+	const int tidx = threadIdx.x;
+	const int tidy = threadIdx.y;
+
+	// Initialize shared memory of Block size + neighbors
+	__shared__ INT2_T shTile[BDIM_Y*LOOP_Y+2][BDIM_X*LOOP_X+2];
+
+	// Load spin tiles of opposite lattice
+	loadTile<BDIM_X, BDIM_Y,
+		 BDIM_X*LOOP_X,
+		 BDIM_Y*LOOP_Y,
+		 1, 1, INT2_T>(slX, slY, begY, dimX, vSrc, shTile);
+
+	// __shExp[cur_s{0,1}][sum_s{0,1}] = __expf(-2*cur_s{-1,+1}*F{+1,-1}(sum_s{0,1})*INV_TEMP)
+	// Shared memory to store Exp
+	__shared__ float __shExp[2][5];
+
+	// for small lattices BDIM_X/Y may be smaller than 2/5
+	// Load exponentials into shared memory
+	#pragma unroll
+	for(int i = 0; i < 2; i += BDIM_Y) {
+		#pragma unroll
+		for(int j = 0; j < 5; j += BDIM_X) {
+			if (i+tidy < 2 && j+tidx < 5) {
+				__shExp[i+tidy][j+tidx] = vExp[i+tidy][j+tidx];
+			}
+		}
+	}
+	__syncthreads();
+
+	// get i and j location in block/thread grid
+	const int __i = blockIdx.y*BDIM_Y*LOOP_Y + tidy;
+	const int __j = blockIdx.x*BDIM_X*LOOP_X + tidx;
+
+	// calculate thread id
+	const long long tid = ((devid*gridDim.y + blockIdx.y)*gridDim.x + blockIdx.x)*BDIM_X*BDIM_Y +
+	                       threadIdx.y*BDIM_X + threadIdx.x;
+
+	// array of size BMULT_Y x BMULT_X of unsigned long long
+	INT2_T __me[LOOP_Y][LOOP_X];
+
+	// Store spin words in array
+	#pragma unroll
+	for(int i = 0; i < LOOP_Y; i++) {
+		#pragma unroll
+		for(int j = 0; j < LOOP_X; j++) {
+			__me[i][j] = vDst[(begY+__i+i*BDIM_Y)*dimX + __j+j*BDIM_X];
+		}
+	}
+
+	// initialize up, down center arrays
+	INT2_T __up[LOOP_Y][LOOP_X];
+	INT2_T __ct[LOOP_Y][LOOP_X];
+	INT2_T __dw[LOOP_Y][LOOP_X];
+
+	// Load up, down, center neighbors from other word lattice
+	#pragma unroll
+	for(int i = 0; i < LOOP_Y; i++) {
+		#pragma unroll
+		for(int j = 0; j < LOOP_X; j++) {
+			// up has +0 in y direction index as shift by additional row in load tile. Same row plus one accordingly and only one down a plus two.
+			// same x direction thread goes to plus one by additional entry in x direction in loadTile, too.
+			__up[i][j] = shTile[i*BDIM_Y +   tidy][j*BDIM_X + 1+tidx];
+			__ct[i][j] = shTile[i*BDIM_Y + 1+tidy][j*BDIM_X + 1+tidx];
+			__dw[i][j] = shTile[i*BDIM_Y + 2+tidy][j*BDIM_X + 1+tidx];
+		}
+	}
+
+	// BDIM_Y is power of two so row parity won't change across loops
+	// Check which color and whether row (__i) is even or odd
+	// Example: black lattice, even row --> readBack = 1
+	const int readBack = (COLOR == C_BLACK) ? !(__i%2) : (__i%2);
+
+	// Load missing side neighbors
+	INT2_T __sd[LOOP_Y][LOOP_X];
+
+	#pragma unroll
+	for(int i = 0; i < LOOP_Y; i++) {
+		#pragma unroll
+		for(int j = 0; j < LOOP_X; j++) {
+			// Hence with read back we are missing left neighbor and without readback missing right neighbor in center tile
+			__sd[i][j] = (readBack) ? shTile[i*BDIM_Y + 1+tidy][j*BDIM_X +   tidx]:
+						  shTile[i*BDIM_Y + 1+tidy][j*BDIM_X + 2+tidx];
+		}
+	}
+
+	// if read back true: Left neighbor of most left spin entry in me must be deduced from rightest spin in sd array and combined with remaining spins from ct.
+	// if read back false: right neighbor of most right spin entry in me must be deduced from leftest spin in sd array and combined with remaining spins from ct.
+
+	// Where we ended
+	// Rearrange left and right neighbors and update __sd[i,j] by filling it with the "right" neighbors
+	// which become left neighbors
+	if (readBack) {
+		#pragma unroll
+		// (BLACK LATTICE) Shift __sd such that it contains the left neighbors of the corresponding __me word
+		// (BLACK LATTICE) __ct then contains the right neighbors
+		for(int i = 0; i < LOOP_Y; i++) {
+			#pragma unroll
+			for(int j = 0; j < LOOP_X; j++) {
+				__sd[i][j].x = (__ct[i][j].x << BITXSP) | (__sd[i][j].y >> (8*sizeof(__sd[i][j].y)-BITXSP)); // looks like furthest spin on the left side is in binary rep most at most right position!
+				__sd[i][j].y = (__ct[i][j].y << BITXSP) | (__ct[i][j].x >> (8*sizeof(__ct[i][j].x)-BITXSP)); // only the x word needs left neighbor from the sd array. the y word gets its remaining spin from the x word.
+			}
+		}
+	} else {
+		// (BLACK LATTICE) Shift __sd such that it contains the right neighbors of the corresponding __me word
+		// (BLACK LATTICE) __ct then contains the left neighbors
+		#pragma unroll
+		for(int i = 0; i < LOOP_Y; i++) {
+			#pragma unroll
+			for(int j = 0; j < LOOP_X; j++) {
+				__sd[i][j].y = (__ct[i][j].y >> BITXSP) | (__sd[i][j].x << (8*sizeof(__sd[i][j].x)-BITXSP));
+				__sd[i][j].x = (__ct[i][j].x >> BITXSP) | (__ct[i][j].y << (8*sizeof(__ct[i][j].y)-BITXSP));
+			}
+		}
+	}
+
+	// When Hamiltonian is used
+	if (jDst != NULL) {
+		// Initialize array of size (1,2) to store the interaction terms
+		INT2_T __J[LOOP_Y][LOOP_X];
+
+		// Load interactions for current word tuple we are in
+		#pragma unroll
+		for(int i = 0; i < LOOP_Y; i++) {
+			#pragma unroll
+			for(int j = 0; j < LOOP_X; j++) {
+				__J[i][j] = jDst[(begY+__i+i*BDIM_Y)*dimX + __j+j*BDIM_X];
+			}
+		}
+
+
+		// Now the idea is to apply and operation with 0x088088..ull with 0 at positions of open boundary in correct direction and correct spin position in the word
+		// after the XOR and the shift the result looks like 0000|0001|0001|.. for each direction the results are than summed.
+		// Hence, by setting the 4 bit group to 0000 would result in not regarding this hamiltonian term.
+		// to set a 4 bit group to zero it is sufficient to execute a bitwise & with 0x088088..ull with 0 at the place of spins at the boundary
+		// There can be the case of all spins inside a word at the boundary 0x0000..ull or only one spin in direction left or right 0x0888..ull and 0x8888..0ull.
+		// The left right direction choice is dependent on the color and row parity.
+
+		// apply them
+		// the 4 bits of J codify: <upJ, downJ, leftJ, rightJ>
+		#pragma unroll
+		for(int i = 0; i < LOOP_Y; i++) {
+			#pragma unroll
+			for(int j = 0; j < LOOP_X; j++) {
+
+				// Perform bitwise or operation
+				// Column of left side gets the first bit in every group of four which is then shifted by 3 to the right left because spins are only
+				// at the fourth location
+				// XOR is then performed to change sign of spins
+
+				__up[i][j].x ^= (__J[i][j].x & 0x8888888888888888ull) >> 3;
+				__up[i][j].y ^= (__J[i][j].y & 0x8888888888888888ull) >> 3;
+
+				// get down interaction and shift it to the right place
+				__dw[i][j].x ^= (__J[i][j].x & 0x4444444444444444ull) >> 2;
+				__dw[i][j].y ^= (__J[i][j].y & 0x4444444444444444ull) >> 2;
+
+				if (readBack) {
+					// __sd[][] holds "left" spins
+					// __ct[][] holds "right" spins
+					// get left interaction and shift it to the right position
+					__sd[i][j].x ^= (__J[i][j].x & 0x2222222222222222ull) >> 1; // the shift is executed before the or operation!
+					__sd[i][j].y ^= (__J[i][j].y & 0x2222222222222222ull) >> 1;
+
+					// get right interaction and shift it to the right position
+					__ct[i][j].x ^= (__J[i][j].x & 0x1111111111111111ull);
+					__ct[i][j].y ^= (__J[i][j].y & 0x1111111111111111ull);
+
+
+					// if me word at left boundary of sublattice - only j=0 should give true here but I still have to check for it's value.
+					// only if black and even row possible left neighbor spin is boundary or if white and odd row left neighbor is boundary
+					if((__j+j*BDIM_X)%(slX)==0){
+						__sd[i][j].x &= 0x1111111111111110ull; // maps most right spin values in array to zero which should be interaction term for most left spin in lattice
+					}
+
+				} else {
+					// __ct[][] holds "left" spins
+					// __sd[][] holds "right" spins
+					// get left interaction and shift it to the right position and perform XOR
+					__ct[i][j].x ^= (__J[i][j].x & 0x2222222222222222ull) >> 1;
+					__ct[i][j].y ^= (__J[i][j].y & 0x2222222222222222ull) >> 1;
+
+					// get right interaction and perform XOR
+					__sd[i][j].x ^= (__J[i][j].x & 0x1111111111111111ull);
+					__sd[i][j].y ^= (__J[i][j].y & 0x1111111111111111ull);
+
+					// only if black and odd row or white even row the right neighbor may be a sublattice boundary
+					if((__j+j*BDIM_X+1)%(slX)==0){
+						__sd[i][j].y &= 0x0111111111111111ull; // maps most left spin values in array to zero which should be interaction term for most right spin in lattice
+					}
+				}
+			}
+		}
+	}
+
+	curandStatePhilox4_32_10_t st;
+	curand_init(seed, tid, static_cast<long long>(2*SPIN_X_WORD)*LOOP_X*LOOP_Y*(2*it+COLOR), &st);
+
+	// Add binaries up but why though
+	#pragma unroll
+	for(int i = 0; i < LOOP_Y; i++) {
+		#pragma unroll
+		for(int j = 0; j < LOOP_X; j++) {
+			// Check whether current row index on grid is multiple of sublattice dimension y. In this case the investigated word spins lay all at an upper edge of a sublattice.
+			// Hence, only the dw, sd, ct boundaries shall be included in this case.
+			if((__i+i*BDIM_Y)%slY==0){
+					__dw[i][j].x += __sd[i][j].x;
+					__ct[i][j].x += __dw[i][j].x;
+
+					__dw[i][j].y += __sd[i][j].y;
+					__ct[i][j].y += __dw[i][j].y;
+			}
+			// Check whether current row index on grid plus one is multiple of sublattice dimension y. In this case the investigated word spins lay all at an lower edge of a sublattice.
+			// Hence, only the up, sd, ct boundaries shall be included in this case.
+			else if((__i+i*BDIM_Y+1)%slY==0){
+					__ct[i][j].x += __up[i][j].x;
+					__ct[i][j].x += __sd[i][j].x;
+
+					__ct[i][j].y += __up[i][j].y;
+					__ct[i][j].y += __sd[i][j].y;
+			}
+			// For left an right boundaries was taken care of a step beforehand and thus one can sum over all neighbors here altough the word spins may include left or right boundaries of a sublattice.
+			else{
+				__ct[i][j].x += __up[i][j].x;
+				__dw[i][j].x += __sd[i][j].x;
+				__ct[i][j].x += __dw[i][j].x;
+
+				__ct[i][j].y += __up[i][j].y;
+				__dw[i][j].y += __sd[i][j].y;
+				__ct[i][j].y += __dw[i][j].y;
+			}
+		}
+	}
+
+	#pragma unroll
+	for(int i = 0; i < LOOP_Y; i++) {
+		#pragma unroll
+		for(int j = 0; j < LOOP_X; j++) {
+			#pragma unroll
+			for(int z = 0; z < 8*sizeof(INT_T); z += BITXSP) {
+
+				// do we need other exponential or random uniform distribution for boundary terms to be correct???
+
+				//__src tuple, perform bitwise operation with 4 bits of __me and 1111
+				// Extract information whether spin is up or down --> results in 0 or 1
+				const int2 __src = make_int2((__me[i][j].x >> z) & 0xF,
+							     (__me[i][j].y >> z) & 0xF);
+
+				// __sum tuple, perform bitwise operation with 4 bits of __ct and 1111
+				// Get number of up neighbors for each spin contained in the words --> results in range zero to 4
+				const int2 __sum = make_int2((__ct[i][j].x >> z) & 0xF,
+							     (__ct[i][j].y >> z) & 0xF);
+
+				// Create unsigned long long 1
+				const INT_T ONE = static_cast<INT_T>(1);
+
+				// perform logical XOR on the bits containing the spins
+				// updates the spins from -1 to 1 or vice versa
+				if (curand_uniform(&st) <= __shExp[__src.x][__sum.x]) {
+					__me[i][j].x ^= ONE << z;
+				}
+				if (curand_uniform(&st) <= __shExp[__src.y][__sum.y]) {
+					__me[i][j].y ^= ONE << z;
+				}
+			}
+		}
+	}
+
+	// Store updated spins in the lattice
+	#pragma unroll
+	for(int i = 0; i < LOOP_Y; i++) {
+		#pragma unroll
+		for(int j = 0; j < LOOP_X; j++) {
+			vDst[(begY + __i+i*BDIM_Y)*dimX + __j+j*BDIM_X] = __me[i][j];
+		}
+	}
+	return;
+}
+
+template<int BDIM_X,
+	 int BDIM_Y,
+	 int LOOP_X,
+	 int LOOP_Y,
+	 int BITXSP,
+	 int COLOR,
+	 typename INT_T,
+	 typename INT2_T>
+__global__
 void spinUpdateV_2D_k(const int devid,
 		      const long long seed,
 		      const int it,
@@ -523,21 +826,21 @@ void spinUpdateV_2D_k(const int devid,
 		      const INT2_T *__restrict__ jDst,
 		      const INT2_T *__restrict__ vSrc,
 		            INT2_T *__restrict__ vDst) {
-	
+
 	// calc how many spins per word
 	const int SPIN_X_WORD = 8*sizeof(INT_T)/BITXSP;
-	
+
 	// x and y location in Thread lattice
 	const int tidx = threadIdx.x;
 	const int tidy = threadIdx.y;
-	
+
 	// Initialize shared memory of Block size + neighbors
 	__shared__ INT2_T shTile[BDIM_Y*LOOP_Y+2][BDIM_X*LOOP_X+2];
-    
+
 	// Load spin tiles of opposite lattice
 	loadTile<BDIM_X, BDIM_Y,
 		 BDIM_X*LOOP_X,
-		 BDIM_Y*LOOP_Y, 
+		 BDIM_Y*LOOP_Y,
 		 1, 1, INT2_T>(slX, slY, begY, dimX, vSrc, shTile);
 
 	// __shExp[cur_s{0,1}][sum_s{0,1}] = __expf(-2*cur_s{-1,+1}*F{+1,-1}(sum_s{0,1})*INV_TEMP)
@@ -597,7 +900,7 @@ void spinUpdateV_2D_k(const int devid,
 	}
 
 	// BDIM_Y is power of two so row parity won't change across loops
-	// Check which color and whether row (__i) is even or odd 
+	// Check which color and whether row (__i) is even or odd
 	// Example: black lattice, even row --> readBack = 1
 	const int readBack = (COLOR == C_BLACK) ? !(__i%2) : (__i%2);
 
@@ -612,8 +915,8 @@ void spinUpdateV_2D_k(const int devid,
 						  shTile[i*BDIM_Y + 1+tidy][j*BDIM_X + 2+tidx];
 		}
 	}
-	
-	// Rearrange left and right neighbors and update __sd[i,j] by filling it with the "right" neighbors 
+
+	// Rearrange left and right neighbors and update __sd[i,j] by filling it with the "right" neighbors
 	// which become left neighbors
 	if (readBack) {
 		#pragma unroll
@@ -659,10 +962,10 @@ void spinUpdateV_2D_k(const int devid,
 		for(int i = 0; i < LOOP_Y; i++) {
 			#pragma unroll
 			for(int j = 0; j < LOOP_X; j++) {
-				
-				// Perform bitwise or operation 
+
+				// Perform bitwise or operation
 				// Column of left side gets the first bit in every group of four which is then shifted by 3 to the right left because spins are only
-				// at the fourth location 
+				// at the fourth location
 				// XOR is then performed to change sign of spins
 				__up[i][j].x ^= (__J[i][j].x & 0x8888888888888888ull) >> 3;
 				__up[i][j].y ^= (__J[i][j].y & 0x8888888888888888ull) >> 3;
@@ -735,7 +1038,7 @@ void spinUpdateV_2D_k(const int devid,
 				// Create unsigned long long 1
 				const INT_T ONE = static_cast<INT_T>(1);
 
-				// perform logical XOR on the bits containing the spins 
+				// perform logical XOR on the bits containing the spins
 				// updates the spins from -1 to 1 or vice versa
 				if (curand_uniform(&st) <= __shExp[__src.x][__sum.x]) {
 					__me[i][j].x ^= ONE << z;
@@ -795,11 +1098,11 @@ template<int BDIM_X,
 __global__ void getMagn_k(const long long n, // llen
 			  const INT_T *__restrict__ v, // black_d
 			        SUM_T *__restrict__ sum) {
-	
+
 	// Get number of spins per word
 	const int SPIN_X_WORD = 8*sizeof(INT_T)/BITXSP;
 
-	// nth = blockDim.x*gridDim.x??? 
+	// nth = blockDim.x*gridDim.x???
 	const long long nth = static_cast<long long>(blockDim.x)*gridDim.x;
 	const long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
 
@@ -838,14 +1141,14 @@ static void countSpins(const int ndev,
 			     unsigned long long **sum_d,
 			     unsigned long long *bsum,
 			     unsigned long long *wsum) {
-	
+
 	if (ndev == 1) {
 		CHECK_CUDA(cudaMemset(sum_d[0], 0, 2*sizeof(**sum_d)));
 		getMagn_k<THREADS, BIT_X_SPIN><<<redBlocks, THREADS>>>(llen, black_d, sum_d[0]);
 		CHECK_ERROR("getMagn_k");
 		CHECK_CUDA(cudaDeviceSynchronize());
-	} 
-	
+	}
+
 	else {
 		for(int i = 0; i < ndev; i++) {
 
@@ -943,7 +1246,7 @@ static void dumpLattice(const char *fprefix,
 
 template<int BDIM_X,
 	 int BDIM_Y,
-	 int LOOP_X, 
+	 int LOOP_X,
 	 int LOOP_Y,
 	 int BITXSP,
 	 typename INT_T,
@@ -959,37 +1262,37 @@ __global__ void calculate_average_magnetization(const int slX,
 			const int blocks_per_sly,
 			int *sum_per_block,
 			thrust::complex<float> *c_sum_per_block) {
-	
+
 	// calc how many spins per word
 	const int SPIN_X_WORD = 8*sizeof(INT_T)/BITXSP;
-	
+
 	// x and y location in Thread lattice
 	const int tidx = threadIdx.x;
 	const int tidy = threadIdx.y;
 
 	const int __i = blockIdx.y*BDIM_Y*LOOP_Y + tidy;
-	
+
 	// Initialize shared memory of Block size + neighbors
 	__shared__ INT2_T shTile_w[BDIM_Y*LOOP_Y+2][BDIM_X*LOOP_X+2];
 	__shared__ INT2_T shTile_b[BDIM_Y*LOOP_Y+2][BDIM_X*LOOP_X+2];
-	
+
 	// Store sum
 	__shared__ int sum[BDIM_Y*BDIM_X];
 	__shared__ thrust::complex<float> c_sum[BDIM_Y*BDIM_X];
-    
+
 	// Load spin tiles of lattice
 	loadTile<BDIM_X, BDIM_Y,
 		 BDIM_X*LOOP_X,
-		 BDIM_Y*LOOP_Y, 
+		 BDIM_Y*LOOP_Y,
 		 1, 1, INT2_T>(slX, slY, begY, dimX, v_white, shTile_w);
-	
+
 	__syncthreads();
 
 	loadTile<BDIM_X, BDIM_Y,
 		 BDIM_X*LOOP_X,
-		 BDIM_Y*LOOP_Y, 
+		 BDIM_Y*LOOP_Y,
 		 1, 1, INT2_T>(slX, slY, begY, dimX, v_black, shTile_b);
-	
+
 	__syncthreads();
 
 	// array of size BMULT_Y x BMULT_X of unsigned long long
@@ -1008,7 +1311,7 @@ __global__ void calculate_average_magnetization(const int slX,
 
 	int __cntP = 0;
 	int __cntN = 0;
-	
+
 	thrust::complex<float> run_sum = thrust::complex<float>(0.0, 0.0);
 
 	// Store spin words in array
@@ -1036,7 +1339,7 @@ __global__ void calculate_average_magnetization(const int slX,
 
 	for (int s = blockDim.y*blockDim.x/2; s>0; s >>= 1){
 		if (tidy*BDIM_X + tidx < s){
-			sum[tidy*BDIM_X + tidx] += sum[tidy*BDIM_X + tidx + s]; 
+			sum[tidy*BDIM_X + tidx] += sum[tidy*BDIM_X + tidx + s];
 			c_sum[tidy*BDIM_X + tidx] += c_sum[tidy*BDIM_X + tidx + s];
 		}
 		__syncthreads();
@@ -1049,23 +1352,23 @@ __global__ void calculate_average_magnetization(const int slX,
 
 		const int block_lin_y = blockIdx.y%blocks_per_sly;
 		const int block_lin_x = blockIdx.x%blocks_per_slx;
- 
+
 		sum_per_block[offset + block_lin_y*blocks_per_slx + block_lin_x] = sum[0];
 		c_sum_per_block[offset + block_lin_y*blocks_per_slx + block_lin_x] = c_sum[0];
 	}
-}	
+}
 
-__global__ void calculate_incremental_susceptibility(const int blocks_per_slx, 
+__global__ void calculate_incremental_susceptibility(const int blocks_per_slx,
 				const int blocks_per_sly,
 				const int num_lattices,
 				const int *d_sums_per_block,
 				const thrust::complex<float> *d_weighted_sums_per_block,
 				int *d_store_sum,
 				float *d_sus_k){
-	
+
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
 	int offset = tid*blocks_per_slx*blocks_per_sly;
-	
+
 	if (tid >= num_lattices) return;
 
 	int sum = 0;
@@ -1078,7 +1381,7 @@ __global__ void calculate_incremental_susceptibility(const int blocks_per_slx,
 
 	d_store_sum[tid] += pow(abs(sum), 2);
 	d_sus_k[tid] += thrust::abs(c_sum)*thrust::abs(c_sum);
-}				
+}
 
 
 int main(int argc, char **argv) {
@@ -1088,7 +1391,7 @@ int main(int argc, char **argv) {
 	unsigned long long *v_d=NULL;
 	unsigned long long *black_d=NULL;
 	unsigned long long *white_d=NULL;
-	
+
 	// Interaction terms
 	unsigned long long *ham_d=NULL;
 	unsigned long long *hamB_d=NULL;
@@ -1125,7 +1428,7 @@ int main(int argc, char **argv) {
 
 	// Should we use sublattices or not
 	int useSubLatt = 0;
-	
+
 	// Size of sublattices per GPU
 	int XSL = 0;
 	int YSL = 0;
@@ -1196,7 +1499,7 @@ int main(int argc, char **argv) {
 				break;
 			case '?':
 				exit(EXIT_FAILURE);
-			
+
 			default:
 				fprintf(stderr, "unknown option: %c\n", och);
 				exit(EXIT_FAILURE);
@@ -1212,7 +1515,7 @@ int main(int argc, char **argv) {
 			if (Y && !(Y % (2*SPIN_X_WORD*2*BLOCK_X*BMULT_X))) {
 				X = Y;
 			}
-			// else set X equal to this 
+			// else set X equal to this
 			else {
 				X = 2*SPIN_X_WORD*2*BLOCK_X*BMULT_X;
 			}
@@ -1222,7 +1525,7 @@ int main(int argc, char **argv) {
 			// if x is divisable by BLOCK_Y*BMULT_Y, set Y=X
 			if (!(X%(BLOCK_Y*BMULT_Y))) {
 				Y = X;
-			} 
+			}
 			// else set Y = BLOCK_Y*BMULT_Y
 			else {
 				Y = BLOCK_Y*BMULT_Y;
@@ -1242,7 +1545,7 @@ int main(int argc, char **argv) {
 		exit(EXIT_FAILURE);
 	}
 
-	// Check if we want to use sublattices	
+	// Check if we want to use sublattices
 	if (useSubLatt) {
 		// Same as above but for sublattice sizes
 		if (!XSL || !YSL) {
@@ -1280,7 +1583,7 @@ int main(int argc, char **argv) {
 		// Set number of Sublattices per GPU
 		NSLX = X / XSL;
 		NSLY = Y / YSL;
-	} 
+	}
 
 	// If no sublattice
 	else {
@@ -1332,7 +1635,7 @@ int main(int argc, char **argv) {
 		for(int i = 0; i < ndev; i++) {
 			printf("GPU %2d:", i);
 			// Set index of GPUs
-			CHECK_CUDA(cudaSetDevice(i)); 
+			CHECK_CUDA(cudaSetDevice(i));
 			for(int j = 0; j < ndev; j++) {
 				int access = 1;
 				// Check if GPU i can access memory of GPU j
@@ -1358,7 +1661,7 @@ int main(int argc, char **argv) {
 			exit(EXIT_FAILURE);
 		}
 	}
-	
+
 	// Size of X-dimension of the word lattice per GPU
 	size_t lld = (X/2)/SPIN_X_WORD;
 
@@ -1419,7 +1722,7 @@ int main(int argc, char **argv) {
 	// unsigned long long cntPos;
 	// unsigned long long cntNeg;
 
-	// pointer array of length MAX_GPU 
+	// pointer array of length MAX_GPU
 	unsigned long long *sum_d[MAX_GPU];
 	
 	int *d_sum_per_block, *d_sus_0;
@@ -1431,7 +1734,7 @@ int main(int argc, char **argv) {
 		//Allocate memory of size equal to whole lattice and set to 0
 		CHECK_CUDA(cudaMalloc(&v_d, llen*sizeof(*v_d)));
 		CHECK_CUDA(cudaMemset(v_d, 0, llen*sizeof(*v_d)));
-		
+
 		// allocate two unsigned long longs
 		CHECK_CUDA(cudaMalloc(&sum_d[0], 2*sizeof(**sum_d)));
 
@@ -1517,7 +1820,7 @@ int main(int argc, char **argv) {
 	// Set pointer to start of black and white lattice
 	black_d = v_d;
 	white_d = v_d + llen/2;
-	
+
 	hamB_d = ham_d;
 	hamW_d = ham_d + llen/2;
 
@@ -1590,7 +1893,7 @@ int main(int argc, char **argv) {
 					unsigned long long><<<grid, block>>>((XSL/2)/SPIN_X_WORD/2, YSL, i*Y, lld/2,
 									reinterpret_cast<ulonglong2 *>(hamB_d),
 									reinterpret_cast<ulonglong2 *>(hamW_d));
-		
+
 		// Init black lattice, lld/2 because of tuples
 		latticeInit_k<BLOCK_X, BLOCK_Y,
 			      BMULT_X, BMULT_Y,
@@ -1600,7 +1903,7 @@ int main(int argc, char **argv) {
 								   0, i*Y, lld/2,
 								   reinterpret_cast<ulonglong2 *>(black_d));
 		CHECK_ERROR("initLattice_k");
-		
+
 		// Init white lattice
 		latticeInit_k<BLOCK_X, BLOCK_Y,
 			      BMULT_X, BMULT_Y,
@@ -1726,7 +2029,7 @@ int main(int argc, char **argv) {
 									      reinterpret_cast<ulonglong2 *>(black_d),
 									      reinterpret_cast<ulonglong2 *>(white_d));
 		}
-	
+
 		// Cuda device Synchronize
 		if (ndev > 1) {
 			for(int i = 0; i < ndev; i++) {
@@ -1782,7 +2085,7 @@ int main(int argc, char **argv) {
 	if (ndev == 1) {
 		CHECK_CUDA(cudaEventRecord(stop, 0));
 		CHECK_CUDA(cudaEventSynchronize(stop));
-	} 
+	}
 	else {
 		for(int i = 0; i < ndev; i++) {
 			CHECK_CUDA(cudaSetDevice(i));
@@ -1826,4 +2129,3 @@ int main(int argc, char **argv) {
 
 	return 0;
 }
-

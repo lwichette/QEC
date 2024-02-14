@@ -106,11 +106,12 @@ template<int BDIM_X,
 	 typename INT_T,
 	 typename INT2_T>
 __global__  void latticeInit_k(const int devid,
-			       const long long seed,
-                               const int it,
-                               const long long begY,
-                               const long long dimX, // ld
-                                     INT2_T *__restrict__ vDst) {
+			        const long long seed,
+                    const int it,
+                    const long long begY,
+                    const long long dimX, // ld
+                    INT2_T *__restrict__ vDst,
+					bool up) {
 
 	// i linearized y position in blocks and threads
 	// j linearized x position in blocks and threads
@@ -132,34 +133,50 @@ __global__  void latticeInit_k(const int devid,
 	// tmp 2D array of type unsigned long long of size (1x2)
 	INT2_T __tmp[LOOP_Y][LOOP_X];
 
-	// Initialize array with (0,0)
-	#pragma unroll //compiler more efficient
-	for(int i = 0; i < LOOP_Y; i++) {
-		#pragma unroll
-		for(int j = 0; j < LOOP_X; j++) {
-			__tmp[i][j] = __mymake_int2(INT_T(0),INT_T(0));
+	if (up){
+		// Initialize array with (0,0)
+		#pragma unroll //compiler more efficient
+		for(int i = 0; i < LOOP_Y; i++) {
+			#pragma unroll
+			for(int j = 0; j < LOOP_X; j++) {
+				__tmp[i][j] = __mymake_int2(INT_T(0x1111111111111111),INT_T(0x1111111111111111));
+			}
 		}
 	}
 
-	//INT = Unsigned long long
-	//INT2 == (ull, ull)
-	// BIT X SP = 4
-	#pragma unroll
-	for(int i = 0; i < LOOP_Y; i++) {
-		#pragma unroll
-		for(int j = 0; j < LOOP_X; j++) {
+	else{
+		// Initialize array with (0,0)
+		#pragma unroll //compiler more efficient
+		for(int i = 0; i < LOOP_Y; i++) {
 			#pragma unroll
-			for(int k = 0; k < 8*sizeof(INT_T); k += BITXSP) {
-				// Logical or plus shifting --> Initialize spins to up or down
-				if (curand_uniform(&st) < 0.5f) {
-					__tmp[i][j].x |= INT_T(1) << k;
-				}
-				if (curand_uniform(&st) < 0.5f) {
-					__tmp[i][j].y |= INT_T(1) << k;
+			for(int j = 0; j < LOOP_X; j++) {
+				__tmp[i][j] = __mymake_int2(INT_T(0),INT_T(0));
+			}
+		}
+
+		//INT = Unsigned long long
+		//INT2 == (ull, ull)
+		// BIT X SP = 4
+		#pragma unroll
+		for(int i = 0; i < LOOP_Y; i++) {
+			#pragma unroll
+			for(int j = 0; j < LOOP_X; j++) {
+				#pragma unroll
+				for(int k = 0; k < 8*sizeof(INT_T); k += BITXSP) {
+					// Logical or plus shifting --> Initialize spins to up or down
+					if (curand_uniform(&st) < 0.5f) {
+						__tmp[i][j].x |= INT_T(1) << k;
+					}
+					if (curand_uniform(&st) < 0.5f) {
+						__tmp[i][j].y |= INT_T(1) << k;
+					}
 				}
 			}
 		}
 	}
+
+
+
 
 	// Set values in overall array
 	#pragma unroll
@@ -514,9 +531,12 @@ void spinUpdate_open_bdry(const int devid,
 		      const int it,
 		      const int slX, // sublattice size X of one color (in words or word tuples??)
 		      const int slY, // sublattice size Y
+			  const int blocks_per_slx,
+			  const int blocks_per_sly,
+			  const int NSLX,
 		      const long long begY,
 		      const long long dimX, // ld
-		      const float vExp[][5],
+		      const float vExp[][2][5],
 		      const INT2_T *__restrict__ jDst,
 		      const INT2_T *__restrict__ vSrc,
 		            INT2_T *__restrict__ vDst) {
@@ -543,12 +563,15 @@ void spinUpdate_open_bdry(const int devid,
 
 	// for small lattices BDIM_X/Y may be smaller than 2/5
 	// Load exponentials into shared memory
+	const int sly = blockIdx.y/blocks_per_sly;
+	const int slx = blockIdx.x/blocks_per_slx;
+	
 	#pragma unroll
 	for(int i = 0; i < 2; i += BDIM_Y) {
 		#pragma unroll
 		for(int j = 0; j < 5; j += BDIM_X) {
 			if (i+tidy < 2 && j+tidx < 5) {
-				__shExp[i+tidy][j+tidx] = vExp[i+tidy][j+tidx];
+				__shExp[i+tidy][j+tidx] = vExp[sly*NSLX+slx][i+tidy][j+tidx];
 			}
 		}
 	}
@@ -1181,7 +1204,7 @@ static void dumpLattice(const char *fprefix,
 		        const size_t llenLoc,
 		        const unsigned long long *v_d) {
 
-	char fname[256];
+	char fname[263];
 
 	if (ndev == 1) {
 		unsigned long long *v_h = (unsigned long long *)Malloc(llen*sizeof(*v_h));
@@ -1437,6 +1460,10 @@ int main(int argc, char **argv) {
 	int NSLX = 1;
 	int NSLY = 1;
 
+	int num_errors = 0;
+
+	bool up;
+
 	int och;
     while (1) {
         int option_index = 0;
@@ -1446,16 +1473,18 @@ int main(int argc, char **argv) {
 			{"XSL", required_argument, 0, 1},
 			{"YSL", required_argument, 0, 2},
 			{"prob", required_argument, 0, 'p'},
+			{"nie", required_argument, 0, 'e'},
 			{"nw", required_argument, 0, 'w'},
             {"nit", required_argument, 0, 'n'},
 			{"temp", required_argument, 0, 't'},
 			{"step", required_argument, 0, 's'},
+			{"up", required_argument, 0, 'u'},
             {"ndev", required_argument, 0, 'd'},
 			{"out", no_argument, 0, 'o'},
             {0, 0, 0, 0}
         };
 
-        och = getopt_long(argc, argv, "x:y:p:w:n:t:s:do:", long_options, &option_index);
+        och = getopt_long(argc, argv, "x:y:p:w:n:t:s:u:do:", long_options, &option_index);
         if (och == -1)
             break;
 
@@ -1471,6 +1500,9 @@ int main(int argc, char **argv) {
             case 'p':
                 hamiltPerc1 = atof(optarg);
                 break;
+			case 'e':
+                num_errors = atoi(optarg);
+                break;
 			case 'w':
                 nwarmup = atoi(optarg);
                 break;
@@ -1485,6 +1517,9 @@ int main(int argc, char **argv) {
 				break;
 			case 's':
 				step = atof(optarg);
+				break;
+			case 'u':
+				up = (atoi(optarg)==1) ? true : false;
 				break;
 			case 'o':
 				dumpOut = 1;
@@ -1684,9 +1719,9 @@ int main(int argc, char **argv) {
 	const int num_lattices = NSLX*NSLY;
 	const int num_blocks = grid.x*grid.y;
 	
-	float temp_range[num_lattices];
+	float temp_range[ndev*num_lattices];
 
-	for (int i=0; i < num_lattices; i++){
+	for (int i=0; i < ndev*num_lattices; i++){
 		temp_range[i] = temp + i*step;
 	}
 
@@ -1873,54 +1908,6 @@ int main(int argc, char **argv) {
 	CHECK_CUDA(cudaEventCreate(&start));
 	CHECK_CUDA(cudaEventCreate(&stop));
 
-	for(int i = 0; i < ndev; i++) {
-
-		CHECK_CUDA(cudaSetDevice(i));
-
-		// Initialize interaction terms
-		hamiltInitB_k<BLOCK_X, BLOCK_Y,
-			BMULT_X, BMULT_Y,
-			BIT_X_SPIN,
-			unsigned long long><<<grid, block>>>(i,
-							hamiltPerc1,
-							seed+1, // just use a different seed
-							i*Y, lld/2,
-							reinterpret_cast<ulonglong2 *>(hamB_d));
-
-		hamiltInitW_k<BLOCK_X, BLOCK_Y,
-					BMULT_X, BMULT_Y,
-					BIT_X_SPIN,
-					unsigned long long><<<grid, block>>>((XSL/2)/SPIN_X_WORD/2, YSL, i*Y, lld/2,
-									reinterpret_cast<ulonglong2 *>(hamB_d),
-									reinterpret_cast<ulonglong2 *>(hamW_d));
-
-		// Init black lattice, lld/2 because of tuples
-		latticeInit_k<BLOCK_X, BLOCK_Y,
-			      BMULT_X, BMULT_Y,
-			      BIT_X_SPIN, C_BLACK,
-			      unsigned long long><<<grid, block>>>(i,
-								   seed,
-								   0, i*Y, lld/2,
-								   reinterpret_cast<ulonglong2 *>(black_d));
-		CHECK_ERROR("initLattice_k");
-
-		// Init white lattice
-		latticeInit_k<BLOCK_X, BLOCK_Y,
-			      BMULT_X, BMULT_Y,
-			      BIT_X_SPIN, C_WHITE,
-			      unsigned long long><<<grid, block>>>(i,
-								   seed,
-								   0, i*Y, lld/2,
-								   reinterpret_cast<ulonglong2 *>(white_d));
-		CHECK_ERROR("initLattice_k");
-	}
-
-	for(int i = 0; i < ndev; i++) {
-		CHECK_CUDA(cudaSetDevice(i));
-		CHECK_CUDA(cudaDeviceSynchronize());
-	}
-
-
 	// Timing
 	double __t0;
 	if (ndev == 1) {
@@ -1928,141 +1915,194 @@ int main(int argc, char **argv) {
 	} else {
 		__t0 = Wtime();
 	}
-	
-	printf("\nPerfom %d Monte Carlo warm up steps \n", nwarmup);
-	// Perform Monte Carlo warm-up
-	for(int j = 0; j < nwarmup; j++) {
-		for(int i = 0; i < ndev; i++) {
-			CHECK_CUDA(cudaSetDevice(i));
-			// Update black lattice
-			spinUpdateV_2D_k<BLOCK_X, BLOCK_Y,
-					 BMULT_X, BMULT_Y,
-					 BIT_X_SPIN, C_BLACK,
-					 unsigned long long><<<grid, block>>>(i,
-							 		      seed,
-									      j+1,
-									      (XSL/2)/SPIN_X_WORD/2, YSL, blocks_per_slx, blocks_per_sly, NSLX,
-									      i*Y,  lld/2,
-							 		      reinterpret_cast<float (*)[2][5]>(exp_d[i]),
-									      reinterpret_cast<ulonglong2 *>(hamW_d),
-									      reinterpret_cast<ulonglong2 *>(white_d),
-									      reinterpret_cast<ulonglong2 *>(black_d));
-		}
 
-		// Device Synchronize
-		if (ndev > 1) {
-			for(int i = 0; i < ndev; i++) {
-				CHECK_CUDA(cudaSetDevice(i));
-				CHECK_CUDA(cudaDeviceSynchronize());
-			}
-		}
+	printf("Started error loop \n");
 
-		// Update white lattice
-		for(int i = 0; i < ndev; i++) {
-			CHECK_CUDA(cudaSetDevice(i));
-			spinUpdateV_2D_k<BLOCK_X, BLOCK_Y,
-					 BMULT_X, BMULT_Y,
-					 BIT_X_SPIN, C_WHITE,
-					 unsigned long long><<<grid, block>>>(i,
-							 		      seed,
-									      j+1,
-									      (XSL/2)/SPIN_X_WORD/2, YSL, blocks_per_slx, blocks_per_sly, NSLX,
-									      i*Y, lld/2,
-							 		      reinterpret_cast<float (*)[2][5]>(exp_d[i]),
-									      reinterpret_cast<ulonglong2 *>(hamB_d),
-									      reinterpret_cast<ulonglong2 *>(black_d),
-									      reinterpret_cast<ulonglong2 *>(white_d));
-		}
-
-		// Cuda device Synchronize
-		if (ndev > 1) {
-			for(int i = 0; i < ndev; i++) {
-				CHECK_CUDA(cudaSetDevice(i));
-				CHECK_CUDA(cudaDeviceSynchronize());
-			}
-		}
-	}
-
-	printf("\nPerfom %d Monte Carlo steps \n", nsteps);
-
-	// Perform Monte Carlo updates
-	for(int j = 0; j < nsteps; j++) {
+	for (int e = 0; e < num_errors; e++){
+		printf("Error %u\n", e);
 		for(int i = 0; i < ndev; i++) {
 
 			CHECK_CUDA(cudaSetDevice(i));
-			// Update black lattice
-			spinUpdateV_2D_k<BLOCK_X, BLOCK_Y,
-					 BMULT_X, BMULT_Y,
-					 BIT_X_SPIN, C_BLACK,
-					 unsigned long long><<<grid, block>>>(i,
-							 		      seed,
-									      j+1,
-									      (XSL/2)/SPIN_X_WORD/2, YSL, blocks_per_slx, blocks_per_sly, NSLX,
-									      i*Y, lld/2,
-							 		      reinterpret_cast<float (*)[2][5]>(exp_d[i]),
-									      reinterpret_cast<ulonglong2 *>(hamW_d),
-									      reinterpret_cast<ulonglong2 *>(white_d),
-									      reinterpret_cast<ulonglong2 *>(black_d));
-		}
-
-		// Device Synchronize
-		if (ndev > 1) {
-			for(int i = 0; i < ndev; i++) {
-				CHECK_CUDA(cudaSetDevice(i));
-				CHECK_CUDA(cudaDeviceSynchronize());
-			}
-		}
-
-		// Update white lattice
-		for(int i = 0; i < ndev; i++) {
-			CHECK_CUDA(cudaSetDevice(i));
-			spinUpdateV_2D_k<BLOCK_X, BLOCK_Y,
-					 BMULT_X, BMULT_Y,
-					 BIT_X_SPIN, C_WHITE,
-					 unsigned long long><<<grid, block>>>(i,
-							 		      seed,
-									      j+1,
-									      (XSL/2)/SPIN_X_WORD/2, YSL, blocks_per_slx, blocks_per_sly, NSLX,
-									      i*Y, lld/2,
-							 		      reinterpret_cast<float (*)[2][5]>(exp_d[i]),
-									      reinterpret_cast<ulonglong2 *>(hamB_d),
-									      reinterpret_cast<ulonglong2 *>(black_d),
-									      reinterpret_cast<ulonglong2 *>(white_d));
-		}
-
-		// Cuda device Synchronize
-		if (ndev > 1) {
-			for(int i = 0; i < ndev; i++) {
-				CHECK_CUDA(cudaSetDevice(i));
-				CHECK_CUDA(cudaDeviceSynchronize());
-			}
-		}
-
-		for (int i = 0; i < ndev; i++){
-			CHECK_CUDA(cudaSetDevice(i));
-			calculate_average_magnetization<BLOCK_X, BLOCK_Y,
+			
+			// Initialize interaction terms
+			hamiltInitB_k<BLOCK_X, BLOCK_Y,
 				BMULT_X, BMULT_Y,
-				BIT_X_SPIN, unsigned long long><<<grid, block>>>(XSL, YSL, i*Y, lld/2,
-							reinterpret_cast<ulonglong2 *>(white_d), 
-							reinterpret_cast<ulonglong2 *>(black_d),
-							reinterpret_cast<thrust::complex<float> (*)>(weighted_exp_d[i]),
-							blocks_per_slx,
-							blocks_per_sly,
-							d_sum_per_block + i*num_blocks,
-							d_weighted_sum_per_blocks + i*num_blocks);
-		
-			calculate_incremental_susceptibility<<<1, num_lattices>>>(blocks_per_slx, blocks_per_sly, 
-							num_lattices, d_sum_per_block + i*num_blocks, 
-							d_weighted_sum_per_blocks + i*num_blocks, 
-							d_sus_0 + i*num_lattices, 
-							d_sus_k + i*num_lattices);
+				BIT_X_SPIN,
+				unsigned long long><<<grid, block>>>(i,
+								hamiltPerc1,
+								seed+1, // just use a different seed
+								i*Y, lld/2,
+								reinterpret_cast<ulonglong2 *>(hamB_d));
+
+			hamiltInitW_k<BLOCK_X, BLOCK_Y,
+						BMULT_X, BMULT_Y,
+						BIT_X_SPIN,
+						unsigned long long><<<grid, block>>>((XSL/2)/SPIN_X_WORD/2, YSL, i*Y, lld/2,
+										reinterpret_cast<ulonglong2 *>(hamB_d),
+										reinterpret_cast<ulonglong2 *>(hamW_d));
+
+			// Init black lattice, lld/2 because of tuples
+			latticeInit_k<BLOCK_X, BLOCK_Y,
+					BMULT_X, BMULT_Y,
+					BIT_X_SPIN, C_BLACK,
+					unsigned long long><<<grid, block>>>(i,
+									seed,
+									0, i*Y, lld/2,
+									reinterpret_cast<ulonglong2 *>(black_d),
+									up);
+			CHECK_ERROR("initLattice_k");
+
+			// Init white lattice
+			latticeInit_k<BLOCK_X, BLOCK_Y,
+					BMULT_X, BMULT_Y,
+					BIT_X_SPIN, C_WHITE,
+					unsigned long long><<<grid, block>>>(i,
+									seed,
+									0, i*Y, lld/2,
+									reinterpret_cast<ulonglong2 *>(white_d),
+									up);
+			CHECK_ERROR("initLattice_k");
 		}
 
-		// Cuda device Synchronize
-		if (ndev > 1) {
+		for(int i = 0; i < ndev; i++) {
+			CHECK_CUDA(cudaSetDevice(i));
+			CHECK_CUDA(cudaDeviceSynchronize());
+		}
+		
+		// Perform Monte Carlo warm-up
+		for(int j = 0; j < nwarmup; j++) {
 			for(int i = 0; i < ndev; i++) {
 				CHECK_CUDA(cudaSetDevice(i));
-				CHECK_CUDA(cudaDeviceSynchronize());
+				// Update black lattice
+				spinUpdate_open_bdry<BLOCK_X, BLOCK_Y,
+						BMULT_X, BMULT_Y,
+						BIT_X_SPIN, C_BLACK,
+						unsigned long long><<<grid, block>>>(i,
+											seed,
+											j+1,
+											(XSL/2)/SPIN_X_WORD/2, YSL, blocks_per_slx, blocks_per_sly, NSLX,
+											i*Y,  lld/2,
+											reinterpret_cast<float (*)[2][5]>(exp_d[i]),
+											reinterpret_cast<ulonglong2 *>(hamW_d),
+											reinterpret_cast<ulonglong2 *>(white_d),
+											reinterpret_cast<ulonglong2 *>(black_d));
+			}
+
+			// Device Synchronize
+			if (ndev > 1) {
+				for(int i = 0; i < ndev; i++) {
+					CHECK_CUDA(cudaSetDevice(i));
+					CHECK_CUDA(cudaDeviceSynchronize());
+				}
+			}
+
+			// Update white lattice
+			for(int i = 0; i < ndev; i++) {
+				CHECK_CUDA(cudaSetDevice(i));
+				spinUpdate_open_bdry<BLOCK_X, BLOCK_Y,
+						BMULT_X, BMULT_Y,
+						BIT_X_SPIN, C_WHITE,
+						unsigned long long><<<grid, block>>>(i,
+											seed,
+											j+1,
+											(XSL/2)/SPIN_X_WORD/2, YSL, blocks_per_slx, blocks_per_sly, NSLX,
+											i*Y, lld/2,
+											reinterpret_cast<float (*)[2][5]>(exp_d[i]),
+											reinterpret_cast<ulonglong2 *>(hamB_d),
+											reinterpret_cast<ulonglong2 *>(black_d),
+											reinterpret_cast<ulonglong2 *>(white_d));
+			}
+
+			// Cuda device Synchronize
+			if (ndev > 1) {
+				for(int i = 0; i < ndev; i++) {
+					CHECK_CUDA(cudaSetDevice(i));
+					CHECK_CUDA(cudaDeviceSynchronize());
+				}
+			}
+		}
+		
+		
+		// Perform Monte Carlo updates
+		for(int j = 0; j < nsteps; j++) {
+		
+			for(int i = 0; i < ndev; i++) {
+
+				CHECK_CUDA(cudaSetDevice(i));
+				// Update black lattice
+				spinUpdate_open_bdry<BLOCK_X, BLOCK_Y,
+						BMULT_X, BMULT_Y,
+						BIT_X_SPIN, C_BLACK,
+						unsigned long long><<<grid, block>>>(i,
+											seed,
+											j+1,
+											(XSL/2)/SPIN_X_WORD/2, YSL, blocks_per_slx, blocks_per_sly, NSLX,
+											i*Y, lld/2,
+											reinterpret_cast<float (*)[2][5]>(exp_d[i]),
+											reinterpret_cast<ulonglong2 *>(hamW_d),
+											reinterpret_cast<ulonglong2 *>(white_d),
+											reinterpret_cast<ulonglong2 *>(black_d));
+			}
+
+			// Device Synchronize
+			if (ndev > 1) {
+				for(int i = 0; i < ndev; i++) {
+					CHECK_CUDA(cudaSetDevice(i));
+					CHECK_CUDA(cudaDeviceSynchronize());
+				}
+			}
+
+			// Update white lattice
+			for(int i = 0; i < ndev; i++) {
+				CHECK_CUDA(cudaSetDevice(i));
+				spinUpdate_open_bdry<BLOCK_X, BLOCK_Y,
+						BMULT_X, BMULT_Y,
+						BIT_X_SPIN, C_WHITE,
+						unsigned long long><<<grid, block>>>(i,
+											seed,
+											j+1,
+											(XSL/2)/SPIN_X_WORD/2, YSL, blocks_per_slx, blocks_per_sly, NSLX,
+											i*Y, lld/2,
+											reinterpret_cast<float (*)[2][5]>(exp_d[i]),
+											reinterpret_cast<ulonglong2 *>(hamB_d),
+											reinterpret_cast<ulonglong2 *>(black_d),
+											reinterpret_cast<ulonglong2 *>(white_d));
+			}
+
+			// Cuda device Synchronize
+			if (ndev > 1) {
+				for(int i = 0; i < ndev; i++) {
+					CHECK_CUDA(cudaSetDevice(i));
+					CHECK_CUDA(cudaDeviceSynchronize());
+				}
+			}
+		
+			for (int i = 0; i < ndev; i++){
+				CHECK_CUDA(cudaSetDevice(i));
+				calculate_average_magnetization<BLOCK_X, BLOCK_Y,
+					BMULT_X, BMULT_Y,
+					BIT_X_SPIN, unsigned long long><<<grid, block>>>(XSL, YSL, i*Y, lld/2,
+								reinterpret_cast<ulonglong2 *>(white_d), 
+								reinterpret_cast<ulonglong2 *>(black_d),
+								reinterpret_cast<thrust::complex<float> (*)>(weighted_exp_d[i]),
+								blocks_per_slx,
+								blocks_per_sly,
+								d_sum_per_block + i*num_blocks,
+								d_weighted_sum_per_blocks + i*num_blocks);
+			
+				calculate_incremental_susceptibility<<<1, num_lattices>>>(blocks_per_slx, blocks_per_sly, 
+								num_lattices, d_sum_per_block + i*num_blocks, 
+								d_weighted_sum_per_blocks + i*num_blocks, 
+								d_sus_0 + i*num_lattices, 
+								d_sus_k + i*num_lattices);
+			}
+
+			// Cuda device Synchronize
+			if (ndev > 1) {
+				for(int i = 0; i < ndev; i++) {
+					CHECK_CUDA(cudaSetDevice(i));
+					CHECK_CUDA(cudaDeviceSynchronize());
+				}
 			}
 		}
 	}
@@ -2075,11 +2115,8 @@ int main(int argc, char **argv) {
 	CHECK_CUDA(cudaMemcpy(h_sus_k, d_sus_k, ndev*num_lattices*sizeof(*d_sus_k), cudaMemcpyDeviceToHost));
 	
 	for (int i = 0; i < ndev*num_lattices; i++){
-		//cout << h_sums_per_block[i] << endl;
-		cout << h_sus_0[i] << " k: " << h_sus_k[i] << endl;
-		//cout << 1/(2*sin(M_PI/XSL))*sqrt(h_sus_0[i]/h_sus_k[i] - 1);
+		cout << "Temperature " << temp_range[i] << " Result " << 1/(2*sin(M_PI/XSL))*sqrt(h_sus_0[i]/h_sus_k[i] - 1) << endl;
 	}
-
 
 	// Finish update steps
 	if (ndev == 1) {
@@ -2099,7 +2136,7 @@ int main(int argc, char **argv) {
 	} else {
 		et = __t0*1.0E+3;
 	}
-
+	
 	// Write lattice
 	if (dumpOut) {
 		char fname[256];

@@ -4,6 +4,7 @@
         "iostream": "cpp",
         "cmath": "cpp",
         "complex": "cpp",
-        "ostream": "cpp"
+        "ostream": "cpp",
+        "chrono": "cpp"
     }
 }

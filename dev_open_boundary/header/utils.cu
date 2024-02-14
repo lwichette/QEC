@@ -187,7 +187,7 @@ void write_updated_lattices(signed char *lattice_b, signed char *lattice_w, long
     // Write each element of the black lattice vector to the file
     for (const auto& element : h_lattice_b) {
         char mappedValue = (element == 1) ? '1' : '0';
-        outFile_b << mappedValue << " ";
+        outFile_b << mappedValue;
     }
     // Close the black lattice file
     outFile_b.close();
@@ -201,7 +201,7 @@ void write_updated_lattices(signed char *lattice_b, signed char *lattice_w, long
     // Write each element of the white lattice vector to the file
     for (const auto& element : h_lattice_w) {
         char mappedValue = (element == 1) ? '1' : '0';
-        outFile_w << mappedValue << " ";
+        outFile_w << mappedValue;
     }
     // Close the white lattice file
     outFile_w.close();

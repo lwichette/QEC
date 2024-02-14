@@ -17,7 +17,7 @@
             "type": "cuda-gdb",
             "request": "launch",
             "program": "${workspaceFolder}/optim/cuIsing",
-            "args": "--X 2048 --Y 2048 --XSL 256 --YSL 256 --prob 0.1 --nw 0 --nit 0 --temp 1 --ndev 1 --out"
+            "args": "--X 2048 --Y 2048 --XSL 256 --YSL 256 --prob 0.1 --nw 1 --nit 0 --temp 1 --step 0.1 --ndev 1 --out"
         },
         
         {

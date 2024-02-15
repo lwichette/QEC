@@ -34,6 +34,7 @@
 #include "utils.h"
 #include <iostream>
 #include <vector>
+#include <chrono>
 
 using namespace std;
 
@@ -60,11 +61,11 @@ using namespace std;
 // 2*SPIN_X_WORD*2*BLOCK_X*BMULT_X
 // BMULT_X Block Multiple X Direction
 // Unclear
-#define BLOCK_X (2)
-#define BLOCK_Y (8)
+#define BLOCK_X (16)
+#define BLOCK_Y (16)
 
 // Unclear
-#define BMULT_X (1)
+#define BMULT_X (2)
 #define BMULT_Y (1)
 
 // Maximum number of GPUs
@@ -1994,12 +1995,14 @@ int main(int argc, char **argv) {
 		__t0 = Wtime();
 	}
 	int j;
-
+	
+	auto start_time = std::chrono::steady_clock::now();
 	// Perform Monte Carlo updates
 	for(j = 0; j < nsteps; j++) {
 		for(int i = 0; i < ndev; i++) {
 			CHECK_CUDA(cudaSetDevice(i));
 			// Update black lattice
+			
 			spinUpdateV_2D_k<BLOCK_X, BLOCK_Y,
 					 BMULT_X, BMULT_Y,
 					 BIT_X_SPIN, C_BLACK,
@@ -2120,6 +2123,15 @@ int main(int argc, char **argv) {
 			}
 		}
 	}
+
+	// End measuring time
+	auto end_time = std::chrono::steady_clock::now();
+
+	// Compute the duration
+	std::chrono::duration<double> duration = end_time - start_time;
+
+	// Print the duration in seconds
+	std::cout << "Time taken: " << duration.count() << " seconds" << std::endl;
 
 	// Finish update step
 	if (ndev == 1) {

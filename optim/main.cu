@@ -1919,7 +1919,7 @@ int main(int argc, char **argv) {
 	printf("Started error loop \n");
 
 	for (int e = 0; e < num_errors; e++){
-		printf("Error %u\n", e);
+		cout << "Error " << e << endl;
 		for(int i = 0; i < ndev; i++) {
 
 			CHECK_CUDA(cudaSetDevice(i));

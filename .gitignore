@@ -6,3 +6,4 @@
 *.elf
 one_script/randomBond
 .nv/ComputeCache/index
+**/lattices

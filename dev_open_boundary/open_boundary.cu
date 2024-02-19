@@ -27,10 +27,12 @@ namespace fs = std::filesystem;
 int main(int argc, char **argv){
 
     float p, start_temp, step;
-    int num_iterations_error, niters, nwarmup, num_lattices, num_reps_temp, normalization_factor, leave_out;
+    int num_iterations_error, niters, nwarmup, num_lattices, num_reps_temp, normalization_factor, seed_adder, leave_out;
     std::vector<int> L_size;
     std::string folderName;
-    bool up;
+    bool up = false;
+    bool write_lattice = false;
+    bool read_lattice = false;
 
     // Declare the supported options.
     po::options_description desc("Allowed options");
@@ -45,9 +47,12 @@ int main(int argc, char **argv){
       ("nit", po::value<int>(), "niters updates")
       ("nw", po::value<int>(), "nwarmup updates")
       ("nl", po::value<int>(), "num lattices")
+      ("seed_adder", po::value<int>(), "seed adder")
       ("nrt", po::value<int>(), "num reps temp")
       ("L", po::value<std::vector<int>>()->multitoken(), "Lattice")
       ("folder", po::value<std::string>(), "folder")
+      ("write_lattice", po::value<bool>(), "signifier if updated lattices shall be written to file")
+      ("read_lattice", po::value<bool>(), "signifier if lattice shall be initialized from file")
     ;
 
     po::variables_map vm;
@@ -68,6 +73,9 @@ int main(int argc, char **argv){
     }
     if (vm.count("nie")) {
         num_iterations_error = vm["nie"].as<int>();
+    }
+    if (vm.count("seed_adder")) {
+        seed_adder = vm["seed_adder"].as<int>();
     }
     if (vm.count("nit")) {
         niters = vm["nit"].as<int>();
@@ -90,15 +98,32 @@ int main(int argc, char **argv){
     if (vm.count("folder")) {
         folderName = vm["folder"].as<std::string>();
     }
+    if (vm.count("write_lattice")) {
+        write_lattice = vm["write_lattice"].as<bool>();
+    }
+    if (vm.count("read_lattice")) {
+        read_lattice = vm["read_lattice"].as<bool>();
+    }
 
     std::string folderPath = "results/" + folderName;
 
     if (!fs::exists(folderPath)) {
         if (fs::create_directory(folderPath)) {
+            fs::create_directory(folderPath + "/lattices");
             std::cout << "Directory created successfully." << std::endl;
         } else {
             std::cout << "Failed to create directory." << std::endl;
         }
+    }
+    else {
+	if (!fs::exists(folderPath + "/lattices")){
+	   if (fs::create_directory(folderPath+"/lattices")){
+		std::cout << "Lattice folder created successfully" << std::endl;
+	   }
+	}
+	else {
+		std::cout << "Failed to create lattice directory" << std::endl;
+	}
     }
 
     std::vector<float> inv_temp;
@@ -128,18 +153,18 @@ int main(int argc, char **argv){
 
         normalization_factor = 0;
 
-        std::string result_name = std::string("L_") + std::to_string(L) + std::string("_p_") + std::to_string(p) + std::string("_lo_") + std::to_string(leave_out) + std::string("_ne_") + std::to_string(num_iterations_error) + std::string("_ni_") + std::to_string(niters) + std::string("_nw_") + std::to_string(nwarmup) + std::string("_up_") + std::to_string(up) + std::string("_temp_") + std::to_string(start_temp) + std::string("_step_") + std::to_string(step) + std::string("_nl_") + std::to_string(num_lattices/num_reps_temp) + std::string("_nrt_") + std::to_string(num_reps_temp) + std::string(".txt");
+        std::string result_name = std::string("L_") + std::to_string(L) + std::string("_p_") + std::to_string(p) + std::string("_lo_") + std::to_string(leave_out) + std::string("_ne_") + std::to_string(num_iterations_error) + std::string("_ni_") + std::to_string(niters) + std::string("_nw_") + std::to_string(nwarmup) + std::string("_up_") + std::to_string(up) + std::string("_temp_") + std::to_string(start_temp) + std::string("_step_") + std::to_string(step) + std::string("_nl_") + std::to_string(num_lattices/num_reps_temp) + std::string("_nrt_") + std::to_string(num_reps_temp) + std::string("_read_lattice_") + std::to_string(read_lattice) + std::string("_write_lattice_") + std::to_string(write_lattice) + std::string("_seed_adder_") + std::to_string(seed_adder) + std::string(".txt");
 
-        if (fs::exists(folderPath + "/" + result_name)){
-            cout << "Results already exist" << result_name << std::endl;
-            cout << "Continuing with next lattice size" << endl;
-            continue;
-        }
+        // if (fs::exists(folderPath + "/" + result_name)){
+        //     cout << "Results already exist" << result_name << std::endl;
+        //     cout << "Continuing with next lattice size" << endl;
+        //     continue;
+        // }
 
         cout << "Started Simulation of Lattice " << L << endl;
 
         // SEEDs
-        unsigned long long seeds_spins = 42ULL;
+        unsigned long long seed = 42ULL;
 
         int blocks_inter = (num_lattices*L*L*2 + THREADS - 1)/THREADS;
         int blocks_spins = (L*L/2*num_lattices + THREADS - 1)/THREADS;
@@ -187,10 +212,19 @@ int main(int argc, char **argv){
         float *d_energy;
         CHECK_CUDA(cudaMalloc(&d_energy, num_lattices*L*L/2*sizeof(*d_energy)));
 
-        // Setup cuRAND generator
+        // Setup cuRAND generators
         curandGenerator_t rng;
         CHECK_CURAND(curandCreateGenerator(&rng, CURAND_RNG_PSEUDO_PHILOX4_32_10));
-        CHECK_CURAND(curandSetPseudoRandomGeneratorSeed(rng, seeds_spins));
+        CHECK_CURAND(curandSetPseudoRandomGeneratorSeed(rng, seed+1));
+
+        // Setup cuRAND generator
+        curandGenerator_t rng_errors;
+        CHECK_CURAND(curandCreateGenerator(&rng_errors, CURAND_RNG_PSEUDO_PHILOX4_32_10));
+        CHECK_CURAND(curandSetPseudoRandomGeneratorSeed(rng_errors, seed));
+
+        // Setup cuRAND generator
+        curandGenerator_t update_rng;
+        CHECK_CURAND(curandCreateGenerator(&update_rng, CURAND_RNG_PSEUDO_PHILOX4_32_10));
 
         float *randvals;
         CHECK_CUDA(cudaMalloc(&randvals, num_lattices * L * L/2 * sizeof(*randvals)));
@@ -201,24 +235,29 @@ int main(int argc, char **argv){
         float *interaction_randvals;
         CHECK_CUDA(cudaMalloc(&interaction_randvals,num_lattices*L*L*2*sizeof(*interaction_randvals)));
 
-        // summation over errors can be parallized right?
-        // Change this !!!
         for (int e = 0; e < num_iterations_error; e++){
+
+            // the directory lattices inside the folderPath must already exist, there is no mkdir included here!
+            std::string lattice_b_file_name = folderPath + "/lattices/lattice_b_e" + std::to_string(e) + std::string("_L") + std::to_string(L) + std::string("_p") + std::to_string(p) + std::string("_num_lattices") + std::to_string(num_lattices) + std::string("_start_temp") + std::to_string(start_temp) + std::string("_step") + std::to_string(step) + std::string(".txt");
+            std::string lattice_w_file_name = folderPath + "/lattices/lattice_w_e" + std::to_string(e) + std::string("_L") + std::to_string(L) + std::string("_p") + std::to_string(p) + std::string("_num_lattices") + std::to_string(num_lattices) + std::string("_start_temp") + std::to_string(start_temp) + std::string("_step") + std::to_string(step) + std::string(".txt");
 
             cout << "Error " << e << " of " << num_iterations_error << endl;
 
-            init_interactions_with_seed(d_interactions, rng, interaction_randvals, L, L, num_lattices, p, blocks_inter);
+            init_interactions_with_seed(d_interactions, rng_errors, interaction_randvals, L, L, num_lattices, p, blocks_inter);
 
-            init_spins_with_seed(lattice_b, lattice_w, rng, lattice_randvals, L, L, num_lattices, up, blocks_spins);
+            initialize_spins(lattice_b, lattice_w, rng, lattice_randvals, L, L, num_lattices, up, blocks_spins, read_lattice, lattice_b_file_name, lattice_w_file_name);
+
+            // gets same chain of update random numbers for each error chain. Do we really want this correlation between the chains?
+            CHECK_CURAND(curandSetPseudoRandomGeneratorSeed(update_rng, seed + 2 + seed_adder));
 
             for (int j = 0; j < nwarmup; j++) {
-                update_ob(lattice_b, lattice_w, randvals, rng, d_interactions, d_inv_temp, L, L, num_lattices, d_coupling_constant, blocks_spins, d_energy);
+                update_ob(lattice_b, lattice_w, randvals, update_rng, d_interactions, d_inv_temp, L, L, num_lattices, d_coupling_constant, blocks_spins, d_energy);
             }
 
             CHECK_CUDA(cudaDeviceSynchronize());
 
-            for (int j = 0; j < niters; j++){
-                update_ob(lattice_b, lattice_w, randvals, rng, d_interactions, d_inv_temp, L, L, num_lattices, d_coupling_constant, blocks_spins, d_energy);
+            for(int j = 0; j < niters; j++){
+                update_ob(lattice_b, lattice_w, randvals, update_rng, d_interactions, d_inv_temp, L, L, num_lattices, d_coupling_constant, blocks_spins, d_energy);
 
                 // combine cross term hamiltonian values from d_energy array (dim: num_lattices*sublattice_dof) and store in d_store_energy array (dim: num_lattices) to whole lattice energy for each temperature.
                 // reduce autocorrelation between snapshots with this if ?
@@ -242,6 +281,15 @@ int main(int argc, char **argv){
             }
 
             CHECK_CUDA(cudaDeviceSynchronize());
+
+            if(write_lattice){
+                // Write last results from updates to txt format
+                write_updated_lattices(lattice_b, lattice_w, L, L, num_lattices, lattice_b_file_name, lattice_w_file_name);
+            }
+
+            //std::string bond_filename = folderPath + "/bonds/" + std::to_string(e) + "_";
+            //write_bonds(d_interactions, bond_filename, L, L, num_lattices);
+
         }
 
         // copying new result to host.
@@ -253,7 +301,7 @@ int main(int argc, char **argv){
         std::vector<float> zeta(num_lattices);
 
         for (int l=0; l < num_lattices; l++){
-            zeta[l] = sqrt(h_store_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector[l]/h_store_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector[l] - 1);
+            zeta[l] = 1/(2*sin(M_PI/L))*sqrt(h_store_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector[l]/h_store_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector[l] - 1);
         }
 
         auto t1 = std::chrono::high_resolution_clock::now();

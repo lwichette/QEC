@@ -3,8 +3,8 @@ CUDACC=$(CUDA_HOME)/bin/nvcc
 CC=gcc
 LD=$(CUDACC)
 CFLAGS=-c -O3 -g -I$(CUDA_HOME)/include
-CUDACFLAGS=-c -g -G -O3 --use_fast_math -lineinfo -arch=sm_70 -Xptxas=-v
-LDFLAGS=  -Xcompiler=-fopenmp
+CUDACFLAGS=-c -O3 --use_fast_math -lineinfo -arch=sm_70 -Xptxas=-v
+LDFLAGS= -Xcompiler=-fopenmp
 
 all: cuIsing
 

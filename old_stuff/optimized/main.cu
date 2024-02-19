@@ -33,7 +33,7 @@
 #include "cudamacro.h" /* for time() */
 #include "utils.h"
 #include <iostream>
-#include <vector>
+
 
 using namespace std;
 
@@ -60,11 +60,11 @@ using namespace std;
 // 2*SPIN_X_WORD*2*BLOCK_X*BMULT_X
 // BMULT_X Block Multiple X Direction
 // Unclear
-#define BLOCK_X (2)
-#define BLOCK_Y (8)
+#define BLOCK_X (16)
+#define BLOCK_Y (16)
 
 // Unclear
-#define BMULT_X (1)
+#define BMULT_X (2)
 #define BMULT_Y (1)
 
 // Maximum number of GPUs
@@ -963,14 +963,14 @@ static void usage(const int SPIN_X_WORD, const char *pname) {
 }
 
 static void countSpins(const int ndev,
-		       const int redBlocks,
-		       const size_t llen,
-		       const size_t llenLoc,
-		       const unsigned long long *black_d,
-		       const unsigned long long *white_d,
-			     unsigned long long **sum_d,
-			     unsigned long long *bsum,
-			     unsigned long long *wsum) {
+		       	const int redBlocks,
+		       	const size_t llen,
+		       	const size_t llenLoc,
+		       	const unsigned long long *black_d,
+		       	const unsigned long long *white_d,
+			    unsigned long long **sum_d,
+			    unsigned long long *bsum,
+			    unsigned long long *wsum) {
 
 	if (ndev == 1) {
 		CHECK_CUDA(cudaMemset(sum_d[0], 0, 2*sizeof(**sum_d)));
@@ -1994,12 +1994,13 @@ int main(int argc, char **argv) {
 		__t0 = Wtime();
 	}
 	int j;
-
+	
 	// Perform Monte Carlo updates
 	for(j = 0; j < nsteps; j++) {
 		for(int i = 0; i < ndev; i++) {
 			CHECK_CUDA(cudaSetDevice(i));
 			// Update black lattice
+			
 			spinUpdateV_2D_k<BLOCK_X, BLOCK_Y,
 					 BMULT_X, BMULT_Y,
 					 BIT_X_SPIN, C_BLACK,

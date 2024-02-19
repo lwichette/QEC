@@ -28,16 +28,13 @@
 #include <sys/stat.h>
 #include <getopt.h>
 #include <unistd.h>
-#include <cuda_fp16.h>
 #include <cuda_runtime.h>
 #include <curand_kernel.h>
 #include "cudamacro.h" /* for time() */
 #include "utils.h"
 #include <iostream>
 #include <thrust/complex.h>
-#include <cub/cub.cuh>
-#include <cmath>
-#include <ctime>
+#include <chrono>
 
 using namespace std;
 
@@ -60,7 +57,7 @@ using namespace std;
 // 2*SPIN_X_WORD*2*BLOCK_X*BMULT_X
 // BMULT_X Block Multiple X Direction
 
-// Unclear
+// Thread size block x and y
 #define BLOCK_X (2)
 #define BLOCK_Y (8)
 
@@ -1283,7 +1280,7 @@ __global__ void calculate_average_magnetization(const int slX,
 			const thrust::complex<float> exp[],
 			const int blocks_per_slx,
 			const int blocks_per_sly,
-			int *sum_per_block,
+			float *sum_per_block,
 			thrust::complex<float> *c_sum_per_block) {
 
 	// calc how many spins per word
@@ -1346,10 +1343,11 @@ __global__ void calculate_average_magnetization(const int slX,
 			const int __cx = __popcll(__me_w[i][j].x) + __popcll(__me_b[i][j].x);
 			const int __cy = __popcll(__me_w[i][j].y) + __popcll(__me_b[i][j].y);
 
-			__cntP += (__cx + __cy);
-			__cntN += 4*SPIN_X_WORD - __cx - __cy;
+			const int __cxy = (__cx + __cy);
+			__cntP += __cxy;
+			__cntN += 4*SPIN_X_WORD - __cxy;
 
-			int spin_sum = __cx + __cy - (4*SPIN_X_WORD - __cx - __cy);
+			int spin_sum = __cxy - (4*SPIN_X_WORD - __cxy);
 			run_sum += exp[__sli]*spin_sum;
 			//run_sum = cuCaddf(cuCmulf(exp[__sli], make_cuFloatComplex(spin_sum, 0)), run_sum);
 		}
@@ -1384,9 +1382,9 @@ __global__ void calculate_average_magnetization(const int slX,
 __global__ void calculate_incremental_susceptibility(const int blocks_per_slx,
 				const int blocks_per_sly,
 				const int num_lattices,
-				const int *d_sums_per_block,
+				const float *d_sums_per_block,
 				const thrust::complex<float> *d_weighted_sums_per_block,
-				int *d_store_sum,
+				float *d_store_sum,
 				float *d_sus_k){
 
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -1414,7 +1412,7 @@ int main(int argc, char **argv) {
 	unsigned long long *v_d=NULL;
 	unsigned long long *black_d=NULL;
 	unsigned long long *white_d=NULL;
-
+	
 	// Interaction terms
 	unsigned long long *ham_d=NULL;
 	unsigned long long *hamB_d=NULL;
@@ -1760,8 +1758,7 @@ int main(int argc, char **argv) {
 	// pointer array of length MAX_GPU
 	unsigned long long *sum_d[MAX_GPU];
 	
-	int *d_sum_per_block, *d_sus_0;
-	float *d_sus_k;
+	float *d_sum_per_block, *d_sus_0, *d_sus_k;
 	thrust::complex<float> *d_weighted_sum_per_blocks; 
 
 	// if only one GPU
@@ -1916,21 +1913,17 @@ int main(int argc, char **argv) {
 		__t0 = Wtime();
 	}
 
-	printf("Started error loop \n");
-
 	for (int e = 0; e < num_errors; e++){
-		cout << "Error " << e << endl;
+		printf("Error %u of %u\n", e, num_errors);
 		for(int i = 0; i < ndev; i++) {
-
 			CHECK_CUDA(cudaSetDevice(i));
-			
 			// Initialize interaction terms
 			hamiltInitB_k<BLOCK_X, BLOCK_Y,
 				BMULT_X, BMULT_Y,
 				BIT_X_SPIN,
 				unsigned long long><<<grid, block>>>(i,
 								hamiltPerc1,
-								seed+1, // just use a different seed
+								seed + 7*e, // just use a different seed
 								i*Y, lld/2,
 								reinterpret_cast<ulonglong2 *>(hamB_d));
 
@@ -1946,18 +1939,18 @@ int main(int argc, char **argv) {
 					BMULT_X, BMULT_Y,
 					BIT_X_SPIN, C_BLACK,
 					unsigned long long><<<grid, block>>>(i,
-									seed,
+									seed + 7*e +1,
 									0, i*Y, lld/2,
 									reinterpret_cast<ulonglong2 *>(black_d),
 									up);
 			CHECK_ERROR("initLattice_k");
-
+			
 			// Init white lattice
 			latticeInit_k<BLOCK_X, BLOCK_Y,
 					BMULT_X, BMULT_Y,
 					BIT_X_SPIN, C_WHITE,
 					unsigned long long><<<grid, block>>>(i,
-									seed,
+									seed + 7*e + 2,
 									0, i*Y, lld/2,
 									reinterpret_cast<ulonglong2 *>(white_d),
 									up);
@@ -1971,14 +1964,15 @@ int main(int argc, char **argv) {
 		
 		// Perform Monte Carlo warm-up
 		for(int j = 0; j < nwarmup; j++) {
+
 			for(int i = 0; i < ndev; i++) {
 				CHECK_CUDA(cudaSetDevice(i));
 				// Update black lattice
-				spinUpdate_open_bdry<BLOCK_X, BLOCK_Y,
+				spinUpdateV_2D_k<BLOCK_X, BLOCK_Y,
 						BMULT_X, BMULT_Y,
 						BIT_X_SPIN, C_BLACK,
 						unsigned long long><<<grid, block>>>(i,
-											seed,
+											seed + 7*e + 3,
 											j+1,
 											(XSL/2)/SPIN_X_WORD/2, YSL, blocks_per_slx, blocks_per_sly, NSLX,
 											i*Y,  lld/2,
@@ -1999,11 +1993,11 @@ int main(int argc, char **argv) {
 			// Update white lattice
 			for(int i = 0; i < ndev; i++) {
 				CHECK_CUDA(cudaSetDevice(i));
-				spinUpdate_open_bdry<BLOCK_X, BLOCK_Y,
+				spinUpdateV_2D_k<BLOCK_X, BLOCK_Y,
 						BMULT_X, BMULT_Y,
 						BIT_X_SPIN, C_WHITE,
 						unsigned long long><<<grid, block>>>(i,
-											seed,
+											seed + 7*e +4,
 											j+1,
 											(XSL/2)/SPIN_X_WORD/2, YSL, blocks_per_slx, blocks_per_sly, NSLX,
 											i*Y, lld/2,
@@ -2025,16 +2019,16 @@ int main(int argc, char **argv) {
 		
 		// Perform Monte Carlo updates
 		for(int j = 0; j < nsteps; j++) {
-		
+			
 			for(int i = 0; i < ndev; i++) {
 
 				CHECK_CUDA(cudaSetDevice(i));
 				// Update black lattice
-				spinUpdate_open_bdry<BLOCK_X, BLOCK_Y,
+				spinUpdateV_2D_k<BLOCK_X, BLOCK_Y,
 						BMULT_X, BMULT_Y,
 						BIT_X_SPIN, C_BLACK,
 						unsigned long long><<<grid, block>>>(i,
-											seed,
+											seed + 7*e + 5,
 											j+1,
 											(XSL/2)/SPIN_X_WORD/2, YSL, blocks_per_slx, blocks_per_sly, NSLX,
 											i*Y, lld/2,
@@ -2055,11 +2049,11 @@ int main(int argc, char **argv) {
 			// Update white lattice
 			for(int i = 0; i < ndev; i++) {
 				CHECK_CUDA(cudaSetDevice(i));
-				spinUpdate_open_bdry<BLOCK_X, BLOCK_Y,
+				spinUpdateV_2D_k<BLOCK_X, BLOCK_Y,
 						BMULT_X, BMULT_Y,
 						BIT_X_SPIN, C_WHITE,
 						unsigned long long><<<grid, block>>>(i,
-											seed,
+											seed + 7*e +6,
 											j+1,
 											(XSL/2)/SPIN_X_WORD/2, YSL, blocks_per_slx, blocks_per_sly, NSLX,
 											i*Y, lld/2,
@@ -2076,6 +2070,15 @@ int main(int argc, char **argv) {
 					CHECK_CUDA(cudaDeviceSynchronize());
 				}
 			}
+			
+			/*
+			// Write lattice
+			if (dumpOut) {
+				char fname[256];
+				snprintf(fname, sizeof(fname), "lattices/lattice_%d_%dx%d_T_%f_IT_%08d_", j, Y, X, temp, nsteps + nwarmup);
+				dumpLattice(fname, ndev, Y, lld, llen, llenLoc, v_d);
+			}
+			*/
 		
 			for (int i = 0; i < ndev; i++){
 				CHECK_CUDA(cudaSetDevice(i));
@@ -2089,7 +2092,18 @@ int main(int argc, char **argv) {
 								blocks_per_sly,
 								d_sum_per_block + i*num_blocks,
 								d_weighted_sum_per_blocks + i*num_blocks);
+			}
+
+			// Cuda device Synchronize
+			if (ndev > 1) {
+				for(int i = 0; i < ndev; i++) {
+					CHECK_CUDA(cudaSetDevice(i));
+					CHECK_CUDA(cudaDeviceSynchronize());
+				}
+			}
 			
+			for (int i = 0; i < ndev; i++){
+				CHECK_CUDA(cudaSetDevice(i));
 				calculate_incremental_susceptibility<<<1, num_lattices>>>(blocks_per_slx, blocks_per_sly, 
 								num_lattices, d_sum_per_block + i*num_blocks, 
 								d_weighted_sum_per_blocks + i*num_blocks, 
@@ -2108,13 +2122,15 @@ int main(int argc, char **argv) {
 	}
 
 	// Get sum for each sublattice
-	int *h_sus_0 = (int *)malloc(ndev*num_lattices*sizeof(*h_sus_0));
+	float *h_sus_0 = (float *)malloc(ndev*num_lattices*sizeof(*h_sus_0));
 	float *h_sus_k = (float *)malloc(ndev*num_lattices*sizeof(*h_sus_k));
 
  	CHECK_CUDA(cudaMemcpy(h_sus_0, d_sus_0, ndev*num_lattices*sizeof(*d_sus_0), cudaMemcpyDeviceToHost));
 	CHECK_CUDA(cudaMemcpy(h_sus_k, d_sus_k, ndev*num_lattices*sizeof(*d_sus_k), cudaMemcpyDeviceToHost));
 	
 	for (int i = 0; i < ndev*num_lattices; i++){
+		cout << "Summation " << h_sus_0[i] << endl;
+		cout << "Weighted sum " << h_sus_k[i] << endl;
 		cout << "Temperature " << temp_range[i] << " Result " << 1/(2*sin(M_PI/XSL))*sqrt(h_sus_0[i]/h_sus_k[i] - 1) << endl;
 	}
 
@@ -2136,13 +2152,24 @@ int main(int argc, char **argv) {
 	} else {
 		et = __t0*1.0E+3;
 	}
+
+
+	printf("Kernel execution time for %d update steps: %E ms, %.2lf flips/ns (BW: %.2lf GB/s)\n",
+        nsteps+nwarmup, et, static_cast<double>(llen*SPIN_X_WORD)*(nsteps+nwarmup) / (et*1.0E+6),
+        //(llen*sizeof(*v_d)*2*j/1.0E+9) / (et/1.0E+3));
+        (2ull*nsteps+nwarmup*
+            ( sizeof(*v_d)*((llen/2) + (llen/2) + (llen/2)) + // src color read, dst color read, dst color write
+              sizeof(*exp_d)*5*grid.x*grid.y ) /
+        1.0E+9) / (et/1.0E+3));
 	
+
 	// Write lattice
 	if (dumpOut) {
 		char fname[256];
-		snprintf(fname, sizeof(fname), "lattice_%dx%d_T_%f_IT_%08d_", Y, X, temp, nsteps + nwarmup);
+		snprintf(fname, sizeof(fname), "lattices/lattice_%dx%d_T_%f_IT_%08d_", Y, X, temp, nsteps + nwarmup);
 		dumpLattice(fname, ndev, Y, lld, llen, llenLoc, v_d);
 	}
+
 
 	// free memory for all GPUs and stuff
 	CHECK_CUDA(cudaFree(v_d));

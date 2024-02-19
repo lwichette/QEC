@@ -8,3 +8,4 @@
 *.exe
 one_script/randomBond
 .nv/ComputeCache/index
+**/lattices

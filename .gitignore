@@ -9,3 +9,7 @@
 one_script/randomBond
 .nv/ComputeCache/index
 **/lattices
+*.bin
+*.dll
+*.so
+*.dylib

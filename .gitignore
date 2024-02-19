@@ -4,5 +4,7 @@
 *.0
 *.out
 *.elf
+*.o
+*.exe
 one_script/randomBond
 .nv/ComputeCache/index

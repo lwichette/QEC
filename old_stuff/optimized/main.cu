@@ -33,8 +33,7 @@
 #include "cudamacro.h" /* for time() */
 #include "utils.h"
 #include <iostream>
-#include <vector>
-#include <chrono>
+
 
 using namespace std;
 
@@ -964,14 +963,14 @@ static void usage(const int SPIN_X_WORD, const char *pname) {
 }
 
 static void countSpins(const int ndev,
-		       const int redBlocks,
-		       const size_t llen,
-		       const size_t llenLoc,
-		       const unsigned long long *black_d,
-		       const unsigned long long *white_d,
-			     unsigned long long **sum_d,
-			     unsigned long long *bsum,
-			     unsigned long long *wsum) {
+		       	const int redBlocks,
+		       	const size_t llen,
+		       	const size_t llenLoc,
+		       	const unsigned long long *black_d,
+		       	const unsigned long long *white_d,
+			    unsigned long long **sum_d,
+			    unsigned long long *bsum,
+			    unsigned long long *wsum) {
 
 	if (ndev == 1) {
 		CHECK_CUDA(cudaMemset(sum_d[0], 0, 2*sizeof(**sum_d)));
@@ -1996,7 +1995,6 @@ int main(int argc, char **argv) {
 	}
 	int j;
 	
-	auto start_time = std::chrono::steady_clock::now();
 	// Perform Monte Carlo updates
 	for(j = 0; j < nsteps; j++) {
 		for(int i = 0; i < ndev; i++) {
@@ -2123,15 +2121,6 @@ int main(int argc, char **argv) {
 			}
 		}
 	}
-
-	// End measuring time
-	auto end_time = std::chrono::steady_clock::now();
-
-	// Compute the duration
-	std::chrono::duration<double> duration = end_time - start_time;
-
-	// Print the duration in seconds
-	std::cout << "Time taken: " << duration.count() << " seconds" << std::endl;
 
 	// Finish update step
 	if (ndev == 1) {

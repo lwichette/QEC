@@ -13,3 +13,4 @@ one_script/randomBond
 *.dll
 *.so
 *.dylib
+optim/cuIsing

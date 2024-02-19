@@ -1960,7 +1960,7 @@ int main(int argc, char **argv) {
 		for(int i = 0; i < ndev; i++) {
 			CHECK_CUDA(cudaSetDevice(i));
 			CHECK_CUDA(cudaDeviceSynchronize());
-		}
+		}	
 		
 		// Perform Monte Carlo warm-up
 		for(int j = 0; j < nwarmup; j++) {

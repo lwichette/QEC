@@ -60,18 +60,18 @@ using namespace std;
 // 2*SPIN_X_WORD*2*BLOCK_X*BMULT_X
 // BMULT_X Block Multiple X Direction
 // Unclear
-#define BLOCK_X (16)
-#define BLOCK_Y (16)
+#define BLOCK_X (2)
+#define BLOCK_Y (8)
 
 // Unclear
-#define BMULT_X (2)
+#define BMULT_X (1)
 #define BMULT_Y (1)
 
 // Maximum number of GPUs
 #define MAX_GPU	(256)
 
 #define NUMIT_DEF (1)
-#define SEED_DEF  (463463564571ull)
+#define SEED_DEF  (42)
 
 #define TGT_MAGN_MAX_DIFF (1.0E-3)
 
@@ -1111,6 +1111,7 @@ __global__ void getCorr2DRepl_k(const int corrLen,
 				const INT_T *__restrict__ black,
 				const INT_T *__restrict__ white,
 				      SUM_T *__restrict__ corr) {
+	
 	const int tid = threadIdx.x;
 	const int SPIN_X_WORD = 8*sizeof(INT_T)/BITXSP;
 
@@ -1931,237 +1932,317 @@ int main(int argc, char **argv) {
 	// Start and Stop event
 	CHECK_CUDA(cudaEventCreate(&start));
 	CHECK_CUDA(cudaEventCreate(&stop));
-
-	for(int i = 0; i < ndev; i++) {
-		// Init black lattice, lld/2 because of tuples
-		CHECK_CUDA(cudaSetDevice(i));
-		latticeInit_k<BLOCK_X, BLOCK_Y,
-			      BMULT_X, BMULT_Y,
-			      BIT_X_SPIN, C_BLACK,
-			      unsigned long long><<<grid, block>>>(i,
-								   seed,
-								   0, i*Y, lld/2,
-								   reinterpret_cast<ulonglong2 *>(black_d));
-		CHECK_ERROR("initLattice_k");
-
-		// Init white lattice
-		latticeInit_k<BLOCK_X, BLOCK_Y,
-			      BMULT_X, BMULT_Y,
-			      BIT_X_SPIN, C_WHITE,
-			      unsigned long long><<<grid, block>>>(i,
-								   seed,
-								   0, i*Y, lld/2,
-								   reinterpret_cast<ulonglong2 *>(white_d));
-		CHECK_ERROR("initLattice_k");
-
-		// Init Hamiltonian
-		if (useGenHamilt) {
-			hamiltInitB_k<BLOCK_X, BLOCK_Y,
-				      BMULT_X, BMULT_Y,
-				      BIT_X_SPIN,
-				      unsigned long long><<<grid, block>>>(i,
-									   hamiltPerc1,
-									   seed+1, // just use a different seed
-									   i*Y, lld/2,
-								   	   reinterpret_cast<ulonglong2 *>(hamB_d));
-			hamiltInitW_k<BLOCK_X, BLOCK_Y,
-				      BMULT_X, BMULT_Y,
-				      BIT_X_SPIN,
-				      unsigned long long><<<grid, block>>>((XSL/2)/SPIN_X_WORD/2, YSL, i*Y, lld/2,
-								   	   reinterpret_cast<ulonglong2 *>(hamB_d),
-								   	   reinterpret_cast<ulonglong2 *>(hamW_d));
-		}
-	}
-
-	// Calculate sum of spins
-	countSpins(ndev, redBlocks, llen, llenLoc, black_d, white_d, sum_d, &cntPos, &cntNeg);
-
-	printf("\nInitial magnetization: %9.6lf, up_s: %12llu, dw_s: %12llu\n",
-	       abs(static_cast<double>(cntPos)-static_cast<double>(cntNeg)) / (llen*SPIN_X_WORD),
-	       cntPos, cntNeg);
-
-	// Device Synchronize
-	for(int i = 0; i < ndev; i++) {
-		CHECK_CUDA(cudaSetDevice(i));
-		CHECK_CUDA(cudaDeviceSynchronize());
-	}
-
-	// Timing
-	double __t0;
-	if (ndev == 1) {
-		CHECK_CUDA(cudaEventRecord(start, 0));
-	} else {
-		__t0 = Wtime();
-	}
-	int j;
 	
-	// Perform Monte Carlo updates
-	for(j = 0; j < nsteps; j++) {
+	for (int e = 0; e < 15; e++){
 		for(int i = 0; i < ndev; i++) {
+			// Init black lattice, lld/2 because of tuples
 			CHECK_CUDA(cudaSetDevice(i));
-			// Update black lattice
-			
-			spinUpdateV_2D_k<BLOCK_X, BLOCK_Y,
-					 BMULT_X, BMULT_Y,
-					 BIT_X_SPIN, C_BLACK,
-					 unsigned long long><<<grid, block>>>(i,
-							 		      seed,
-									      j+1,
-									      (XSL/2)/SPIN_X_WORD/2, YSL,
-									      i*Y, /*ndev*Y,*/ lld/2,
-							 		      reinterpret_cast<float (*)[5]>(exp_d[i]),
-									      reinterpret_cast<ulonglong2 *>(hamW_d),
-									      reinterpret_cast<ulonglong2 *>(white_d),
-									      reinterpret_cast<ulonglong2 *>(black_d));
+			latticeInit_k<BLOCK_X, BLOCK_Y,
+					BMULT_X, BMULT_Y,
+					BIT_X_SPIN, C_BLACK,
+					unsigned long long><<<grid, block>>>(i,
+									seed + 7*e + 1,
+									0, i*Y, lld/2,
+									reinterpret_cast<ulonglong2 *>(black_d));
+			CHECK_ERROR("initLattice_k");
+
+			// Init white lattice
+			latticeInit_k<BLOCK_X, BLOCK_Y,
+					BMULT_X, BMULT_Y,
+					BIT_X_SPIN, C_WHITE,
+					unsigned long long><<<grid, block>>>(i,
+									seed +7*e + 2,
+									0, i*Y, lld/2,
+									reinterpret_cast<ulonglong2 *>(white_d));
+			CHECK_ERROR("initLattice_k");
+
+			// Init Hamiltonian
+			if (useGenHamilt) {
+				cout << hamiltPerc1 << endl;
+				hamiltInitB_k<BLOCK_X, BLOCK_Y,
+						BMULT_X, BMULT_Y,
+						BIT_X_SPIN,
+						unsigned long long><<<grid, block>>>(i,
+										hamiltPerc1,
+										seed + 7*e, // just use a different seed
+										i*Y, lld/2,
+										reinterpret_cast<ulonglong2 *>(hamB_d));
+										
+				hamiltInitW_k<BLOCK_X, BLOCK_Y,
+						BMULT_X, BMULT_Y,
+						BIT_X_SPIN,
+						unsigned long long><<<grid, block>>>((XSL/2)/SPIN_X_WORD/2, YSL, i*Y, lld/2,
+										reinterpret_cast<ulonglong2 *>(hamB_d),
+										reinterpret_cast<ulonglong2 *>(hamW_d));
+			}
 		}
+
+		// Write results to file
+		if (dumpOut) {
+			char fname[256];
+			snprintf(fname, sizeof(fname), "lattices/before/lattice_%d_%dx%d_T_%f_IT_%08d_", e, Y, X, temp, nsteps);
+			dumpLattice(fname, ndev, Y, lld, llen, llenLoc, v_d);
+		}
+
+		// Calculate sum of spins
+		countSpins(ndev, redBlocks, llen, llenLoc, black_d, white_d, sum_d, &cntPos, &cntNeg);
+
+		printf("\nInitial magnetization: %9.6lf, up_s: %12llu, dw_s: %12llu\n",
+			abs(static_cast<double>(cntPos)-static_cast<double>(cntNeg)) / (llen*SPIN_X_WORD),
+			cntPos, cntNeg);
 
 		// Device Synchronize
-		if (ndev > 1) {
-			for(int i = 0; i < ndev; i++) {
-				CHECK_CUDA(cudaSetDevice(i));
-				CHECK_CUDA(cudaDeviceSynchronize());
-			}
-		}
-
-		// Update white lattice
-		for(int i = 0; i < ndev; i++) {
-			CHECK_CUDA(cudaSetDevice(i));
-			spinUpdateV_2D_k<BLOCK_X, BLOCK_Y,
-					 BMULT_X, BMULT_Y,
-					 BIT_X_SPIN, C_WHITE,
-					 unsigned long long><<<grid, block>>>(i,
-							 		      seed,
-									      j+1,
-									      (XSL/2)/SPIN_X_WORD/2, YSL,
-									      i*Y, /*ndev*Y,*/ lld/2,
-							 		      reinterpret_cast<float (*)[5]>(exp_d[i]),
-									      reinterpret_cast<ulonglong2 *>(hamB_d),
-									      reinterpret_cast<ulonglong2 *>(black_d),
-									      reinterpret_cast<ulonglong2 *>(white_d));
-		}
-
-		// Cuda device Synchronize
-		if (ndev > 1) {
-			for(int i = 0; i < ndev; i++) {
-				CHECK_CUDA(cudaSetDevice(i));
-				CHECK_CUDA(cudaDeviceSynchronize());
-			}
-		}
-
-		// Print stuff
-		if (printFreq && ((j+1) % printFreq) == 0) {
-
-			// Calculate magnetization
-			countSpins(ndev, redBlocks, llen, llenLoc, black_d, white_d, sum_d, &cntPos, &cntNeg);
-			const double magn = abs(static_cast<double>(cntPos)-static_cast<double>(cntNeg)) / (llen*SPIN_X_WORD);
-			printf("        magnetization: %9.6lf, up_s: %12llu, dw_s: %12llu (iter: %8d)\n",
-			       magn, cntPos, cntNeg, j+1);
-
-			// Compute Correlation
-			if (corrOut) {
-				computeCorr(cname, ndev, j+1, lld, useSubLatt, XSL, YSL, X, Y, black_d, white_d, corr_d, corr_h);
-			}
-
-			// Write results to file
-			if (dumpOut) {
-				char fname[256];
-				snprintf(fname, sizeof(fname), "lattice_%dx%d_T_%f_IT_%08d_", Y, X, temp, j+1);
-				dumpLattice(fname, ndev, Y, lld, llen, llenLoc, v_d);
-			}
-
-			// Check if abortion criteria is met
-			if (tgtMagn != -1.0) {
-				if (abs(magn-tgtMagn) < TGT_MAGN_MAX_DIFF) {
-					j++;
-					break;
-				}
-			}
-		}
-
-		// same as above but other frequency to print
-		//printf("j: %d, printExpSteps[%d]: %d\n", j, printExpCur, printExpSteps[printExpCur]);
-		if (printExp && printExpSteps[printExpCur] == j) {
-			printExpCur++;
-			countSpins(ndev, redBlocks, llen, llenLoc, black_d, white_d, sum_d, &cntPos, &cntNeg);
-			const double magn = abs(static_cast<double>(cntPos)-static_cast<double>(cntNeg)) / (llen*SPIN_X_WORD);
-			printf("        magnetization: %9.6lf (^2: %9.6lf), up_s: %12llu, dw_s: %12llu (iter: %8d)\n",
-			       magn, magn*magn, cntPos, cntNeg, j+1);
-			if (corrOut) {
-				computeCorr(cname, ndev, j+1, lld, useSubLatt, XSL, YSL, X, Y, black_d, white_d, corr_d, corr_h);
-			}
-			if (dumpOut) {
-				char fname[256];
-				snprintf(fname, sizeof(fname), "lattice_%dx%d_T_%f_IT_%08d_", Y, X, temp, j+1);
-				dumpLattice(fname, ndev, Y, lld, llen, llenLoc, v_d);
-			}
-			if (tgtMagn != -1.0) {
-				if (abs(magn-tgtMagn) < TGT_MAGN_MAX_DIFF) {
-					j++;
-					break;
-				}
-			}
-		}
-
-		// Adjust temperature
-		if (tempUpdFreq && ((j+1) % tempUpdFreq) == 0) {
-			temp = MAX(MIN_TEMP, temp+tempUpdStep);
-			printf("Changing temperature to %f\n", temp);
-
-			// Update exponential table
-			for(int i = 0; i < 2; i++) {
-				for(int k = 0; k < 5; k++) {
-					exp_h[i][k] = expf((i?-2.0f:2.0f)*static_cast<float>(k*2-4)*(1.0f/temp));
-					printf("exp[%2d][%d]: %E\n", i?1:-1, k, exp_h[i][k]);
-				}
-			}
-
-			// Copy exponential table to GPU
-			for(int i = 0; i < ndev; i++) {
-				CHECK_CUDA(cudaMemcpy(exp_d[i], exp_h, 2*5*sizeof(**exp_d), cudaMemcpyHostToDevice));
-			}
-		}
-	}
-
-	// Finish update step
-	if (ndev == 1) {
-		CHECK_CUDA(cudaEventRecord(stop, 0));
-		CHECK_CUDA(cudaEventSynchronize(stop));
-	}
-	else {
 		for(int i = 0; i < ndev; i++) {
 			CHECK_CUDA(cudaSetDevice(i));
 			CHECK_CUDA(cudaDeviceSynchronize());
 		}
-		__t0 = Wtime()-__t0;
-	}
 
-	// Calculate final magnetization
-	countSpins(ndev, redBlocks, llen, llenLoc, black_d, white_d, sum_d, &cntPos, &cntNeg);
-	printf("Final   magnetization: %9.6lf, up_s: %12llu, dw_s: %12llu (iter: %8d)\n\n",
-	       abs(static_cast<double>(cntPos)-static_cast<double>(cntNeg)) / (llen*SPIN_X_WORD),
-	       cntPos, cntNeg, j);
+		// Timing
+		double __t0;
+		if (ndev == 1) {
+			CHECK_CUDA(cudaEventRecord(start, 0));
+		} else {
+			__t0 = Wtime();
+		}
+		int j;
+		
+		// Perform Monte Carlo updates
+		for(j = 0; j < nsteps; j++) {
+			for(int i = 0; i < ndev; i++) {
+				CHECK_CUDA(cudaSetDevice(i));				
+				spinUpdateV_2D_k<BLOCK_X, BLOCK_Y,
+						BMULT_X, BMULT_Y,
+						BIT_X_SPIN, C_BLACK,
+						unsigned long long><<<grid, block>>>(i,
+											seed + 7*e + 3,
+											j+1,
+											(XSL/2)/SPIN_X_WORD/2, YSL,
+											i*Y, /*ndev*Y,*/ lld/2,
+											reinterpret_cast<float (*)[5]>(exp_d[i]),
+											reinterpret_cast<ulonglong2 *>(hamW_d),
+											reinterpret_cast<ulonglong2 *>(white_d),
+											reinterpret_cast<ulonglong2 *>(black_d));
+			}
+
+			// Device Synchronize
+			if (ndev > 1) {
+				for(int i = 0; i < ndev; i++) {
+					CHECK_CUDA(cudaSetDevice(i));
+					CHECK_CUDA(cudaDeviceSynchronize());
+				}
+			}
+
+			// Update white lattice
+			for(int i = 0; i < ndev; i++) {
+				CHECK_CUDA(cudaSetDevice(i));
+				spinUpdateV_2D_k<BLOCK_X, BLOCK_Y,
+						BMULT_X, BMULT_Y,
+						BIT_X_SPIN, C_WHITE,
+						unsigned long long><<<grid, block>>>(i,
+											seed + 7*e + 4,
+											j+1,
+											(XSL/2)/SPIN_X_WORD/2, YSL,
+											i*Y, /*ndev*Y,*/ lld/2,
+											reinterpret_cast<float (*)[5]>(exp_d[i]),
+											reinterpret_cast<ulonglong2 *>(hamB_d),
+											reinterpret_cast<ulonglong2 *>(black_d),
+											reinterpret_cast<ulonglong2 *>(white_d));
+			}
+
+			// Cuda device Synchronize
+			if (ndev > 1) {
+				for(int i = 0; i < ndev; i++) {
+					CHECK_CUDA(cudaSetDevice(i));
+					CHECK_CUDA(cudaDeviceSynchronize());
+				}
+			}
+
+			// Print stuff
+			if (printFreq && ((j+1) % printFreq) == 0) {
+
+				// Calculate magnetization
+				countSpins(ndev, redBlocks, llen, llenLoc, black_d, white_d, sum_d, &cntPos, &cntNeg);
+				const double magn = abs(static_cast<double>(cntPos)-static_cast<double>(cntNeg)) / (llen*SPIN_X_WORD);
+				printf("        magnetization: %9.6lf, up_s: %12llu, dw_s: %12llu (iter: %8d)\n",
+					magn, cntPos, cntNeg, j+1);
+
+				// Compute Correlation
+				if (corrOut) {
+					computeCorr(cname, ndev, j+1, lld, useSubLatt, XSL, YSL, X, Y, black_d, white_d, corr_d, corr_h);
+				}
+
+				// Write results to file
+				if (dumpOut) {
+					char fname[256];
+					snprintf(fname, sizeof(fname), "lattices/lattice_%d_%dx%d_T_%f_IT_%08d_", e, Y, X, temp, j+1);
+					dumpLattice(fname, ndev, Y, lld, llen, llenLoc, v_d);
+				}
+
+				// Check if abortion criteria is met
+				if (tgtMagn != -1.0) {
+					if (abs(magn-tgtMagn) < TGT_MAGN_MAX_DIFF) {
+						j++;
+						break;
+					}
+				}
+			}
+
+			// same as above but other frequency to print
+			//printf("j: %d, printExpSteps[%d]: %d\n", j, printExpCur, printExpSteps[printExpCur]);
+			if (printExp && printExpSteps[printExpCur] == j) {
+				printExpCur++;
+				countSpins(ndev, redBlocks, llen, llenLoc, black_d, white_d, sum_d, &cntPos, &cntNeg);
+				const double magn = abs(static_cast<double>(cntPos)-static_cast<double>(cntNeg)) / (llen*SPIN_X_WORD);
+				printf("        magnetization: %9.6lf (^2: %9.6lf), up_s: %12llu, dw_s: %12llu (iter: %8d)\n",
+					magn, magn*magn, cntPos, cntNeg, j+1);
+				if (corrOut) {
+					computeCorr(cname, ndev, j+1, lld, useSubLatt, XSL, YSL, X, Y, black_d, white_d, corr_d, corr_h);
+				}
+				if (dumpOut) {
+					char fname[256];
+					snprintf(fname, sizeof(fname), "lattice_%dx%d_T_%f_IT_%08d_", Y, X, temp, j+1);
+					dumpLattice(fname, ndev, Y, lld, llen, llenLoc, v_d);
+				}
+				if (tgtMagn != -1.0) {
+					if (abs(magn-tgtMagn) < TGT_MAGN_MAX_DIFF) {
+						j++;
+						break;
+					}
+				}
+			}
+
+			// Adjust temperature
+			if (tempUpdFreq && ((j+1) % tempUpdFreq) == 0) {
+				temp = MAX(MIN_TEMP, temp+tempUpdStep);
+				printf("Changing temperature to %f\n", temp);
+
+				// Update exponential table
+				for(int i = 0; i < 2; i++) {
+					for(int k = 0; k < 5; k++) {
+						exp_h[i][k] = expf((i?-2.0f:2.0f)*static_cast<float>(k*2-4)*(1.0f/temp));
+						printf("exp[%2d][%d]: %E\n", i?1:-1, k, exp_h[i][k]);
+					}
+				}
+
+				// Copy exponential table to GPU
+				for(int i = 0; i < ndev; i++) {
+					CHECK_CUDA(cudaMemcpy(exp_d[i], exp_h, 2*5*sizeof(**exp_d), cudaMemcpyHostToDevice));
+				}
+			}
+		}
+
+		/*	
+		// Write lattice
+		if (dumpOut) {
+			char fname[256];
+			snprintf(fname, sizeof(fname), "lattices/before/lattice_%d_%dx%d_T_%f_IT_%08d_", e, Y, X, temp, nsteps);
+			dumpLattice(fname, ndev, Y, lld, llen, llenLoc, v_d);
+		}
+		*/
+		/*
+		// Perform Monte Carlo updates
+		for(j = 0; j < 0; j++) {
+			for(int i = 0; i < ndev; i++) {
+				CHECK_CUDA(cudaSetDevice(i));				
+				spinUpdateV_2D_k<BLOCK_X, BLOCK_Y,
+						BMULT_X, BMULT_Y,
+						BIT_X_SPIN, C_BLACK,
+						unsigned long long><<<grid, block>>>(i,
+											seed + 7*e + 5,
+											j+1,
+											(XSL/2)/SPIN_X_WORD/2, YSL,
+											i*Y, lld/2,
+											reinterpret_cast<float (*)[5]>(exp_d[i]),
+											reinterpret_cast<ulonglong2 *>(hamW_d),
+											reinterpret_cast<ulonglong2 *>(white_d),
+											reinterpret_cast<ulonglong2 *>(black_d));
+			}
+
+			// Device Synchronize
+			if (ndev > 1) {
+				for(int i = 0; i < ndev; i++) {
+					CHECK_CUDA(cudaSetDevice(i));
+					CHECK_CUDA(cudaDeviceSynchronize());
+				}
+			}
+
+			// Update white lattice
+			for(int i = 0; i < ndev; i++) {
+				CHECK_CUDA(cudaSetDevice(i));
+				spinUpdateV_2D_k<BLOCK_X, BLOCK_Y,
+						BMULT_X, BMULT_Y,
+						BIT_X_SPIN, C_WHITE,
+						unsigned long long><<<grid, block>>>(i,
+											seed + 7*e + 6,
+											j+1,
+											(XSL/2)/SPIN_X_WORD/2, YSL,
+											i*Y, lld/2,
+											reinterpret_cast<float (*)[5]>(exp_d[i]),
+											reinterpret_cast<ulonglong2 *>(hamB_d),
+											reinterpret_cast<ulonglong2 *>(black_d),
+											reinterpret_cast<ulonglong2 *>(white_d));
+			}
+		}
+		*/
+
+		// Finish update step
+		if (ndev == 1) {
+			CHECK_CUDA(cudaEventRecord(stop, 0));
+			CHECK_CUDA(cudaEventSynchronize(stop));
+		}
+		else {
+			for(int i = 0; i < ndev; i++) {
+				CHECK_CUDA(cudaSetDevice(i));
+				CHECK_CUDA(cudaDeviceSynchronize());
+			}
+			__t0 = Wtime()-__t0;
+		}
+
+		// Calculate final magnetization
+		countSpins(ndev, redBlocks, llen, llenLoc, black_d, white_d, sum_d, &cntPos, &cntNeg);
+		printf("Final   magnetization: %9.6lf, up_s: %12llu, dw_s: %12llu (iter: %8d)\n\n",
+			abs(static_cast<double>(cntPos)-static_cast<double>(cntNeg)) / (llen*SPIN_X_WORD),
+			cntPos, cntNeg, j);
 
 
-	if (ndev == 1) {
-		CHECK_CUDA(cudaEventElapsedTime(&et, start, stop));
-	} else {
-		et = __t0*1.0E+3;
-	}
+		if (ndev == 1) {
+			CHECK_CUDA(cudaEventElapsedTime(&et, start, stop));
+		} else {
+			et = __t0*1.0E+3;
+		}
 
-	printf("Kernel execution time for %d update steps: %E ms, %.2lf flips/ns (BW: %.2lf GB/s)\n",
-		j, et, static_cast<double>(llen*SPIN_X_WORD)*j / (et*1.0E+6),
-		//(llen*sizeof(*v_d)*2*j/1.0E+9) / (et/1.0E+3));
-		(2ull*j*
-		 	( sizeof(*v_d)*((llen/2) + (llen/2) + (llen/2)) + // src color read, dst color read, dst color write
-			  sizeof(*exp_d)*5*grid.x*grid.y ) /
-		1.0E+9) / (et/1.0E+3));
+		printf("Kernel execution time for %d update steps: %E ms, %.2lf flips/ns (BW: %.2lf GB/s)\n",
+			j, et, static_cast<double>(llen*SPIN_X_WORD)*j / (et*1.0E+6),
+			//(llen*sizeof(*v_d)*2*j/1.0E+9) / (et/1.0E+3));
+			(2ull*j*
+				( sizeof(*v_d)*((llen/2) + (llen/2) + (llen/2)) + // src color read, dst color read, dst color write
+				sizeof(*exp_d)*5*grid.x*grid.y ) /
+			1.0E+9) / (et/1.0E+3));
 
 
-	// Write lattice
-	if (dumpOut) {
-		char fname[256];
-		snprintf(fname, sizeof(fname), "lattice_%dx%d_T_%f_IT_%08d_", Y, X, temp, j);
-		dumpLattice(fname, ndev, Y, lld, llen, llenLoc, v_d);
+		// Write lattice
+		if (dumpOut) {
+			char fname[256];
+			snprintf(fname, sizeof(fname), "lattices/lattice_%d_%dx%d_T_%f_IT_%08d_", e, Y, X, temp, j);
+			dumpLattice(fname, ndev, Y, lld, llen, llenLoc, v_d);
+		}
+
+		// Set ham_d back to zero
+		if (ndev > 1){
+			// Allocate hamiltonian array and set to 0
+			if (useGenHamilt) {
+				CHECK_CUDA(cudaMemset(ham_d, 0, llen*sizeof(*ham_d)));
+			}
+		}
+		else{
+			for (int i = 0; i < ndev; i++){
+				if (useGenHamilt) {
+					CHECK_CUDA(cudaMemset(ham_d +            i*llenLoc, 0, llenLoc*sizeof(*ham_d)));
+					CHECK_CUDA(cudaMemset(ham_d + (llen/2) + i*llenLoc, 0, llenLoc*sizeof(*ham_d)));
+				}
+			}
+		}
+
 	}
 
 	// free memory for all GPUs and stuff

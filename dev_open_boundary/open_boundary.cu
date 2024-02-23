@@ -64,7 +64,7 @@ int main(int argc, char **argv){
         p = vm["p"].as<float>();
     }
     if (vm.count("open")) {
-        open = vm["open"].as<float>();
+        open = vm["open"].as<bool>();
     }
     if (vm.count("temp")) {
         start_temp = vm["temp"].as<float>();

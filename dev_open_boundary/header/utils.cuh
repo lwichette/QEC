@@ -18,9 +18,9 @@ void write_updated_lattices(signed char *lattice_b, signed char *lattice_w, long
 void write_bonds(signed char* interactions, std::string filename, long nx, long ny, const int num_lattices);
 
 template<bool is_black>
-__global__ void update_lattice(signed char* lattice, signed char* __restrict__ op_lattice, const float* __restrict__ randvals, signed char* interactions, const float *inv_temp, const long long nx, const long long ny, const int num_lattices, const float *coupling_constant);
+__global__ void update_lattice(signed char* lattice, signed char* __restrict__ op_lattice, const float* __restrict__ randvals, signed char* interactions, const float *inv_temp, const long long nx, const long long ny, const int num_lattices, const float *coupling_constant, float *d_energy);
 
-void update(signed char *lattice_b, signed char *lattice_w, float* randvals, curandGenerator_t rng, signed char* interactions, float *inv_temp, long long nx, long long ny, const int num_lattices, float *coupling_constant, const int blocks);
+void update(signed char *lattice_b, signed char *lattice_w, float* randvals, curandGenerator_t rng, signed char* interactions, float *inv_temp, long long nx, long long ny, const int num_lattices, float *coupling_constant, const int blocks, float *d_energy);
 
 __global__ void B2_lattices(signed char* lattice_b, signed char* lattice_w, const float *wave_vector, thrust::complex<float> *sum,  int nx, int ny, int num_lattices);
 
@@ -42,7 +42,7 @@ void calculate_weighted_energies(float* d_weighted_energies, float *d_error_weig
 int create_results_folder(char* results);
 
 template<bool is_black>
-__global__ void update_lattice_ob(signed char* lattice, signed char* __restrict__ op_lattice, const float* __restrict__ randvals, signed char* interactions, const float *inv_temp, const long long nx, const long long ny, const int num_lattices, const float *coupling_constant);
+__global__ void update_lattice_ob(signed char* lattice, signed char* __restrict__ op_lattice, const float* __restrict__ randvals, signed char* interactions, const float *inv_temp, const long long nx, const long long ny, const int num_lattices, const float *coupling_constant, float *d_energy);
 
 void update_ob(signed char *lattice_b, signed char *lattice_w, float* randvals, curandGenerator_t rng, signed char* interactions, float *inv_temp, long long nx, long long ny, const int num_lattices, float *coupling_constant, const int blocks, float *d_energy);
 
@@ -55,7 +55,7 @@ __global__ void calc_energy_ob(float* sum, signed char* lattice, signed char* __
 
 __global__ void init_spins_up(signed char* lattice, const long long nx, const long long ny, const int num_lattices);
 
-__global__ void incremental_summation_of_product_of_magnetization_and_boltzmann_factor(float *d_store_energy, thrust::complex<float> *d_store_sum_0, thrust::complex<float> *d_store_sum_k, const int num_lattices, float *d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector, float *d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector);
+__global__ void incrementalSumMagnetization(thrust::complex<float> *d_store_sum_0, thrust::complex<float> *d_store_sum_k, const int num_lattices, float *d_storeIncrementalSumMag_0, float *d_storeIncrementalSumMag_k);
 
 __global__ void incremental_summation_of_partition_function(float *d_store_energy, const int num_lattices, float *d_store_partition_function);
 

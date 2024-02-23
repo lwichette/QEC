@@ -281,7 +281,7 @@ void write_bonds(signed char* interactions, std::string filename, long nx, long 
 template<bool is_black>
 __global__ void update_lattice(
     signed char* lattice, signed char* __restrict__ op_lattice, const float* __restrict__ randvals, signed char* interactions,
-    const float *inv_temp,const long long nx, const long long ny, const int num_lattices, const float *coupling_constant
+    const float *inv_temp,const long long nx, const long long ny, const int num_lattices, const float *coupling_constant, float* d_energy
 ) {
 
     const long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
@@ -347,27 +347,33 @@ __global__ void update_lattice(
     signed char nn_sum = op_lattice[offset + inn*ny + j]*interactions[icouplingnn] + op_lattice[offset + i*ny + j]*interactions[offset_i + 2*(i*ny + j)]
                         + op_lattice[offset + ipp*ny + j]*interactions[icouplingpp] + op_lattice[offset + i*ny + joff]*interactions[jcouplingoff];
 
-    // Determine whether to flip spin
+
     signed char lij = lattice[offset + i*ny + j];
-    float acceptance_ratio = exp(-2 * coupling_constant[l_id] * nn_sum * lij);
+
+    // set device energy for each temp and each spin on lattice
+    d_energy[tid]=coupling_constant[l_id]*nn_sum*lij;
+
+    // Determine whether to flip spin
+    float acceptance_ratio = exp(-2 * d_energy[tid]);
     if (randvals[offset + i*ny + j] < acceptance_ratio) {
         lattice[offset + i*ny + j] = -lij;
+        d_energy[tid] *= -1;
     }
 }
 
-// void update(
-//     signed char *lattice_b, signed char *lattice_w, float* randvals, curandGenerator_t rng, signed char* interactions,
-//     float *inv_temp, long long nx, long long ny, const int num_lattices, float *coupling_constant, const int blocks
-// ) {
+void update(
+    signed char *lattice_b, signed char *lattice_w, float* randvals, curandGenerator_t rng, signed char* interactions,
+    float *inv_temp, long long nx, long long ny, const int num_lattices, float *coupling_constant, const int blocks, float *d_energy
+) {
 
-//     // Update black
-//     CHECK_CURAND(curandGenerateUniform(rng, randvals, num_lattices*nx*ny/2));
-//     update_lattice<true><<<blocks, THREADS>>>(lattice_b, lattice_w, randvals,interactions, inv_temp, nx, ny/2, num_lattices, coupling_constant);
+    // Update black
+    CHECK_CURAND(curandGenerateUniform(rng, randvals, num_lattices*nx*ny/2));
+    update_lattice<true><<<blocks, THREADS>>>(lattice_b, lattice_w, randvals,interactions, inv_temp, nx, ny/2, num_lattices, coupling_constant, d_energy);
 
-//     // Update white
-//     CHECK_CURAND(curandGenerateUniform(rng, randvals, num_lattices*nx*ny/2));
-//     update_lattice<false><<<blocks, THREADS>>>(lattice_w, lattice_b, randvals,interactions, inv_temp, nx, ny/2, num_lattices, coupling_constant);
-// }
+    // Update white
+    CHECK_CURAND(curandGenerateUniform(rng, randvals, num_lattices*nx*ny/2));
+    update_lattice<false><<<blocks, THREADS>>>(lattice_w, lattice_b, randvals,interactions, inv_temp, nx, ny/2, num_lattices, coupling_constant, d_energy);
+}
 
 __global__ void B2_lattices(
     signed char *lattice_b, signed char *lattice_w, const float *wave_vector,
@@ -525,17 +531,14 @@ __global__ void exp_beta(float *d_store_energy, float *inv_temp, const int num_l
     d_store_energy[tid] = exp(-inv_temp[tid]*d_store_energy[tid]);
 }
 
-__global__ void incremental_summation_of_product_of_magnetization_and_boltzmann_factor(float *d_store_energy, thrust::complex<float> *d_store_sum_0, thrust::complex<float> *d_store_sum_k, const int num_lattices, float *d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector, float *d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector){
+__global__ void incrementalSumMagnetization(thrust::complex<float> *d_store_sum_0, thrust::complex<float> *d_store_sum_k, const int num_lattices, float *d_storeIncrementalSumMag_0, float *d_storeIncrementalSumMag_k){
 
     const long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
 
     if (tid >= num_lattices) return;
 
-    d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector[tid] += d_store_energy[tid]*d_store_sum_0[tid].real();
-    d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector[tid] += d_store_energy[tid]*d_store_sum_k[tid].real();
-
-    // d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector[tid] += d_store_sum_0[tid].real();
-    // d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector[tid] += d_store_sum_k[tid].real();
+    d_storeIncrementalSumMag_0[tid] += d_store_sum_0[tid].real();
+    d_storeIncrementalSumMag_k[tid] += d_store_sum_k[tid].real();
 
 }
 

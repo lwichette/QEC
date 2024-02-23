@@ -257,12 +257,12 @@ int main(int argc, char **argv){
             CHECK_CUDA(cudaDeviceSynchronize());
 
             for(int j = 0; j < niters; j++){
-                update_ob(lattice_b, lattice_w, randvals, update_rng, d_interactions, d_inv_temp, L, L, num_lattices, d_coupling_constant, blocks_spins, d_energy);
+                update(lattice_b, lattice_w, randvals, update_rng, d_interactions, d_inv_temp, L, L, num_lattices, d_coupling_constant, blocks_spins, d_energy);
 
                 // combine cross term hamiltonian values from d_energy array (dim: num_lattices*sublattice_dof) and store in d_store_energy array (dim: num_lattices) to whole lattice energy for each temperature.
                 // reduce autocorrelation between snapshots with this if ?
                 if(j%leave_out == 0){
-                    combine_cross_subset_hamiltonians_to_whole_lattice_hamiltonian(d_energy, d_store_energy, L, L, num_lattices);
+                    // combine_cross_subset_hamiltonians_to_whole_lattice_hamiltonian(d_energy, d_store_energy, L, L, num_lattices);
 
                     // Calculate suscetibilitites for each temperature (hence dimension of d_store_sum equals num_lattices)
                     calculate_B2(d_sum, lattice_b, lattice_w, d_store_sum_0, d_wave_vector_0, L, L, num_lattices, blocks_spins);
@@ -273,8 +273,8 @@ int main(int argc, char **argv){
                     abs_square<<<blocks_temperature_parallel, THREADS>>>(d_store_sum_0, num_lattices);
                     abs_square<<<blocks_temperature_parallel, THREADS>>>(d_store_sum_k, num_lattices);
 
-                    // Summation over errors and update steps is incrementally executed and stored in the d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_._wave_vector arrays for each temperature.
-                    incremental_summation_of_product_of_magnetization_and_boltzmann_factor<<<blocks_temperature_parallel, THREADS>>>(d_store_energy, d_store_sum_0, d_store_sum_k, num_lattices, d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector, d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector);
+                    // Summation over errors and update steps is incrementally executed and stored in the d_store_sum_ arrays for each temperature.
+                    incrementalSumMagnetization<<<blocks_temperature_parallel, THREADS>>>(d_store_sum_0, d_store_sum_k, num_lattices, d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector, d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector);
 
                     normalization_factor += 1;
                 }

@@ -251,7 +251,7 @@ int main(int argc, char **argv){
             CHECK_CURAND(curandSetPseudoRandomGeneratorSeed(update_rng, seed + 2 + seed_adder));
 
             for (int j = 0; j < nwarmup; j++) {
-                update_ob(lattice_b, lattice_w, randvals, update_rng, d_interactions, d_inv_temp, L, L, num_lattices, d_coupling_constant, blocks_spins, d_energy);
+                update(lattice_b, lattice_w, randvals, update_rng, d_interactions, d_inv_temp, L, L, num_lattices, d_coupling_constant, blocks_spins, d_energy);
             }
 
             CHECK_CUDA(cudaDeviceSynchronize());

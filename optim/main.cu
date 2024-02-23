@@ -2109,14 +2109,12 @@ int main(int argc, char **argv) {
 
 		if (ndev > 1){
 			CHECK_CUDA(cudaMemset(ham_d, 0, llen*sizeof(*ham_d)));
-		}
-		else{
+		} else{
 			for (int i = 0; i < ndev; i++){
 				CHECK_CUDA(cudaMemset(ham_d +            i*llenLoc, 0, llenLoc*sizeof(*ham_d)));
 				CHECK_CUDA(cudaMemset(ham_d + (llen/2) + i*llenLoc, 0, llenLoc*sizeof(*ham_d)));
 			}
 		}
-
 	}
 
 	if (ndev == 1) {

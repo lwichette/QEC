@@ -30,7 +30,7 @@ int main(int argc, char **argv){
     int num_iterations_error, niters, nwarmup, num_lattices, num_reps_temp, normalization_factor, seed_adder, leave_out;
     std::vector<int> L_size;
     std::string folderName;
-    bool up = false;
+    bool up, open;
     bool write_lattice = false;
     bool read_lattice = false;
 
@@ -39,6 +39,7 @@ int main(int argc, char **argv){
     desc.add_options()
       ("help", "produce help options")
       ("p", po::value<float>(), "probability")
+      ("open", po::value<bool>(), "open boundary")
       ("temp", po::value<float>(), "start_temp")
       ("step", po::value<float>(), "step size temperature")
       ("up", po::value<bool>(), "step size temperature")
@@ -61,6 +62,9 @@ int main(int argc, char **argv){
 
     if (vm.count("p")) {
         p = vm["p"].as<float>();
+    }
+    if (vm.count("open")) {
+        open = vm["open"].as<float>();
     }
     if (vm.count("temp")) {
         start_temp = vm["temp"].as<float>();
@@ -106,6 +110,13 @@ int main(int argc, char **argv){
     }
 
     std::string folderPath = "results/" + folderName;
+    
+    if (open){
+        folderPath = "results/open_boundary/" + folderName;
+    }
+    else{
+        folderPath = "results/periodic_boundary/" + folderName; 
+    }
 
     if (!fs::exists(folderPath)) {
         if (fs::create_directory(folderPath)) {
@@ -114,18 +125,26 @@ int main(int argc, char **argv){
         } else {
             std::cout << "Failed to create directory." << std::endl;
         }
-    }
-    else {
-	if (!fs::exists(folderPath + "/lattices")){
-	   if (fs::create_directory(folderPath+"/lattices")){
-		std::cout << "Lattice folder created successfully" << std::endl;
-	   }
-	}
-	else {
-		std::cout << "Failed to create lattice directory" << std::endl;
-	}
+    }else {
+        if (!fs::exists(folderPath + "/lattices")){
+            if (fs::create_directory(folderPath+"/lattices")){
+                std::cout << "Lattice folder created successfully" << std::endl;
+            }
+	    }
+        else {
+            std::cout << "Failed to create lattice directory" << std::endl;
+        }
     }
 
+    // Function Maps
+    std::map<bool, std::function<void(
+        signed char*, signed char*, float*, curandGenerator_t, signed char*, float*,
+        long long, long long, const int, float*, const int, float *d
+    )>> updateMap;
+
+    updateMap[false] = &update;
+    updateMap[true] = &update_ob;
+    
     std::vector<float> inv_temp;
     std::vector<float> coupling_constant;
     float run_temp;
@@ -251,13 +270,13 @@ int main(int argc, char **argv){
             CHECK_CURAND(curandSetPseudoRandomGeneratorSeed(update_rng, seed + 2 + seed_adder));
 
             for (int j = 0; j < nwarmup; j++) {
-                update(lattice_b, lattice_w, randvals, update_rng, d_interactions, d_inv_temp, L, L, num_lattices, d_coupling_constant, blocks_spins, d_energy);
+                updateMap[open](lattice_b, lattice_w, randvals, update_rng, d_interactions, d_inv_temp, L, L, num_lattices, d_coupling_constant, blocks_spins, d_energy);
             }
 
             CHECK_CUDA(cudaDeviceSynchronize());
 
             for(int j = 0; j < niters; j++){
-                update(lattice_b, lattice_w, randvals, update_rng, d_interactions, d_inv_temp, L, L, num_lattices, d_coupling_constant, blocks_spins, d_energy);
+                updateMap[open](lattice_b, lattice_w, randvals, update_rng, d_interactions, d_inv_temp, L, L, num_lattices, d_coupling_constant, blocks_spins, d_energy);
 
                 // combine cross term hamiltonian values from d_energy array (dim: num_lattices*sublattice_dof) and store in d_store_energy array (dim: num_lattices) to whole lattice energy for each temperature.
                 // reduce autocorrelation between snapshots with this if ?

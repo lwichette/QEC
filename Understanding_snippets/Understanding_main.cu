@@ -62,13 +62,14 @@
  #define BLOCK_X (2)
  #define BLOCK_Y (8)
  
- // Unclear
+ // Unclear: if it is set to 1 then it can be roughly ignored in the code since it mostly appears in loops
  #define BMULT_X (1)
  #define BMULT_Y (1)
  
  // Maximum number of GPUs
  #define MAX_GPU	(256)
  
+ // forceinline forces the compiler to insert the function's code directly into the caller's code by the compiler rather than being called during execution
  __device__ __forceinline__ unsigned int __mypopc(const unsigned int x) {
      return __popc(x);
  }
@@ -95,6 +96,8 @@
  void *d_temp_complex = NULL;
  size_t temp_storage_complex = 0;
  
+/* The kernels are separated into three separate processes: preparation, manipulation storage. This optimizes the code by limiting global memory access */
+
  template<int BDIM_X,
       int BDIM_Y,
       int LOOP_X,
@@ -116,7 +119,7 @@
      const int __i = blockIdx.y*BDIM_Y*LOOP_Y + threadIdx.y;
      const int __j = blockIdx.x*BDIM_X*LOOP_X + threadIdx.x;
  
-     // calculate number of spins per word
+     // calculate number of spins per word. The 8 is to convert bytes to bits.
      const int SPIN_X_WORD = 8*sizeof(INT_T)/BITXSP;
  
      // get thread id
@@ -125,7 +128,8 @@
  
      // Random number generator
      curandStatePhilox4_32_10_t st;
-     // Unclear what exactly
+     /* Unclear what exactly: Possibly generating the random numbers for each thread separately and this makes sure that for each thread there is an independent
+      sequence of random numbers */
      curand_init(seed, tid, static_cast<long long>(2*SPIN_X_WORD)*LOOP_X*LOOP_Y*(2*it+COLOR), &st);
  
      // tmp 2D array of type unsigned long long of size (1x2)
@@ -286,7 +290,7 @@
          }
      }
  
-     // Initialize arrays for up/side/down neighbors for white words
+     // Initialize arrays for up/center/side/down neighbors for white words
      INT2_T __up[LOOP_Y][LOOP_X];
      INT2_T __ct[LOOP_Y][LOOP_X];
      INT2_T __dw[LOOP_Y][LOOP_X];

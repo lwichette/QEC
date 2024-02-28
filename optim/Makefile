@@ -19,3 +19,4 @@ cuIsing: main.o utils.o
 
 clean:
 	rm *.o cuIsing
+

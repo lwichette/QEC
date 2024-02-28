@@ -55,6 +55,7 @@ using namespace std;
 //   512:  8,  8, 1, 1
 //   256:  4,  8, 1, 1
 //   128:  2,  8, 1, 1
+//    64:  1,  8, 1, 1
 // 2*SPIN_X_WORD*2*BLOCK_X*BMULT_X
 // BMULT_X Block Multiple X Direction
 
@@ -88,12 +89,6 @@ __device__ __forceinline__ ulonglong2 __mymake_int2(const unsigned long long x,
 		                                    const unsigned long long y) {
 	return make_ulonglong2(x, y);
 }
-
-void *d_temp = NULL;
-size_t temp_storage = 0;
-
-void *d_temp_complex = NULL;
-size_t temp_storage_complex = 0;
 
 template<int BDIM_X,
 	 int BDIM_Y,
@@ -1442,8 +1437,7 @@ int main(int argc, char **argv) {
 	float step;
 
 	// Probability for interactions
-	int useGenHamilt = 1;
-	float hamiltPerc1 = 0.0f;
+	float prob = 0.0f;
 
 	// Should we use sublattices or not
 	int useSubLatt = 0;
@@ -1494,7 +1488,7 @@ int main(int argc, char **argv) {
                 Y = atoi(optarg);
                 break;
             case 'p':
-                hamiltPerc1 = atof(optarg);
+                prob = atof(optarg);
                 break;
 			case 'e':
                 num_errors = atoi(optarg);
@@ -1641,7 +1635,7 @@ int main(int argc, char **argv) {
 	*/
 
 	char rname[512];
-	snprintf(rname, sizeof(rname), "results/Y_%d_X%d_YSL_%d_XSL_%d_e_%d_p_%.4f_t_%.4f_s_%.4f_w_%d_i_%d_u_%d.txt", Y, X, YSL, XSL, num_errors, hamiltPerc1, temp, step, nwarmup, nsteps, up);	
+	snprintf(rname, sizeof(rname), "results/Y_%d_X%d_YSL_%d_XSL_%d_e_%d_p_%.4f_t_%.4f_s_%.4f_w_%d_i_%d_u_%d.txt", Y, X, YSL, XSL, num_errors, prob, temp, step, nwarmup, nsteps, up);	
 	
 	// get GPU properties for each GPU
 	cudaDeviceProp props;
@@ -1749,7 +1743,7 @@ int main(int argc, char **argv) {
 	printf("\ttile  (X, Y): %d, %d\n", BLOCK_X*BMULT_X, BLOCK_Y*BMULT_Y);
 	printf("\tgrid  (X, Y): %d, %d\n", grid.x, grid.y);
 
-	printf("\tusing Hamiltonian buffer, setting links to -1 with prob %G\n", hamiltPerc1);
+	printf("\tusing Hamiltonian buffer, setting links to -1 with prob %G\n", prob);
 
 	printf("\n");
 	if (useSubLatt) {
@@ -1929,7 +1923,7 @@ int main(int argc, char **argv) {
 				BMULT_X, BMULT_Y,
 				BIT_X_SPIN,
 				unsigned long long><<<grid, block>>>(i,
-								hamiltPerc1,
+								prob,
 								seed + 7*e, // just use a different seed
 								i*Y, lld/2,
 								reinterpret_cast<ulonglong2 *>(hamB_d));
@@ -2022,6 +2016,7 @@ int main(int argc, char **argv) {
 		}
 		
 		for(int j = 0; j < nsteps; j++) {
+			
 			for(int i = 0; i < ndev; i++) {
 				
 				CHECK_CUDA(cudaSetDevice(i));
@@ -2168,9 +2163,8 @@ int main(int argc, char **argv) {
 
 	// free memory for all GPUs and stuff
 	CHECK_CUDA(cudaFree(v_d));
-	if (useGenHamilt) {
-		CHECK_CUDA(cudaFree(ham_d));
-	}
+	CHECK_CUDA(cudaFree(ham_d));
+	
 	if (ndev == 1) {
 		CHECK_CUDA(cudaFree(exp_d[0]));
 		CHECK_CUDA(cudaFree(sum_d[0]));

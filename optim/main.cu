@@ -1406,6 +1406,8 @@ int main(int argc, char **argv) {
 	unsigned long long *black_d=NULL;
 	unsigned long long *white_d=NULL;
 	
+	printf("START");
+
 	// Interaction terms
 	unsigned long long *ham_d=NULL;
 	unsigned long long *hamB_d=NULL;

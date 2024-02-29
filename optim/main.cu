@@ -1728,7 +1728,7 @@ int main(int argc, char **argv) {
 	const int num_blocks = grid.x*grid.y;
 	
 	float temp_range[ndev*num_lattices];
-
+ 	cout << "test" << endl;
 	for (int i=0; i < ndev*num_lattices; i++){
 		temp_range[i] = temp + i*step;
 	}
@@ -1916,6 +1916,7 @@ int main(int argc, char **argv) {
 	for (int e = 0; e < num_errors; e++){
 		
 		printf("Error %u of %u\n", e, num_errors);
+		fflush(stdout);
 		
 		for(int i = 0; i < ndev; i++) {
 			CHECK_CUDA(cudaSetDevice(i));

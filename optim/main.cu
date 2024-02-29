@@ -1405,8 +1405,6 @@ int main(int argc, char **argv) {
 	unsigned long long *v_d=NULL;
 	unsigned long long *black_d=NULL;
 	unsigned long long *white_d=NULL;
-	
-	printf("START");
 
 	// Interaction terms
 	unsigned long long *ham_d=NULL;
@@ -2010,12 +2008,6 @@ int main(int argc, char **argv) {
 				}
 			}
 		}
-
-		if (dumpOut) {
-			char fname[256];
-			snprintf(fname, sizeof(fname), "lattices/lattice_%d_%dx%d_T_%f_IT_%08d_", e, Y, X, temp, nsteps + nwarmup);
-			dumpLattice(fname, ndev, Y, lld, llen, llenLoc, v_d);
-		}
 		
 		for(int j = 0; j < nsteps; j++) {
 			
@@ -2066,6 +2058,12 @@ int main(int argc, char **argv) {
 				}
 			}	
 			
+			if (dumpOut) {
+				char fname[256];
+				snprintf(fname, sizeof(fname), "lattices/lattice_%d_%d_%dx%d_T_%f_IT_%08d_", e, j, Y, X, temp, nsteps + nwarmup);
+				dumpLattice(fname, ndev, Y, lld, llen, llenLoc, v_d);
+			}
+
 			for (int i = 0; i < ndev; i++){
 				CHECK_CUDA(cudaSetDevice(i));
 				calculate_average_magnetization<BLOCK_X, BLOCK_Y,
@@ -2154,6 +2152,11 @@ int main(int argc, char **argv) {
 	}
 	f.close();
 	
+	for (int i = 0; i < num_lattices; i++){ 
+		cout << h_sus_0[i] << endl;
+		cout << h_sus_k[i] << endl;
+	}
+
 	/*
 	// Write lattice
 	if (dumpOut) {

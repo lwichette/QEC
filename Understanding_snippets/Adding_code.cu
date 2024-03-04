@@ -114,3 +114,62 @@ __global__ void latticeInit_k(const int devid, const long long seed,const int it
     
 }
 
+// Initializing the interaction terms for the Random Bond Ising Model from the perspective of the black lattice
+template<int BDIM_X, int BDIM_Y, int LOOP_X, int LOOP_Y, int BITXSP, int COLOR, typename INT_T, typename INT2_T>
+__global__ void hamiltInitB_k(const int devid, const float tgtProb, const long long seed, const long long begY, const long long dimX, INT2_T *__restrict__ hamB){
+
+    // Linearized indices
+    const int __i = threadIdx.y + blockDim.y*BDIM_Y*LOOP_Y;
+    const int __j = threadIdx.x + blockDim.x*BDIM_X*LOOP_X;
+
+    // Spins per word
+    const int SPIN_X_WORD = 8*sizeof(INT_T)/BITXSP;
+
+    const long long tid = ((devid*gridDim.y + blockIdx.y)*gridDim.x + blockIdx.x)*BDIM_X*BDIM_Y + threadIdx.y*BDIM_X + threadIdx.x;
+
+    //RNG
+    curandStatePhilox4_32_10_t st;
+    curand_init(seed, tid, 0, &st);
+
+
+    // Initialize memory to 0s
+    INT2_T __tmp[LOOP_Y][LOOP_X];
+    #pragma unroll 
+    for (int i = 0, i < LOOP_Y, i++){
+        #pragma unroll
+        for (int j = 0, j < LOOP_X, j++){
+            __tmp[i][j] = __mymake_int2(INT_T(0), INT_T(0));
+        }
+    }
+
+    // Fill interaction terms
+    #pragma unroll
+    for (int i = 0, i < LOOP_Y, i++){
+        #pragma unroll
+        for (int j = 0, j < LOOP_X, j++){
+            #pragma unroll
+            for (int k = 0, k < 8*sizeof(INT_T), k +=BITXSP){
+                #pragma unroll
+                for (int l = 0, l < BITXSP, l++){
+                    if (curand_uniform(&st) < tgtProb){
+                        __tmp[i][j].x |= INT_T(1) << k + l;
+                    }
+
+                    if (curand_uniform(&st) < tgtProb){
+                        __tmp[i][j].y |= INT_T(1) << k + l;
+                    }
+                }
+            }
+        }
+    }
+
+    // Write to global memory
+    #pragma unroll
+    for (int i = 0, i < LOOP_Y, i++){
+        #pragma unroll
+        for (int j = 0, j < LOOP_X, j++){
+        hamB[(begY + __i + i*BDIM_Y)*dimX + j*BDIM_X + __j] = __tmp[i][j];    
+        }
+    }
+    return;    
+}

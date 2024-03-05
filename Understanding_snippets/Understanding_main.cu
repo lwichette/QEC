@@ -427,7 +427,7 @@
               const long long begY,
               const long long dimX,
               const INT2_T *__restrict__ v,
-                    INT2_T tile[][TILE_X+2*FRAME_X]) {
+                    INT2_T tile[][TILE_X+2*FRAME_X]){
  
      // x,y block indices
      const int blkx = blockIdx.x;
@@ -456,7 +456,7 @@
              tile[FRAME_Y + j + tidy][FRAME_X + i + tidx] = v[yoff*dimX + xoff];
          }
      }
- 
+
      // if tidy == 0
      if (tidy == 0) {
          // if beginning of Y % size of sublattice == 0 --> if we are at start of a new sublattice
@@ -1406,7 +1406,7 @@
      d_sus_k[tid] += thrust::abs(c_sum)*thrust::abs(c_sum);
  }
  
- 
+ // ./cuIsing --X 128 --Y 128 --XSL 128 --YSL 128 --temp 1.8 --step 0.0 --nie 500 --nw 10000000 --nit 1000 --up 1 --ndev 1 --prob 0.06
  int main(int argc, char **argv) {
  
      // v_d whole lattice

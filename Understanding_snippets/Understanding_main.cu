@@ -460,7 +460,7 @@
      // if tidy == 0
      if (tidy == 0) {
          // if beginning of Y % size of sublattice == 0 --> if we are at start of a new sublattice
-         // set offset to last row, else to startY - 1
+         // set offset to last row, else to startY - 1 (periodic boundary condition)
          int yoff = (startY % slY) == 0 ? startY+slY-1 : startY-1;
  
          #pragma unroll
@@ -480,7 +480,7 @@
              tile[FRAME_Y + TILE_Y][FRAME_X + i + tidx] = v[yoff*dimX + xoff];
          }
  
-         // the other branch in slower so skip it if possible
+         // the other branch is slower so skip it if possible
          // if BLOCK_X <= TILE_Y
          if (BDIM_X <= TILE_Y) {
              // Find left neighbors

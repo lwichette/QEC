@@ -1945,6 +1945,41 @@ int main(int argc, char **argv) {
 			CHECK_CUDA(cudaDeviceSynchronize());
 		}
 
+		/* 
+		S
+		E
+		E
+		E
+		E
+		E
+		E
+		E
+		E
+		E
+		E
+		E
+		E
+		D
+		D
+		D
+		D
+		D
+		D
+		D
+		D
+		D
+		D
+		D
+		D
+		S
+		S
+		S
+		S
+		S
+		S
+		S
+		*/
+
 		int j; 
 
 		for(j = 0; j < nwarmup; j++) {			

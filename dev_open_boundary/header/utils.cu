@@ -440,7 +440,7 @@ __global__ void calc_energy(
     int icouplingpp;
     int icouplingnn;
 
-    if (is_black) {
+    if (!is_black) {
         icouplingpp = offset_i + 2*(nx-1)*ny + 2*(ny*(i+1) + j) + (i+1)%2;
         icouplingnn = offset_i + 2*(nx-1)*ny + 2*(ny*(inn+1) + j) + (i+1)%2;
 
@@ -744,7 +744,7 @@ __global__ void calc_energy_ob(
     int c_side;
 
 
-    if (is_black) {
+    if (!is_black) {
         icouplingpp = offset_i + 2*(nx-1)*ny + 2*(ny*(i+1) + j) + (i+1)%2;
         icouplingnn = offset_i + 2*(nx-1)*ny + 2*(ny*(inn+1) + j) + (i+1)%2;
 

@@ -57,7 +57,7 @@ __global__ void init_spins(
     signed char* lattice, const float* __restrict__ randvals,
     const long long nx, const long long ny, const int num_lattices
 ){
-        const long long  tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
+        const long long  tid = static_cast<long long>(blockDim.x * blockIdx.x + threadIdx.x);
         if (tid >= nx * ny * num_lattices) return;
 
         float randval = randvals[tid];
@@ -207,7 +207,7 @@ void write_updated_lattices(signed char *lattice_b, signed char *lattice_w, long
     outFile_w.close();
 }
 
-void write_lattice(signed char *lattice_b, signed char *lattice_w, std::string filename, long long nx, long long ny, const int num_lattices) {
+void write_lattice_to_disc(signed char *lattice_b, signed char *lattice_w, std::string filename, long long nx, long long ny, const int num_lattices) {
     printf("Writing lattice to %s...\n", filename.c_str());
 
     std::vector<signed char> lattice_h(nx*ny);
@@ -311,7 +311,7 @@ __global__ void update_lattice(
     int offset = l_id * nx * ny;
     int offset_i = l_id * nx * ny * 4;
 
-    if (is_black) {
+    if (!is_black) {
         icouplingpp = offset_i + 2*(nx-1)*ny + 2*(ny*(i+1) + j) + (i+1)%2;
         icouplingnn = offset_i + 2*(nx-1)*ny + 2*(ny*(inn+1) + j) + (i+1)%2;
 
@@ -368,11 +368,11 @@ void update(
 
     // Update black
     CHECK_CURAND(curandGenerateUniform(rng, randvals, num_lattices*nx*ny/2));
-    update_lattice<true><<<blocks, THREADS>>>(lattice_b, lattice_w, randvals,interactions, inv_temp, nx, ny/2, num_lattices, coupling_constant, d_energy);
+    update_lattice<true><<<blocks, THREADS>>>(lattice_b, lattice_w, randvals, interactions, inv_temp, nx, ny/2, num_lattices, coupling_constant, d_energy);
 
     // Update white
     CHECK_CURAND(curandGenerateUniform(rng, randvals, num_lattices*nx*ny/2));
-    update_lattice<false><<<blocks, THREADS>>>(lattice_w, lattice_b, randvals,interactions, inv_temp, nx, ny/2, num_lattices, coupling_constant, d_energy);
+    update_lattice<false><<<blocks, THREADS>>>(lattice_w, lattice_b, randvals, interactions, inv_temp, nx, ny/2, num_lattices, coupling_constant, d_energy);
 }
 
 __global__ void B2_lattices(
@@ -630,41 +630,49 @@ __global__ void update_lattice_ob(
     int c_down = 1-(i+1)/nx;
     int c_side;
 
-    if (is_black) {
+    if (!is_black) {
         icouplingpp = offset_i + 2*(nx-1)*ny + 2*(ny*(i+1) + j) + (i+1)%2;
         icouplingnn = offset_i + 2*(nx-1)*ny + 2*(ny*(inn+1) + j) + (i+1)%2;
 
         joff = (i % 2) ? jnn : jpp;
 
         if (i % 2) {
+            
             jcouplingoff = offset_i + 2 * (i * ny + joff) + 1;
 
             c_side = 1 - jnn/(ny-1);
+
         } else {
+            
             c_side = 1 - (j+1)/ny;
 
             if (j + 1 >= ny) {
                 jcouplingoff = offset_i + 2 * (i * ny + j + 1) - 1;
-            } else {
+            } 
+            else {
                 jcouplingoff = offset_i + 2 * (i * ny + joff) - 1;
             }
         }
     }
     else {
+
         icouplingpp = offset_i + 2*(nx-1)*ny + 2*(ny*(i+1) + j) + i%2;
         icouplingnn = offset_i + 2*(nx-1)*ny + 2*(ny*(inn+1) + j) + i%2;
 
         joff = (i % 2) ? jpp : jnn;
 
         if (i % 2) {
+            
             c_side = 1-(j+1)/ny;
 
             if (j+1 >= ny) {
                 jcouplingoff = offset_i + 2 * (i * ny + j + 1) - 1;
-            } else {
+            } 
+            else {
                 jcouplingoff = offset_i + 2 * (i * ny + joff) - 1;
             }
-        } else {
+        } 
+        else {
             c_side = 1-jnn/(ny-1);
             jcouplingoff = offset_i + 2 * (i * ny + joff) + 1;
         }

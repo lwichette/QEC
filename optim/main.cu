@@ -120,7 +120,6 @@ __global__  void latticeInit_k(const int devid,
 
 	// Random number generator
 	curandStatePhilox4_32_10_t st;
-	// Unclear what exactly
 	curand_init(seed, tid, static_cast<long long>(2*SPIN_X_WORD)*LOOP_X*LOOP_Y*(2*it+COLOR), &st);
 
 	// tmp 2D array of type unsigned long long of size (1x2)
@@ -526,7 +525,7 @@ void spinUpdate_open_bdry(const int devid,
 			  const int NSLX,
 		      const long long begY,
 		      const long long dimX, // ld
-		      const float vExp[][2][5],
+		      const double vExp[][2][5],
 		      const INT2_T *__restrict__ jDst,
 		      const INT2_T *__restrict__ vSrc,
 		            INT2_T *__restrict__ vDst) {
@@ -869,7 +868,7 @@ void spinUpdateV_2D_k(const int devid,
 	for(int i = 0; i < 2; i += BDIM_Y) {
 		#pragma unroll
 		for(int j = 0; j < 5; j += BDIM_X) {
-			if (i+tidy < 2 && j+tidx < 5) {
+			if ((i+tidy < 2) && (j+tidx < 5)) {
 				__shExp[i+tidy][j+tidx] = vExp[sly*NSLX+slx][i+tidy][j+tidx];
 			}
 		}
@@ -1015,7 +1014,6 @@ void spinUpdateV_2D_k(const int devid,
 	curandStatePhilox4_32_10_t st;
 	curand_init(seed, tid, static_cast<long long>(2*SPIN_X_WORD)*LOOP_X*LOOP_Y*(2*it+COLOR), &st);
 
-	// Add binaries up but why though
 	#pragma unroll
 	for(int i = 0; i < LOOP_Y; i++) {
 		#pragma unroll
@@ -1048,7 +1046,6 @@ void spinUpdateV_2D_k(const int devid,
 				const int2 __sum = make_int2((__ct[i][j].x >> z) & 0xF,
 							     (__ct[i][j].y >> z) & 0xF);
 
-				// Create unsigned long long 1
 				const INT_T ONE = static_cast<INT_T>(1);
 
 				// perform logical XOR on the bits containing the spins
@@ -1620,22 +1617,8 @@ int main(int argc, char **argv) {
 		NSLY = 1;
 	}
 
-	/*
-	char folderPath[256];
-	snprintf(folderPath, sizeof(folderPath), "results/%.4f", hamiltPerc1);	
-
-
-	if (!fs::exists(folderPath)) {
-        if (fs::create_directory(folderPath)) {
-            std::cout << "Directory created successfully." << std::endl;
-        } else {
-            std::cout << "Failed to create directory." << std::endl;
-        }
-    }
-	*/
-
 	char rname[512];
-	snprintf(rname, sizeof(rname), "results/Y_%d_X%d_YSL_%d_XSL_%d_e_%d_p_%.4f_t_%.4f_s_%.4f_w_%d_i_%d_u_%d.txt", Y, X, YSL, XSL, num_errors, prob, temp, step, nwarmup, nsteps, up);	
+	snprintf(rname, sizeof(rname), "results/Y_%d_X_%d_YSL_%d_XSL_%d_e_%d_p_%.4f_t_%.4f_s_%.4f_w_%d_i_%d_u_%d.txt", Y, X, YSL, XSL, num_errors, prob, temp, step, nwarmup, nsteps, up);	
 	
 	// get GPU properties for each GPU
 	cudaDeviceProp props;
@@ -1728,7 +1711,7 @@ int main(int argc, char **argv) {
 	const int num_blocks = grid.x*grid.y;
 	
 	float temp_range[ndev*num_lattices];
- 	cout << "test" << endl;
+
 	for (int i=0; i < ndev*num_lattices; i++){
 		temp_range[i] = temp + i*step;
 	}
@@ -1925,7 +1908,7 @@ int main(int argc, char **argv) {
 				BIT_X_SPIN,
 				unsigned long long><<<grid, block>>>(i,
 								prob,
-								seed + 7*e, // just use a different seed
+								seed + 1, // just use a different seed
 								i*Y, lld/2,
 								reinterpret_cast<ulonglong2 *>(hamB_d));
 
@@ -1940,7 +1923,7 @@ int main(int argc, char **argv) {
 					BMULT_X, BMULT_Y,
 					BIT_X_SPIN, C_BLACK,
 					unsigned long long><<<grid, block>>>(i,
-									seed + 7*e +1,
+									seed,
 									0, i*Y, lld/2,
 									reinterpret_cast<ulonglong2 *>(black_d),
 									up);
@@ -1962,14 +1945,16 @@ int main(int argc, char **argv) {
 			CHECK_CUDA(cudaDeviceSynchronize());
 		}
 
-		for(int j = 0; j < nwarmup; j++) {			
+		int j; 
+
+		for(j = 0; j < nwarmup; j++) {			
 			for(int i = 0; i < ndev; i++) {
 				CHECK_CUDA(cudaSetDevice(i));
 				spinUpdateV_2D_k<BLOCK_X, BLOCK_Y,
 						BMULT_X, BMULT_Y,
 						BIT_X_SPIN, C_BLACK,
 						unsigned long long><<<grid, block>>>(i,
-											seed + 7*e + 3,
+											seed,
 											j+1,
 											(XSL/2)/SPIN_X_WORD/2, YSL, blocks_per_slx, blocks_per_sly, NSLX,
 											i*Y,  lld/2,
@@ -2010,7 +1995,15 @@ int main(int argc, char **argv) {
 			}
 		}
 		
-		for(int j = 0; j < nsteps; j++) {
+		/*
+		if (dumpOut) {
+			char fname[256];
+			snprintf(fname, sizeof(fname), "lattices/lattice_%d_%dx%d_T_%f_IT_%08d_", e, Y, X, temp, nsteps + nwarmup);
+			dumpLattice(fname, ndev, Y, lld, llen, llenLoc, v_d);
+		}
+		*/
+
+		for(j = nwarmup; j < nwarmup + nsteps; j++) {
 			
 			for(int i = 0; i < ndev; i++) {
 				
@@ -2064,7 +2057,7 @@ int main(int argc, char **argv) {
 				snprintf(fname, sizeof(fname), "lattices/lattice_%d_%d_%dx%d_T_%f_IT_%08d_", e, j, Y, X, temp, nsteps + nwarmup);
 				dumpLattice(fname, ndev, Y, lld, llen, llenLoc, v_d);
 			}
-
+			
 			for (int i = 0; i < ndev; i++){
 				CHECK_CUDA(cudaSetDevice(i));
 				calculate_average_magnetization<BLOCK_X, BLOCK_Y,

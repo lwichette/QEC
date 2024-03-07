@@ -42,7 +42,7 @@ int main(int argc, char **argv){
       ("open", po::value<bool>(), "open boundary")
       ("temp", po::value<float>(), "start_temp")
       ("step", po::value<float>(), "step size temperature")
-      ("up", po::value<bool>(), "step size temperature")
+      ("up", po::value<bool>(), "up initialization")
       ("nie", po::value<int>(), "num iterations error")
       ("leave_out", po::value<int>(), "leave_out")
       ("nit", po::value<int>(), "niters updates")
@@ -125,7 +125,7 @@ int main(int argc, char **argv){
         } else {
             std::cout << "Failed to create directory." << std::endl;
         }
-    }else {
+    } else {
         if (!fs::exists(folderPath + "/lattices")){
             if (fs::create_directory(folderPath+"/lattices")){
                 std::cout << "Lattice folder created successfully" << std::endl;
@@ -244,6 +244,7 @@ int main(int argc, char **argv){
         // Setup cuRAND generator
         curandGenerator_t update_rng;
         CHECK_CURAND(curandCreateGenerator(&update_rng, CURAND_RNG_PSEUDO_PHILOX4_32_10));
+        CHECK_CURAND(curandSetPseudoRandomGeneratorSeed(update_rng, seed + 2 + seed_adder));
 
         float *randvals;
         CHECK_CUDA(cudaMalloc(&randvals, num_lattices * L * L/2 * sizeof(*randvals)));
@@ -263,11 +264,8 @@ int main(int argc, char **argv){
             cout << "Error " << e << " of " << num_iterations_error << endl;
 
             init_interactions_with_seed(d_interactions, rng_errors, interaction_randvals, L, L, num_lattices, p, blocks_inter);
-
+                        
             initialize_spins(lattice_b, lattice_w, rng, lattice_randvals, L, L, num_lattices, up, blocks_spins, read_lattice, lattice_b_file_name, lattice_w_file_name);
-
-            // gets same chain of update random numbers for each error chain. Do we really want this correlation between the chains?
-            CHECK_CURAND(curandSetPseudoRandomGeneratorSeed(update_rng, seed + 2 + seed_adder));
 
             for (int j = 0; j < nwarmup; j++) {
                 updateMap[open](lattice_b, lattice_w, randvals, update_rng, d_interactions, d_inv_temp, L, L, num_lattices, d_coupling_constant, blocks_spins, d_energy);

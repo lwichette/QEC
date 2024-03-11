@@ -21,6 +21,13 @@
         },
         
         {
+            "name": "test_rng",
+            "type": "cuda-gdb",
+            "request": "launch",
+            "program": "${workspaceFolder}/test_rng/test_rng",
+        },
+
+        {
             "name": "CUDA C++: Attach",
             "type": "cuda-gdb",
             "request": "attach"

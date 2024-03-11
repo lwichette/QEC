@@ -14,3 +14,6 @@ one_script/randomBond
 *.so
 *.dylib
 optim/cuIsing
+**/lattices_50
+dev_open_boundary/dev_open_boundary
+test_rng/test_rng

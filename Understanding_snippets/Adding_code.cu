@@ -63,9 +63,9 @@ __global__ void latticeInit_k(const int devid, const long long seed,const int it
     // Initializing temporary memory all up
     if (up){
         #pragma unroll
-        for (int i = 0, i < LOOP_Y, i++){
+        for (int i = 0; i < LOOP_Y; i++){
             #pragma unroll
-            for (int j = 0, j < LOOP_X, j++){
+            for (int j = 0; j < LOOP_X; j++){
                 __tmp[i][j] = __mymake_int2(INT_T(0x1111111111111111), INT_T(0x1111111111111111));
             }
         }
@@ -74,19 +74,19 @@ __global__ void latticeInit_k(const int devid, const long long seed,const int it
     // Initialize temporary memory to 0
     else{
         #pragma unroll
-        for (int i = 0, i < LOOP_Y, i++){
+        for (int i = 0; i < LOOP_Y; i++){
             #pragma unroll
-            for (int j = 0, j < LOOP_X, j++){
+            for (int j = 0; j < LOOP_X; j++){
                 __tmp[i][j] = __mymake_int2(INT_T(0), INT_T(0));
             }
         }
 
         #pragma unroll
-        for (int i = 0, i< LOOP_Y, i++){
+        for (int i = 0; i< LOOP_Y; i++){
             #pragma unroll
-            for (j = 0, j < LOOP_X, j++){
+            for (j = 0; j < LOOP_X; j++){
                 #pragma unroll
-                for (k = 0, k < 8*sizeof(INT_T), k += BIT_X_SPIN){
+                for (k = 0; k < 8*sizeof(INT_T); k += BIT_X_SPIN){
                     if (curand_init(&st) < 0.5f){
                         __tmp[i][j].x |= INT_T(1) < k;
                     }
@@ -104,9 +104,9 @@ __global__ void latticeInit_k(const int devid, const long long seed,const int it
      // write to global memory
 
      #pragma unroll
-     for (int i = 0, i < LOOP_Y, i++){
+     for (int i = 0; i < LOOP_Y; i++){
          #pragma unroll
-         for (j = 0, j < LOOP_X, j++){
+         for (j = 0; j < LOOP_X; j++){
              vDst[(begY + __i + i*BDIM_Y)*dimX + __j + j*BDIM_X] = __tmp[i][j];
          }
      }
@@ -135,22 +135,22 @@ __global__ void hamiltInitB_k(const int devid, const float tgtProb, const long l
     // Initialize memory to 0s
     INT2_T __tmp[LOOP_Y][LOOP_X];
     #pragma unroll 
-    for (int i = 0, i < LOOP_Y, i++){
+    for (int i = 0; i < LOOP_Y; i++){
         #pragma unroll
-        for (int j = 0, j < LOOP_X, j++){
+        for (int j = 0; j < LOOP_X; j++){
             __tmp[i][j] = __mymake_int2(INT_T(0), INT_T(0));
         }
     }
 
     // Fill interaction terms
     #pragma unroll
-    for (int i = 0, i < LOOP_Y, i++){
+    for (int i = 0; i < LOOP_Y; i++){
         #pragma unroll
-        for (int j = 0, j < LOOP_X, j++){
+        for (int j = 0; j < LOOP_X; j++){
             #pragma unroll
-            for (int k = 0, k < 8*sizeof(INT_T), k +=BITXSP){
+            for (int k = 0; k < 8*sizeof(INT_T); k +=BITXSP){
                 #pragma unroll
-                for (int l = 0, l < BITXSP, l++){
+                for (int l = 0; l < BITXSP; l++){
                     if (curand_uniform(&st) < tgtProb){
                         __tmp[i][j].x |= INT_T(1) << k + l;
                     }
@@ -165,11 +165,61 @@ __global__ void hamiltInitB_k(const int devid, const float tgtProb, const long l
 
     // Write to global memory
     #pragma unroll
-    for (int i = 0, i < LOOP_Y, i++){
+    for (int i = 0; i < LOOP_Y; i++){
         #pragma unroll
-        for (int j = 0, j < LOOP_X, j++){
+        for (int j = 0; j < LOOP_X; j++){
         hamB[(begY + __i + i*BDIM_Y)*dimX + j*BDIM_X + __j] = __tmp[i][j];    
         }
     }
     return;    
 }
+
+// Loading the tile around the two spin words that are being updated
+template<int BDIM_X, int BDIM_Y, int TILE_X, int TILE_Y, int FRAME_X, int FRAME_Y, typename INT2_T>
+__device__ void loadTile(const int slX, const int slY, const long long begY, const long long dimX, const INT2_T *__restrict__ v, INT2_T tile[][TILE_X+2*FRAME_X]){
+
+    const int blkx = blockDim.x;
+    const int blky = blockDim.y;
+
+    const tidx = threadIdx.x;
+    const tidy = threadIdx.y;
+
+    const startX = blkx*TILE_X;
+    const startY = begY + blky*TILE_Y;
+
+    #pragma unroll
+    for (int j = 0; j < TILE_Y; j+= BDIM_Y){
+        
+        int yoff = startY + j + tidy;
+
+        #pragma unroll 
+        for (int i = 0; i < TILE_X; i+= BDIM_X){
+            int xoff = startX + i + tidx;
+
+            tile[FRAME_Y + j + tidy][FRAME_X + i + tidx] = v[yoff*dimX + xoff];
+
+        }
+    }
+
+    if (tidy == 0){
+        int yoff = (startY % slY ) == 0 ? startY + slY -1 : startY - 1;
+
+        #pragma unroll
+        for (int i = 0; i < TILE_X; i += BDIM_X){
+            const int xoff = startX + i + tidx;
+            tile[0][FRAME_X + i + tidx] = v[yoff*dimX + xoff]; // up neighbours
+        }
+
+        yoff = ((startY+TILE_Y % slY)  % slY) == 0 ? startY+TILE_Y - slY : startY+TILE_Y;
+
+        #pragma unroll
+        for(int i = 0; i < TILE_X; j += BDIM_X){
+            const int xoff = startX + i + tidx;
+            tile[FRAME_Y + TILE_Y][FRAME_X + i + tidx] = v[yoff*dimX + xoff]; // Down neighbours
+        }
+
+        // come back to this later with a specific lattice size
+    }
+}
+
+

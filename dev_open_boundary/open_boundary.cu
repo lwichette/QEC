@@ -42,7 +42,7 @@ int main(int argc, char **argv){
       ("open", po::value<bool>(), "open boundary")
       ("temp", po::value<float>(), "start_temp")
       ("step", po::value<float>(), "step size temperature")
-      ("up", po::value<bool>(), "step size temperature")
+      ("up", po::value<bool>(), "up initialization")
       ("nie", po::value<int>(), "num iterations error")
       ("leave_out", po::value<int>(), "leave_out")
       ("nit", po::value<int>(), "niters updates")
@@ -125,7 +125,7 @@ int main(int argc, char **argv){
         } else {
             std::cout << "Failed to create directory." << std::endl;
         }
-    }else {
+    } else {
         if (!fs::exists(folderPath + "/lattices")){
             if (fs::create_directory(folderPath+"/lattices")){
                 std::cout << "Lattice folder created successfully" << std::endl;
@@ -244,6 +244,7 @@ int main(int argc, char **argv){
         // Setup cuRAND generator
         curandGenerator_t update_rng;
         CHECK_CURAND(curandCreateGenerator(&update_rng, CURAND_RNG_PSEUDO_PHILOX4_32_10));
+        CHECK_CURAND(curandSetPseudoRandomGeneratorSeed(update_rng, seed + 2 + seed_adder));
 
         float *randvals;
         CHECK_CUDA(cudaMalloc(&randvals, num_lattices * L * L/2 * sizeof(*randvals)));
@@ -263,11 +264,8 @@ int main(int argc, char **argv){
             cout << "Error " << e << " of " << num_iterations_error << endl;
 
             init_interactions_with_seed(d_interactions, rng_errors, interaction_randvals, L, L, num_lattices, p, blocks_inter);
-
+                        
             initialize_spins(lattice_b, lattice_w, rng, lattice_randvals, L, L, num_lattices, up, blocks_spins, read_lattice, lattice_b_file_name, lattice_w_file_name);
-
-            // gets same chain of update random numbers for each error chain. Do we really want this correlation between the chains?
-            CHECK_CURAND(curandSetPseudoRandomGeneratorSeed(update_rng, seed + 2 + seed_adder));
 
             for (int j = 0; j < nwarmup; j++) {
                 updateMap[open](lattice_b, lattice_w, randvals, update_rng, d_interactions, d_inv_temp, L, L, num_lattices, d_coupling_constant, blocks_spins, d_energy);
@@ -278,21 +276,14 @@ int main(int argc, char **argv){
             for(int j = 0; j < niters; j++){
                 updateMap[open](lattice_b, lattice_w, randvals, update_rng, d_interactions, d_inv_temp, L, L, num_lattices, d_coupling_constant, blocks_spins, d_energy);
 
-                // combine cross term hamiltonian values from d_energy array (dim: num_lattices*sublattice_dof) and store in d_store_energy array (dim: num_lattices) to whole lattice energy for each temperature.
-                // reduce autocorrelation between snapshots with this if ?
                 if(j%leave_out == 0){
-                    // combine_cross_subset_hamiltonians_to_whole_lattice_hamiltonian(d_energy, d_store_energy, L, L, num_lattices);
 
-                    // Calculate suscetibilitites for each temperature (hence dimension of d_store_sum equals num_lattices)
                     calculate_B2(d_sum, lattice_b, lattice_w, d_store_sum_0, d_wave_vector_0, L, L, num_lattices, blocks_spins);
                     calculate_B2(d_sum, lattice_b, lattice_w, d_store_sum_k, d_wave_vector_k, L, L, num_lattices, blocks_spins);
 
-
-                    // Take abs squares of previous B2 sums for each temperature and store again to d_store_sum array.
                     abs_square<<<blocks_temperature_parallel, THREADS>>>(d_store_sum_0, num_lattices);
                     abs_square<<<blocks_temperature_parallel, THREADS>>>(d_store_sum_k, num_lattices);
 
-                    // Summation over errors and update steps is incrementally executed and stored in the d_store_sum_ arrays for each temperature.
                     incrementalSumMagnetization<<<blocks_temperature_parallel, THREADS>>>(d_store_sum_0, d_store_sum_k, num_lattices, d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector, d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector);
 
                     normalization_factor += 1;
@@ -302,13 +293,8 @@ int main(int argc, char **argv){
             CHECK_CUDA(cudaDeviceSynchronize());
 
             if(write_lattice){
-                // Write last results from updates to txt format
                 write_updated_lattices(lattice_b, lattice_w, L, L, num_lattices, lattice_b_file_name, lattice_w_file_name);
             }
-
-            //std::string bond_filename = folderPath + "/bonds/" + std::to_string(e) + "_";
-            //write_bonds(d_interactions, bond_filename, L, L, num_lattices);
-
         }
 
         // copying new result to host.

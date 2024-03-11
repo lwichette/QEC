@@ -11,7 +11,7 @@ void init_interactions_with_seed(signed char* interactions, curandGenerator_t in
 
 void initialize_spins(signed char* lattice_b, signed char* lattice_w, curandGenerator_t lattice_rng, float* lattice_randvals, const long long nx, const long long ny, const int num_lattices, bool up, const int blocks, bool read_lattice, std::string filename_b, std::string filename_w);
 
-void write_lattice(signed char *lattice_b, signed char *lattice_w, std::string filename, long long nx, long long ny, const int num_lattices);
+void write_lattice_to_disc(signed char *lattice_b, signed char *lattice_w, std::string filename, long long nx, long long ny, const int num_lattices);
 
 void write_updated_lattices(signed char *lattice_b, signed char *lattice_w, long long nx, long long ny, const int num_lattices, std::string lattice_b_file_name, std::string lattice_w_file_name);
 

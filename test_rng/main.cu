@@ -196,7 +196,7 @@ int main(int argc, char **argv){
 
     int THREADS = 128;
 
-    int blocks = (L*L*2+ THREADS -1) / THREADS; 
+    int blocks = (L*L*2 + THREADS -1)/THREADS; 
 
     //Setup interaction lattice on device
     signed char *d_interactions;

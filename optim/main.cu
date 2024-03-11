@@ -1933,7 +1933,7 @@ int main(int argc, char **argv) {
 					BMULT_X, BMULT_Y,
 					BIT_X_SPIN, C_WHITE,
 					unsigned long long><<<grid, block>>>(i,
-									seed + 7*e + 2,
+									seed,
 									0, i*Y, lld/2,
 									reinterpret_cast<ulonglong2 *>(white_d),
 									up);
@@ -1944,41 +1944,6 @@ int main(int argc, char **argv) {
 			CHECK_CUDA(cudaSetDevice(i));
 			CHECK_CUDA(cudaDeviceSynchronize());
 		}
-
-		/* 
-		S
-		E
-		E
-		E
-		E
-		E
-		E
-		E
-		E
-		E
-		E
-		E
-		E
-		D
-		D
-		D
-		D
-		D
-		D
-		D
-		D
-		D
-		D
-		D
-		D
-		S
-		S
-		S
-		S
-		S
-		S
-		S
-		*/
 
 		int j; 
 
@@ -2012,7 +1977,7 @@ int main(int argc, char **argv) {
 						BMULT_X, BMULT_Y,
 						BIT_X_SPIN, C_WHITE,
 						unsigned long long><<<grid, block>>>(i,
-											seed + 7*e + 4,
+											seed,
 											j+1,
 											(XSL/2)/SPIN_X_WORD/2, YSL, blocks_per_slx, blocks_per_sly, NSLX,
 											i*Y, lld/2,
@@ -2029,14 +1994,6 @@ int main(int argc, char **argv) {
 				}
 			}
 		}
-		
-		/*
-		if (dumpOut) {
-			char fname[256];
-			snprintf(fname, sizeof(fname), "lattices/lattice_%d_%dx%d_T_%f_IT_%08d_", e, Y, X, temp, nsteps + nwarmup);
-			dumpLattice(fname, ndev, Y, lld, llen, llenLoc, v_d);
-		}
-		*/
 
 		for(j = nwarmup; j < nwarmup + nsteps; j++) {
 			
@@ -2047,7 +2004,7 @@ int main(int argc, char **argv) {
 						BMULT_X, BMULT_Y,
 						BIT_X_SPIN, C_BLACK,
 						unsigned long long><<<grid, block>>>(i,
-											seed + 7*e + 5,
+											seed,
 											j+1,
 											(XSL/2)/SPIN_X_WORD/2, YSL, blocks_per_slx, blocks_per_sly, NSLX,
 											i*Y, lld/2,
@@ -2070,7 +2027,7 @@ int main(int argc, char **argv) {
 						BMULT_X, BMULT_Y,
 						BIT_X_SPIN, C_WHITE,
 						unsigned long long><<<grid, block>>>(i,
-											seed + 7*e +6,
+											seed,
 											j+1,
 											(XSL/2)/SPIN_X_WORD/2, YSL, blocks_per_slx, blocks_per_sly, NSLX,
 											i*Y, lld/2,
@@ -2086,15 +2043,6 @@ int main(int argc, char **argv) {
 					CHECK_CUDA(cudaDeviceSynchronize());
 				}
 			}	
-			
-			/*
-			if (dumpOut) {
-				char fname[256];
-				snprintf(fname, sizeof(fname), "lattices/lattice_%d_%d_%dx%d_T_%f_IT_%08d_", e, j, Y, X, temp, nsteps + nwarmup);
-				dumpLattice(fname, ndev, Y, lld, llen, llenLoc, v_d);
-			}
-			*/
-
 			
 			for (int i = 0; i < ndev; i++){
 				CHECK_CUDA(cudaSetDevice(i));
@@ -2142,6 +2090,8 @@ int main(int argc, char **argv) {
 				CHECK_CUDA(cudaMemset(ham_d + (llen/2) + i*llenLoc, 0, llenLoc*sizeof(*ham_d)));
 			}
 		}
+
+		seed += 2;
 	}
 
 	if (ndev == 1) {

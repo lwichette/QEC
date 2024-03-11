@@ -2059,11 +2059,13 @@ int main(int argc, char **argv) {
 				}
 			}	
 			
+			/*
 			if (dumpOut) {
 				char fname[256];
 				snprintf(fname, sizeof(fname), "lattices/lattice_%d_%d_%dx%d_T_%f_IT_%08d_", e, j, Y, X, temp, nsteps + nwarmup);
 				dumpLattice(fname, ndev, Y, lld, llen, llenLoc, v_d);
 			}
+			*/
 
 			for (int i = 0; i < ndev; i++){
 				CHECK_CUDA(cudaSetDevice(i));

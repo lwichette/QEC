@@ -61,16 +61,16 @@ int main(int argc, char **argv){
     po::notify(vm);
 
     if (vm.count("p")) {
-        p = vm["p"].as<float>();
+        p = vm["p"].as<double>();
     }
     if (vm.count("open")) {
         open = vm["open"].as<bool>();
     }
     if (vm.count("temp")) {
-        start_temp = vm["temp"].as<float>();
+        start_temp = vm["temp"].as<double>();
     }
     if (vm.count("step")) {
-        step = vm["step"].as<float>();
+        step = vm["step"].as<double>();
     }
     if (vm.count("up")) {
         up = vm["up"].as<bool>();

@@ -27,7 +27,8 @@ namespace fs = std::filesystem;
 int main(int argc, char **argv){
 
     double p, start_temp, step;
-    int num_iterations_error, niters, nwarmup, num_lattices, num_reps_temp, normalization_factor, seed_adder, leave_out;
+    int num_iterations_error, niters, nwarmup, num_lattices, num_reps_temp, leave_out;
+    int seed_adder = 0;
     std::vector<int> L_size;
     std::string folderName;
     bool up, open;
@@ -55,7 +56,7 @@ int main(int argc, char **argv){
       ("write_lattice", po::value<bool>(), "signifier if updated lattices shall be written to file")
       ("read_lattice", po::value<bool>(), "signifier if lattice shall be initialized from file")
     ;
-
+    
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
     po::notify(vm);
@@ -153,7 +154,6 @@ int main(int argc, char **argv){
         }
     }
 
-    // This knots my thoughts - num_lattices is amount of different temperatures and reps temp is the multiplicity of each temp.
     num_lattices = num_lattices * num_reps_temp;
 
     double *d_inv_temp;
@@ -163,8 +163,6 @@ int main(int argc, char **argv){
     for(int ls = 0; ls < L_size.size(); ls++){
 
         int L = L_size[ls];
-
-        normalization_factor = 0;
 
         std::string result_name = std::string("L_") + std::to_string(L) + std::string("_p_") + std::to_string(p) + std::string("_lo_") + std::to_string(leave_out) + std::string("_ne_") + std::to_string(num_iterations_error) + std::string("_ni_") + std::to_string(niters) + std::string("_nw_") + std::to_string(nwarmup) + std::string("_up_") + std::to_string(up) + std::string("_temp_") + std::to_string(start_temp) + std::string("_step_") + std::to_string(step) + std::string("_nl_") + std::to_string(num_lattices/num_reps_temp) + std::string("_nrt_") + std::to_string(num_reps_temp) + std::string("_read_lattice_") + std::to_string(read_lattice) + std::string("_write_lattice_") + std::to_string(write_lattice) + std::string("_seed_adder_") + std::to_string(seed_adder) + std::string(".txt");
 
@@ -247,7 +245,7 @@ int main(int argc, char **argv){
         CHECK_CUDA(cudaMalloc(&lattice_randvals, num_lattices * L * L/2 * sizeof(*lattice_randvals)));
 
         float *interaction_randvals;
-        CHECK_CUDA(cudaMalloc(&interaction_randvals,num_lattices*L*L*2*sizeof(*interaction_randvals)));
+        CHECK_CUDA(cudaMalloc(&interaction_randvals, num_lattices * L * L * 2 *sizeof(*interaction_randvals)));
 
         for (int e = 0; e < num_iterations_error; e++){
 
@@ -258,16 +256,17 @@ int main(int argc, char **argv){
             cout << "Error " << e << " of " << num_iterations_error << endl;
 
             init_interactions_with_seed(d_interactions, rng_errors, interaction_randvals, L, L, num_lattices, p, blocks_inter);
-                        
-            initialize_spins(lattice_b, lattice_w, rng, lattice_randvals, L, L, num_lattices, up, blocks_spins, read_lattice, lattice_b_file_name, lattice_w_file_name);
 
+            initialize_spins(lattice_b, lattice_w, rng, lattice_randvals, L, L, num_lattices, up, blocks_spins, read_lattice, lattice_b_file_name, lattice_w_file_name);
+            
             for (int j = 0; j < nwarmup; j++) {
                 updateMap[open](lattice_b, lattice_w, randvals, update_rng, d_interactions, d_inv_temp, L, L, num_lattices, blocks_spins, d_energy);
             }
-
+            
             CHECK_CUDA(cudaDeviceSynchronize());
 
             for(int j = 0; j < niters; j++){
+                
                 updateMap[open](lattice_b, lattice_w, randvals, update_rng, d_interactions, d_inv_temp, L, L, num_lattices, blocks_spins, d_energy);
 
                 if(j%leave_out == 0){
@@ -279,8 +278,6 @@ int main(int argc, char **argv){
                     abs_square<<<blocks_temperature_parallel, THREADS>>>(d_store_sum_k, num_lattices);
 
                     incrementalSumMagnetization<<<blocks_temperature_parallel, THREADS>>>(d_store_sum_0, d_store_sum_k, num_lattices, d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector, d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector);
-
-                    normalization_factor += 1;
                 }
             }
 
@@ -294,8 +291,8 @@ int main(int argc, char **argv){
         // copying new result to host.
         std::vector<double> h_store_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector(num_lattices);
         std::vector<double> h_store_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector(num_lattices);
-        CHECK_CUDA(cudaMemcpy(h_store_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector.data(), d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector, num_lattices*sizeof(float), cudaMemcpyDeviceToHost));
-        CHECK_CUDA(cudaMemcpy(h_store_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector.data(), d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector, num_lattices*sizeof(float), cudaMemcpyDeviceToHost));
+        CHECK_CUDA(cudaMemcpy(h_store_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector.data(), d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector, num_lattices*sizeof(double), cudaMemcpyDeviceToHost));
+        CHECK_CUDA(cudaMemcpy(h_store_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector.data(), d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector, num_lattices*sizeof(double), cudaMemcpyDeviceToHost));
 
         std::vector<double> zeta(num_lattices);
 
@@ -312,12 +309,10 @@ int main(int argc, char **argv){
         f.open(folderPath + "/" + result_name);
         if (f.is_open()) {
             for (int i = 0; i < num_lattices; i++) {
-                f << zeta[i] << " " << 1/inv_temp[i] << "\n";
+                f << 1/inv_temp[i] << " " << zeta[i]  << "\n";
             }
         }
         f.close();
-
-        cout << normalization_factor << endl;
 
         CHECK_CUDA(cudaFree(d_wave_vector_0));
         CHECK_CUDA(cudaFree(d_wave_vector_k));

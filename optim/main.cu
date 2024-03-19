@@ -246,9 +246,10 @@ __global__  void hamiltInitB_k(const int devid,
 	return;
 }
 
+
 template<int BDIM_X,
 	 int BDIM_Y,
-	 int LOOP_X,
+	 int LOOP_X, 
 	 int LOOP_Y,
 	 int BITXSP,
 	 typename INT_T,
@@ -260,16 +261,12 @@ __global__ void hamiltInitW_k(const int xsl,
 		              const INT2_T *__restrict__ hamB,
 		                    INT2_T *__restrict__ hamW) {
 
-	// Thread id x and y position
 	const int tidx = threadIdx.x;
 	const int tidy = threadIdx.y;
 
-	// row and column index of block-thread image
 	const int __i = blockIdx.y*BDIM_Y*LOOP_Y + tidy;
 	const int __j = blockIdx.x*BDIM_X*LOOP_X + tidx;
 
-	// Array of unsigned long long tuples
-	// Load corresponding interactions from hamB
 	INT2_T __me[LOOP_Y][LOOP_X];
 
 	#pragma unroll
@@ -280,60 +277,51 @@ __global__ void hamiltInitW_k(const int xsl,
 		}
 	}
 
-	// Initialize arrays for up/side/down neighbors for white words
 	INT2_T __up[LOOP_Y][LOOP_X];
 	INT2_T __ct[LOOP_Y][LOOP_X];
 	INT2_T __dw[LOOP_Y][LOOP_X];
 	INT2_T __sd[LOOP_Y][LOOP_X];
 
-	// the 4 bits of me codify: <upJ, downJ, leftJ, rightJ>
-	// 0x888888 --> 100010001000 ...
-	// Get first bit in every group of four and shift it by one to the right for up array
-	// i.e. get up neighbor of black spin and store it at second position
-	// 0x44444 --> 010001000100
-	// get second bit in every group of four and shift it by one to the left for down array
-	// get down neighbor of black spin and store it at first position
 	#pragma unroll
 	for(int i = 0; i < LOOP_Y; i++) {
 		#pragma unroll
 		for(int j = 0; j < LOOP_X; j++) {
-			__up[i][j].x = (__me[i][j].x & 0x8888888888888888ull) >> 1;
-			__up[i][j].y = (__me[i][j].y & 0x8888888888888888ull) >> 1;
-
-			__dw[i][j].x = (__me[i][j].x & 0x4444444444444444ull) << 1;
-			__dw[i][j].y = (__me[i][j].y & 0x4444444444444444ull) << 1;
+			// Up neighbor of me shift one to the right
+			__up[i][j].x = (__me[i][j].x & 0x8888888888888888ull) >> 1; 
+			__up[i][j].y = (__me[i][j].y & 0x8888888888888888ull) >> 1; 
+			
+			// Down neighbor of me shift one to the left
+			__dw[i][j].x = (__me[i][j].x & 0x4444444444444444ull) << 1; 
+			__dw[i][j].y = (__me[i][j].y & 0x4444444444444444ull) << 1; 
 		}
 	}
 
-	// check row parity
+	// True if we are in an even row
 	const int readBack = !(__i%2); // this kernel reads only BLACK Js
 
-	// 8*8 = 64 bits per word
 	const int BITXWORD = 8*sizeof(INT_T);
 
-	if (!readBack) {
+	if (readBack) {
 		#pragma unroll
 		for(int i = 0; i < LOOP_Y; i++) {
 			#pragma unroll
 			for(int j = 0; j < LOOP_X; j++) {
-
-				// 0x22222 --> 001000100010
-				// get third bit in every group of four and shift it by one to the right for ct array
-				// i.e. get leftJ and move it to the fourth position
+				
+				// Left neighbors become right neighbors
 				__ct[i][j].x = (__me[i][j].x & 0x2222222222222222ull) >> 1;
 				__ct[i][j].y = (__me[i][j].y & 0x2222222222222222ull) >> 1;
 
-				// 0x1111 --> 000100010001
-				// get fourth bit in every group of four and shift it by (BITXSP + 1) to the left or right ,i.e. to the third position in the
-				// prior/next 4 bit group or by (BITXWORD-BITXSP - 1) to the right and perform logical or with already existing ct
-				// ct contains then at every 3rd and 4th position in the 4 bits an entry
+				// Right neighbors become left neighbors
 				__ct[i][j].x |= (__me[i][j].x & 0x1111111111111111ull) << (BITXSP+1);
-				__ct[i][j].y |= (__me[i][j].x & 0x1111111111111111ull) >> (BITXWORD-BITXSP - 1);
+				
+				// Last right neighbor in x word becomes first left neighbor in y word 
+				__ct[i][j].y |= (__me[i][j].x & 0x1111111111111111ull) >> (BITXWORD - BITXSP - 1);
+
+				// Right neighbors of y shifted by 5 to the left to become left neighbors
 				__ct[i][j].y |= (__me[i][j].y & 0x1111111111111111ull) << (BITXSP+1);
 
-				// get fourth bit of every four bit group and shift it by 59 to the right -- > Only one entry at the 63th bit
-				// set __sd[i][j] = 0
-				__sd[i][j].x = (__me[i][j].y & 0x1111111111111111ull) >> (BITXWORD-BITXSP - 1);
+				// Last right neighbor of y word becomes first left neighbor
+				__sd[i][j].x = (__me[i][j].y & 0x1111111111111111ull) >> (BITXWORD - BITXSP - 1);
 				__sd[i][j].y = 0;
 			}
 		}
@@ -342,18 +330,20 @@ __global__ void hamiltInitW_k(const int xsl,
 		for(int i = 0; i < LOOP_Y; i++) {
 			#pragma unroll
 			for(int j = 0; j < LOOP_X; j++) {
-				// Get fourth bit in every group of four and shift it by one to the left, i.e. to the third position
+				// shift right neighbor one to the left
 				__ct[i][j].x = (__me[i][j].x & 0x1111111111111111ull) << 1;
 				__ct[i][j].y = (__me[i][j].y & 0x1111111111111111ull) << 1;
 
-				// Right part: Get third bit in every group of four and shift it to the fourth position in the next group of four (first and third line)
-				// (Second line): Get third bit in every group of four and shift it by 59 to the left --> Only last third bit is at the fourth bit location
-				// Logical or: Perform logical or of existing ct with right part to have entries at third and fourth position in each block of four
+				// Logical or with left neighbors shifted by 5 to the right
 				__ct[i][j].y |= (__me[i][j].y & 0x2222222222222222ull) >> (BITXSP+1);
+				
+				// right neighbor from last spin is left neighbor from first spin in y
 				__ct[i][j].x |= (__me[i][j].y & 0x2222222222222222ull) << (BITXWORD-BITXSP - 1);
+				
+				// Left neighbor of me.x becomes right neighor in ct
 				__ct[i][j].x |= (__me[i][j].x & 0x2222222222222222ull) >> (BITXSP+1);
-
-				// Get every third bit and shift it by 59 to the left --> last third bit to the fourth position in sd[i][j].y
+				
+				// Get first left neighbor of x word and shift it to the last right neighbor
 				__sd[i][j].y = (__me[i][j].x & 0x2222222222222222ull) << (BITXWORD-BITXSP - 1);
 				__sd[i][j].x = 0;
 			}
@@ -363,40 +353,39 @@ __global__ void hamiltInitW_k(const int xsl,
 	#pragma unroll
 	for(int i = 0; i < LOOP_Y; i++) {
 
-		// calc row index
+		// get current row
 		const int yoff = begY+__i + i*BDIM_Y;
 
-		// upOff if we are at a boarder of a lattice then take last row, else take row -1
-		const int upOff = ( yoff   %ysl) == 0 ? yoff+ysl-1 : yoff-1;
-		// downOff: if we are at a lower boarder of a sublattice, take first row, else take row + 1
-		const int dwOff = ((yoff+1)%ysl) == 0 ? yoff-ysl+1 : yoff+1;
+		// Check if we are at a boarder with yoff
+		// If we are at a boarder --> upoff becomes last row else row above
+		const int upOff = ( yoff   %ysl) == 0 ? yoff + ysl-1 : yoff-1;
+		
+		// If we are at down boarder --> dwOff becomes first row, else row below
+		const int dwOff = ((yoff+1)%ysl) == 0 ? yoff - ysl+1 : yoff+1;
 
 		#pragma unroll
 		for(int j = 0; j < LOOP_X; j++) {
 
-			// get column index
+			// get current column 
 			const int xoff = __j + j*BDIM_X;
 
-			// perform logical or with given binary entry
-			// yoff*dimX + xoff = pointer at given tuple word lattice entry
-			// upOff*dimX + xoff = pointer to upper neighbor
-			// dwOff*dimX + xoff = pointer to down neighbor
-			// subsequently fills all 64 bits with the up, down, left, right neighbors
 			atomicOr(&hamW[yoff*dimX + xoff].x, __ct[i][j].x);
 			atomicOr(&hamW[yoff*dimX + xoff].y, __ct[i][j].y);
-
+			
 			atomicOr(&hamW[upOff*dimX + xoff].x, __up[i][j].x);
 			atomicOr(&hamW[upOff*dimX + xoff].y, __up[i][j].y);
 
 			atomicOr(&hamW[dwOff*dimX + xoff].x, __dw[i][j].x);
 			atomicOr(&hamW[dwOff*dimX + xoff].y, __dw[i][j].y);
 
-
-			// Depending on which row we are in
-			// Check whether we are at bordering columns of sublattices
-			// Get column of left right neighbor and perform bitwise or
-			const int sideOff = readBack ? (  (xoff   %xsl) == 0 ? xoff+xsl-1 : xoff-1 ):
-						       ( ((xoff+1)%xsl) == 0 ? xoff-xsl+1 : xoff+1);
+			// If we are at an uneven row
+			// Check if we are at a left column border
+			// if yes take last column, else take left column before
+			// If not readback 
+			// check if we are at right column border
+			// if yes take most left column, else take next right column
+			const int sideOff = (!readBack) ? ((xoff   % xsl) == 0 ? xoff+xsl-1 : xoff-1 ): 
+											  (((xoff + 1) % xsl) == 0 ? xoff-xsl+1 : xoff+1);
 
 			atomicOr(&hamW[yoff*dimX + sideOff].x, __sd[i][j].x);
 			atomicOr(&hamW[yoff*dimX + sideOff].y, __sd[i][j].y);

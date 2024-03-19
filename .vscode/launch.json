@@ -34,11 +34,11 @@
         },
 
         {
-            "name": "CUDA C++: dev_open_boundary",
+            "name": "CUDA C++: dev_basic_cuda",
             "type": "cuda-gdb",
             "request": "launch",
-            "program": "${workspaceFolder}/dev_open_boundary/dev_open_boundary",
-            "args": "--p 0.101 --temp 0.8 --step 0.05 --up true --nie 1 --nit 10 --nw 10 --nl 2 --nrt 1 --L 8 --folder test_folder"
+            "program": "${workspaceFolder}/dev_basic_cuda/dev_basic_cuda",
+            "args": "--p 0.06 --open false --temp 0.8 --step 0.05 --up true --nie 1 --leave_out 2 --nit 10 --nw 10 --nl 1 --nrt 1 --L 8 --folder test_folder --write_lattice false --read_lattice false"
         },
     ]
 }

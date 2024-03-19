@@ -212,12 +212,12 @@ void write_updated_lattices(signed char *lattice_b, signed char *lattice_w, cons
 void write_lattice_to_disc(signed char *lattice_b, signed char *lattice_w, std::string filename, const long long nx, const long long ny, const int num_lattices) {
     printf("Writing lattice to %s...\n", filename.c_str());
 
-    std::vector<signed char> lattice_h(nx*ny);
-    std::vector<signed char> lattice_w_h(nx*ny/2);
-    std::vector<signed char> lattice_b_h(nx*ny/2);
+    std::vector<signed char> lattice_h(num_lattices*nx*ny);
+    std::vector<signed char> lattice_w_h(num_lattices*nx*ny/2);
+    std::vector<signed char> lattice_b_h(num_lattices*nx*ny/2);
 
-    cudaMemcpy(lattice_b_h.data(), lattice_b, nx * ny/2 * sizeof(*lattice_b), cudaMemcpyDeviceToHost);
-    cudaMemcpy(lattice_w_h.data(), lattice_w, nx * ny/2 * sizeof(*lattice_w), cudaMemcpyDeviceToHost);
+    cudaMemcpy(lattice_b_h.data(), lattice_b, num_lattices * nx * ny/2 * sizeof(*lattice_b), cudaMemcpyDeviceToHost);
+    cudaMemcpy(lattice_w_h.data(), lattice_w, num_lattices * nx * ny/2 * sizeof(*lattice_w), cudaMemcpyDeviceToHost);
 
     int offset;
 
@@ -239,7 +239,7 @@ void write_lattice_to_disc(signed char *lattice_b, signed char *lattice_w, std::
         }
 
         std::ofstream f;
-        f.open(filename + std::string(".txt"));
+        f.open(filename + std::to_string(l) + ".txt");
 
         if (f.is_open()) {
             for (int i = 0; i < nx; i++) {
@@ -313,35 +313,39 @@ __global__ void update_lattice(
     int offset = l_id * nx * ny;
     int offset_i = l_id * nx * ny * 4;
 
-    if (!is_black) {
-        icouplingpp = offset_i + 2*(nx-1)*ny + 2*(ny*(i+1) + j) + (i+1)%2;
-        icouplingnn = offset_i + 2*(nx-1)*ny + 2*(ny*(inn+1) + j) + (i+1)%2;
-
-        joff = (i % 2) ? jnn : jpp;
-
-        if (i % 2) {
-            jcouplingoff = offset_i + 2 * (i * ny + joff) + 1;
-        } else {
-            if (j + 1 >= ny) {
-                jcouplingoff = offset_i + 2 * (i * ny + j + 1) - 1;
-            } else {
-                jcouplingoff = offset_i + 2 * (i * ny + joff) - 1;
-            }
-        }
-    } else {
+    if (is_black) {
         icouplingpp = offset_i + 2*(nx-1)*ny + 2*(ny*(i+1) + j) + i%2;
         icouplingnn = offset_i + 2*(nx-1)*ny + 2*(ny*(inn+1) + j) + i%2;
 
         joff = (i % 2) ? jpp : jnn;
 
         if (i % 2) {
-            if (j+1 >= ny) {
-                jcouplingoff = offset_i + 2 * (i * ny + j + 1) - 1;
-            } else {
-                jcouplingoff = offset_i + 2 * (i * ny + joff) - 1;
+            if (j + 1 >= ny){
+                jcouplingoff = offset_i + 2*(i*ny + j + 1) - 1;
             }
-        } else {
-            jcouplingoff = offset_i + 2 * (i * ny + joff) + 1;
+            else{
+                jcouplingoff = offset_i + 2*(i*ny + joff) - 1; 
+            }
+        } 
+        else {
+            jcouplingoff = offset_i + 2*(i*ny + joff) + 1; 
+        }
+    } else {
+        icouplingpp = offset_i + 2*(nx-1)*ny + 2*(ny*(i+1) + j) + (i+1)%2;
+        icouplingnn = offset_i + 2*(nx-1)*ny + 2*(ny*(inn+1) + j) + (i+1)%2;
+
+        joff = (i % 2) ? jnn : jpp;
+
+        if (i % 2) {
+            jcouplingoff = offset_i + 2*(i*ny + joff) + 1;
+        }
+        else{
+            if (j+1 >= ny){
+                jcouplingoff = offset_i + 2*(i*ny + j + 1) - 1;
+            }
+            else{
+                jcouplingoff = offset_i + 2*(i*ny + joff) - 1;
+            }
         }
     }
 
@@ -353,10 +357,11 @@ __global__ void update_lattice(
     signed char lij = lattice[offset + i*ny + j];
 
     // set device energy for each temp and each spin on lattice
-    d_energy[tid]=inv_temp[l_id]*nn_sum*lij;
+    d_energy[tid] = inv_temp[l_id]*nn_sum*lij;
 
     // Determine whether to flip spin
     float acceptance_ratio = exp(-2 * d_energy[tid]);
+    
     if (randvals[offset + i*ny + j] < acceptance_ratio) {
         lattice[offset + i*ny + j] = -lij;
         d_energy[tid] *= -1;
@@ -397,19 +402,19 @@ __global__ void B2_lattices(
     int w_orig_j;
 
     if (i%2==0){
-        b_orig_j = 2*j +1;
-        w_orig_j = 2*j;
-    }
-
-    else{
         b_orig_j = 2*j;
         w_orig_j = 2*j + 1;
     }
 
-    thrust::complex<float> imag = thrust::complex<float>(0, 1.0f);
+    else{
+        b_orig_j = 2*j + 1;
+        w_orig_j = 2*j;
+    }
 
-    float dot_b = wave_vector[0]*i + wave_vector[1]*b_orig_j;
-    float dot_w = wave_vector[0]*i + wave_vector[1]*w_orig_j;
+    thrust::complex<double> imag = thrust::complex<double>(0, 1.0f);
+
+    double dot_b = wave_vector[0]*i + wave_vector[1]*b_orig_j;
+    double dot_w = wave_vector[0]*i + wave_vector[1]*w_orig_j;
 
     sum[tid] = lattice_b[tid]*exp(imag*dot_b) + lattice_w[tid]*exp(imag*dot_w);
 }
@@ -487,55 +492,54 @@ __global__ void update_lattice_ob(
     int offset = l_id * nx * ny;
     int offset_i = l_id * nx * ny * 4;
 
-    int c_up = 1-inn/(nx-1);
-    int c_down = 1-(i+1)/nx;
+    int c_up = 1 - inn/(nx-1);
+    int c_down = 1 - (i+1)/nx;
     int c_side;
 
-    if (!is_black) {
-        icouplingpp = offset_i + 2*(nx-1)*ny + 2*(ny*(i+1) + j) + (i+1)%2;
-        icouplingnn = offset_i + 2*(nx-1)*ny + 2*(ny*(inn+1) + j) + (i+1)%2;
-
-        joff = (i % 2) ? jnn : jpp;
-
-        if (i % 2) {
-            
-            jcouplingoff = offset_i + 2 * (i * ny + joff) + 1;
-
-            c_side = 1 - jnn/(ny-1);
-
-        } else {
-            
-            c_side = 1 - (j+1)/ny;
-
-            if (j + 1 >= ny) {
-                jcouplingoff = offset_i + 2 * (i * ny + j + 1) - 1;
-            } 
-            else {
-                jcouplingoff = offset_i + 2 * (i * ny + joff) - 1;
-            }
-        }
-    }
-    else {
-
+    if (is_black) {
         icouplingpp = offset_i + 2*(nx-1)*ny + 2*(ny*(i+1) + j) + i%2;
         icouplingnn = offset_i + 2*(nx-1)*ny + 2*(ny*(inn+1) + j) + i%2;
 
         joff = (i % 2) ? jpp : jnn;
 
         if (i % 2) {
-            
-            c_side = 1-(j+1)/ny;
 
-            if (j+1 >= ny) {
-                jcouplingoff = offset_i + 2 * (i * ny + j + 1) - 1;
-            } 
-            else {
-                jcouplingoff = offset_i + 2 * (i * ny + joff) - 1;
+            c_side = 1 - (j+1)/ny;
+
+            if (j + 1 >= ny){
+                jcouplingoff = offset_i + 2*(i*ny + j + 1) - 1;
             }
-        } 
-        else {
-            c_side = 1-jnn/(ny-1);
-            jcouplingoff = offset_i + 2 * (i * ny + joff) + 1;
+            else{
+                jcouplingoff = offset_i + 2*(i*ny + joff) - 1;
+            }
+        }
+        else{
+            
+            c_side = 1 - jnn/(ny-1);
+
+            jcouplingoff = offset_i + 2 * (i*ny + joff) + 1;
+        }
+    } 
+    else {
+        icouplingpp = offset_i + 2*(nx-1)*ny + 2*(ny*(i+1) + j) + (i+1)%2;
+        icouplingnn = offset_i + 2*(nx-1)*ny + 2*(ny*(inn+1) + j) + (i+1)%2;
+
+        joff = (i % 2) ? jnn : jpp;
+
+        if (i % 2) {
+            c_side = 1 - jnn/(ny-1);            
+
+            jcouplingoff = offset_i + 2*(i*ny + joff) + 1;
+        }
+        else{
+            c_side = 1-(j+1)/ny;
+            
+            if (j+1 >= ny){
+                jcouplingoff = offset_i + 2*(i*ny + j + 1) - 1;
+            }
+            else{
+                jcouplingoff = offset_i + 2*(i*ny + joff) - 1;
+            }
         }
     }
 

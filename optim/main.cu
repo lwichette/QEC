@@ -1383,6 +1383,15 @@ __global__ void calculate_incremental_susceptibility(const int blocks_per_slx,
 	d_sus_k[tid] += thrust::abs(c_sum)*thrust::abs(c_sum);
 }
 
+int folderExists(const char *folderPath) {
+    struct stat folderStat;
+    if (stat(folderPath, &folderStat) == 0) {
+        if (S_ISDIR(folderStat.st_mode)) {
+            return 1; // Folder exists
+        }
+    }
+    return 0; // Folder does not exist or is not a directory
+}
 
 int main(int argc, char **argv) {
 
@@ -1440,6 +1449,8 @@ int main(int argc, char **argv) {
 
 	bool up;
 
+	char *folder = NULL;
+
 	int och;
     while (1) {
         int option_index = 0;
@@ -1456,11 +1467,12 @@ int main(int argc, char **argv) {
 			{"step", required_argument, 0, 's'},
 			{"up", required_argument, 0, 'u'},
             {"ndev", required_argument, 0, 'd'},
+			{"folder", required_argument, 0, 'f'},
 			{"out", no_argument, 0, 'o'},
             {0, 0, 0, 0}
         };
 
-        och = getopt_long(argc, argv, "x:y:p:w:n:t:s:u:do:", long_options, &option_index);
+        och = getopt_long(argc, argv, "x:y:p:w:n:t:s:u:d:fo:", long_options, &option_index);
         if (och == -1)
             break;
 
@@ -1499,6 +1511,9 @@ int main(int argc, char **argv) {
 				break;
 			case 'o':
 				dumpOut = 1;
+				break;
+			case 'f':
+				folder = optarg;
 				break;
 			case 1:
 				useSubLatt = 1;
@@ -1605,10 +1620,19 @@ int main(int argc, char **argv) {
 		NSLX = 1;
 		NSLY = 1;
 	}
-
-	char rname[512];
-	snprintf(rname, sizeof(rname), "results/Y_%d_X_%d_YSL_%d_XSL_%d_e_%d_p_%.4f_t_%.4f_s_%.4f_w_%d_i_%d_u_%d.txt", Y, X, YSL, XSL, num_errors, prob, temp, step, nwarmup, nsteps, up);	
 	
+	char folderPath[512];
+	sprintf(folderPath, "results/%s", folder);
+
+	if (!folderExists(folderPath)){
+		mkdir(folderPath, 0777);
+		printf("Created results folder");
+	}
+	
+	char filename[2048];
+	snprintf(filename, sizeof(filename), "%s/Y_%d_X_%d_YSL_%d_XSL_%d_e_%d_p_%.4f_t_%.4f_s_%.4f_w_%d_i_%d_u_%d.txt", 
+			folderPath, Y, X, YSL, XSL, num_errors, prob, temp, step, nwarmup, nsteps, up);
+
 	// get GPU properties for each GPU
 	cudaDeviceProp props;
 
@@ -2115,27 +2139,13 @@ int main(int argc, char **argv) {
 	CHECK_CUDA(cudaMemcpy(h_sus_k, d_sus_k, ndev*num_lattices*sizeof(*d_sus_k), cudaMemcpyDeviceToHost));
 
 	std::ofstream f;
-	f.open(rname);
+	f.open(filename);
 	if (f.is_open()) {
 		for (int i = 0; i < ndev*num_lattices; i++) {
 			f << temp_range[i] << " " << 1/(2*sin(M_PI/XSL))*sqrt(h_sus_0[i]/h_sus_k[i] - 1) << "\n";
 		}
 	}
 	f.close();
-	
-	for (int i = 0; i < num_lattices; i++){ 
-		cout << h_sus_0[i] << endl;
-		cout << h_sus_k[i] << endl;
-	}
-
-	/*
-	// Write lattice
-	if (dumpOut) {
-		char fname[256];
-		snprintf(fname, sizeof(fname), "lattices/lattice_%dx%d_T_%f_IT_%08d_", Y, X, temp, nsteps + nwarmup);
-		dumpLattice(fname, ndev, Y, lld, llen, llenLoc, v_d);
-	}
-	*/
 
 	// free memory for all GPUs and stuff
 	CHECK_CUDA(cudaFree(v_d));

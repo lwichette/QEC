@@ -44,9 +44,6 @@ void write_randvals(float *sublattice_d, std::string filename, long long nx, lon
         }
     }
     f.close();
-
-
-
 }
 
 // Write sublattice to file (Sanity Check)

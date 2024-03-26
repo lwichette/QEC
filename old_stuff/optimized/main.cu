@@ -64,7 +64,7 @@ using namespace std;
 #define BLOCK_Y (8)
 
 // Unclear
-#define BMULT_X (1)
+#define BMULT_X (2)
 #define BMULT_Y (1)
 
 // Maximum number of GPUs
@@ -1370,7 +1370,7 @@ int main(int argc, char **argv) {
 	unsigned long long *black_d=NULL;
 	unsigned long long *white_d=NULL;
 	
-	// Unclear yet
+	// Hamiltonian interactions
 	unsigned long long *ham_d=NULL;
 	unsigned long long *hamB_d=NULL;
 	unsigned long long *hamW_d=NULL;

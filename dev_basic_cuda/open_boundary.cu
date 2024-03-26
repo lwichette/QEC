@@ -255,6 +255,8 @@ int main(int argc, char **argv){
 
             cout << "Error " << e << " of " << num_iterations_error << endl;
 
+            auto start = std::chrono::high_resolution_clock::now();
+
             init_interactions_with_seed(d_interactions, rng_errors, interaction_randvals, L, L, num_lattices, p, blocks_inter);
 
             initialize_spins(lattice_b, lattice_w, rng, lattice_randvals, L, L, num_lattices, up, blocks_spins, read_lattice, lattice_b_file_name, lattice_w_file_name);
@@ -263,6 +265,14 @@ int main(int argc, char **argv){
                 updateMap[open](lattice_b, lattice_w, randvals, update_rng, d_interactions, d_inv_temp, L, L, num_lattices, blocks_spins, d_energy);
             }
             
+            auto end = std::chrono::high_resolution_clock::now();
+
+            // Calculate the duration of the operation
+            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+
+            // Print the duration
+            std::cout << "Operation took " << duration.count() << " milliseconds." << std::endl;
+
             CHECK_CUDA(cudaDeviceSynchronize());
 
             for(int j = 0; j < niters; j++){

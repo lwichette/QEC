@@ -13,7 +13,7 @@ def get_interactions(bonds, X, Y, seed):
         seed (int): seed used to write lattice to corresponding folder
 
     Returns:
-        _type_: _description_
+        interactions: List
     """
     Y2 = int(Y/2)
     

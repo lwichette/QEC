@@ -1393,6 +1393,53 @@ int folderExists(const char *folderPath) {
     return 0; // Folder does not exist or is not a directory
 }
 
+static void dumpInteractions(const char *fprefix,
+			const int ndev,
+			const int Y,
+			const int SPIN_X_WORD,
+			const size_t lld,
+		    const size_t llen,
+		    const size_t llenLoc,
+		    const unsigned long long *hamW_d){
+	
+	/*
+	This function takes as an input the interactions hamW_d and writes it to a txt file. 
+	Here each block of four describes the interactions of one spin. The number of rows is equal 
+	to the original number of rows. The number of columns is given by lld*4.
+	*/
+
+	char fname[263];
+
+	if (ndev == 1){
+		
+		unsigned long long *ham_h = (unsigned long long *)Malloc(llenLoc*sizeof(*ham_h));
+		CHECK_CUDA(cudaMemcpy(ham_h, hamW_d, llenLoc*sizeof(*ham_h), cudaMemcpyDeviceToHost));
+		
+		snprintf(fname, sizeof(fname), "%s0.txt", fprefix);
+		FILE *fp = Fopen(fname, "w");
+
+		for (int i = 0; i < Y; i++){
+			
+			for(int j = 0; j < lld; j++) {
+				
+				unsigned long long __i = ham_h[i*lld+j];
+				
+				for (int l = 0; l < SPIN_X_WORD; l++){
+					
+					for (int k = 0; k < BIT_X_SPIN; k++){
+						
+						fprintf(fp, "%llX ",  (__i >> (l*BIT_X_SPIN + (3 - k)) & 0x1));
+
+					}
+				}
+			}
+			fprintf(fp, "\n");
+		}
+		
+		fclose(fp);
+	}
+}
+
 int main(int argc, char **argv) {
 
 	// v_d whole lattice
@@ -2008,6 +2055,12 @@ int main(int argc, char **argv) {
 			}
 		}
 
+		if (dumpOut) {
+			char fname[256];
+			snprintf(fname, sizeof(fname), "lattice_%dx%d_T_%f_IT_%08d_", Y, X, temp, j+1);
+			dumpLattice(fname, ndev, Y, lld, llen, llenLoc, v_d);
+		}
+		
 		for(j = nwarmup; j < nwarmup + nsteps; j++) {
 			
 			for(int i = 0; i < ndev; i++) {

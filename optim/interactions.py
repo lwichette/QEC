@@ -1,5 +1,86 @@
 import numpy as np
 
+
+def check_bonds(bonds_new, bonds_old):
+    for j in range(bonds_new.shape[0]):
+        for i in range(bonds_new.shape[1]):
+ 
+            # Up neighbor
+            if i%4==0:
+ 
+                if j != 0:
+                    row = 128 + (j-1)
+ 
+                else:
+                    row = -1
+ 
+                if j%2 == 0:
+ 
+                    check = bonds_new[j,i] == bonds_old[row,2*int(i/4)]
+ 
+                else:
+                    check = bonds_new[j,i] == bonds_old[row,2*int(i/4)+1]
+ 
+                if check == False:
+                    print("Up error", i)
+ 
+            # Down neighbor
+            if i%4==1:
+ 
+                row = 128 + j
+ 
+                if j%2 == 0:
+ 
+                    check = bonds_new[j,i] == bonds_old[row,2*int(i/4)]
+ 
+                else:
+                    check = bonds_new[j,i] == bonds_old[row, 2*int(i/4)+1]
+                
+                if check == False:
+                    print("Down error", i)
+ 
+            # Left neighbor
+            if i%4 == 2:
+ 
+                loc_i = int(i/4)
+ 
+                if j%2 == 0:
+                    if loc_i == 0:
+                        check = bonds_new[j,i] == bonds_old[j, -1]
+ 
+                    else:
+                        check = bonds_new[j,i] == bonds_old[j, 2*loc_i - 1]
+ 
+                    if check == False:
+                        print("LEFT error", j, i)
+ 
+                else:
+                    check = bonds_new[j,i] == bonds_old[j, 2*loc_i]
+ 
+                    if check == False:
+                        print("LEFT error uneven", j, i)
+ 
+            # Right neighbor
+            if i%4 == 3:
+ 
+                loc_i = int(i/4)
+ 
+                if j%2 == 0:
+                    check = bonds_new[j,i] == bonds_old[j, 2*loc_i]
+ 
+                    if check == False:
+                        print("RIGHT ERROR even", j,i)
+ 
+                else:
+                    if loc_i == 63:
+                        check = bonds_new[j,i] == bonds_old[j,-1]
+ 
+                    else:
+                        check = bonds_new[j,i] == bonds_old[j,2*loc_i+1]
+ 
+                    if check == False:
+                        print("RIGHT ERROR", j,i)
+
 def get_interactions(bonds, X, Y, seed):
     """
     This function transforms the given bonds from the optimized code version to the bonds used in 

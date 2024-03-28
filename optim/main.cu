@@ -2005,6 +2005,16 @@ int main(int argc, char **argv) {
 			CHECK_CUDA(cudaDeviceSynchronize());
 		}
 
+		if (dumpOut) {
+			char fname[256];
+			snprintf(fname, sizeof(fname), "lattice_%dx%d_T_%f_IT_%08d_", Y, X, temp, 0);
+			dumpLattice(fname, ndev, Y, lld, llen, llenLoc, v_d);
+
+			char rname[256];
+			snprintf(rname, sizeof(rname), "bonds_seeds_%u", seed);
+			dumpInteractions(rname, ndev, Y, SPIN_X_WORD, lld, llen, llenLoc, hamW_d);
+		}
+
 		int j; 
 
 		for(j = 0; j < nwarmup; j++) {			
@@ -2053,12 +2063,6 @@ int main(int argc, char **argv) {
 					CHECK_CUDA(cudaDeviceSynchronize());
 				}
 			}
-		}
-
-		if (dumpOut) {
-			char fname[256];
-			snprintf(fname, sizeof(fname), "lattice_%dx%d_T_%f_IT_%08d_", Y, X, temp, j+1);
-			dumpLattice(fname, ndev, Y, lld, llen, llenLoc, v_d);
 		}
 		
 		for(j = nwarmup; j < nwarmup + nsteps; j++) {

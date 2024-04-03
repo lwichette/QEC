@@ -246,9 +246,111 @@ __global__ void update_lattice(
 }
 
 
+template<bool is_black>
+__global__ void update_lattice_ob(
+    signed char* lattice, signed char* __restrict__ op_lattice, const signed char* interactions,
+    int seed, int it, const long long nx, const long long ny, const float inv_temp
+){
+
+    const long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
+
+    if (tid >= nx*ny) return;
+
+    int i = tid/ny;
+    int j = tid%ny;
+
+    // Set up periodic boundary conditions
+    int ipp = (i + 1 < nx) ? i + 1 : 0;
+    int inn = (i - 1 >= 0) ? i - 1: nx - 1;
+    int jpp = (j + 1 < ny) ? j + 1 : 0;
+    int jnn = (j - 1 >= 0) ? j - 1: ny - 1;
+
+    int joff;
+    int jcouplingoff;
+    int icouplingpp;
+    int icouplingnn;
+
+    int c_up = 1 - inn/(nx-1);
+    int c_down = 1 - (i+1)/nx;
+    int c_side;
+
+    if (is_black) {
+        icouplingpp = 2*(nx-1)*ny + 2*(ny*(i+1) + j) + i%2;
+        icouplingnn = 2*(nx-1)*ny + 2*(ny*(inn+1) + j) + i%2;
+
+        joff = (i % 2) ? jpp : jnn;
+
+        if (i % 2) {
+
+            c_side = 1 - (j+1)/ny;
+
+            if (j + 1 >= ny){
+                jcouplingoff = 2*(i*ny + j + 1) - 1;
+            }
+            else{
+                jcouplingoff = 2*(i*ny + joff) - 1;
+            }
+        }
+        else{
+            
+            c_side = 1 - jnn/(ny-1);
+
+            jcouplingoff = 2 * (i*ny + joff) + 1;
+        }
+    } 
+    else {
+        icouplingpp = 2*(nx-1)*ny + 2*(ny*(i+1) + j) + (i+1)%2;
+        icouplingnn = 2*(nx-1)*ny + 2*(ny*(inn+1) + j) + (i+1)%2;
+
+        joff = (i % 2) ? jnn : jpp;
+
+        if (i % 2) {
+            c_side = 1 - jnn/(ny-1);            
+
+            jcouplingoff = 2*(i*ny + joff) + 1;
+        }
+        else{
+            c_side = 1-(j+1)/ny;
+            
+            if (j+1 >= ny){
+                jcouplingoff = 2*(i*ny + j + 1) - 1;
+            }
+            else{
+                jcouplingoff = 2*(i*ny + joff) - 1;
+            }
+        }
+    }
+
+    signed char nn_sum = op_lattice[inn*ny + j]*interactions[icouplingnn]*c_up + op_lattice[i*ny + j]*interactions[2*(i*ny + j)]
+                        + op_lattice[ipp*ny + j]*interactions[icouplingpp]*c_down + op_lattice[i*ny + joff]*interactions[jcouplingoff]*c_side;
+
+    // Determine whether to flip spin
+
+    // The exponent is exactly what calc_energy_ob does and which is calles again to store energy over same iterator in update loop. Instead here should be filled the energy array directly
+
+    signed char lij = lattice[i*ny + j];
+
+    // set device energy for each temp and each spin on lattice
+    float diff = inv_temp*nn_sum*lij;
+
+    float acceptance_ratio = exp(-2*diff);
+
+    curandStatePhilox4_32_10_t st;
+	curand_init(seed, tid, static_cast<long long>(2*it+int(is_black)), &st);
+    
+    //float randval = curand_uniform(&st);
+
+    float randval = 0.1;
+    
+    if (randval < acceptance_ratio) {
+        lattice[i*ny + j] = -lij;
+    }
+}
+
+
 int main(int argc, char *argv[]){
-    float p = 0.5;
-    float inv_temp = 1/2;
+    float p = 0.06;
+    float inv_temp = 1/1.7;
     
     bool up = true;
 
@@ -263,7 +365,7 @@ int main(int argc, char *argv[]){
 
     int THREADS = 128;
 
-    int blocks = (L*L*2 + THREADS -1)/THREADS; 
+    int blocks = (L*L*2 + THREADS - 1)/THREADS; 
 
     //Setup interaction lattice on device
     signed char *d_interactions;
@@ -273,7 +375,7 @@ int main(int argc, char *argv[]){
     
     std::vector<signed char> h_interactions;
 
-    std::ifstream file("/home/dfki.uni-bremen.de/mbeuerle/User/mbeuerle/Code/Comparison/test_rng/bonds/bonds_seed_" + std::to_string(seed*10) + ".txt");
+    std::ifstream file("/home/dfki.uni-bremen.de/mbeuerle/User/mbeuerle/Code/qec/Comparison/test_rng/bonds/bonds_seed_" + std::to_string(seed*10) + ".txt");
 
     int entry;
 
@@ -302,10 +404,9 @@ int main(int argc, char *argv[]){
 
     for (int j=0; j < niters; j++){
 
-        update_lattice<true><<<blocks,THREADS>>>(lattice_b, lattice_w, d_interactions, seed, j+1, L, L/2, inv_temp);
+        update_lattice_ob<true><<<blocks,THREADS>>>(lattice_b, lattice_w, d_interactions, seed, j+1, L, L/2, inv_temp);
 
-        update_lattice<false><<<blocks,THREADS>>>(lattice_w, lattice_b, d_interactions, seed, j+1, L, L/2, inv_temp);
-
+        update_lattice_ob<false><<<blocks,THREADS>>>(lattice_w, lattice_b, d_interactions, seed, j+1, L, L/2, inv_temp);
     }
     
     write_lattice_to_disc(lattice_b, lattice_w, "lattices/lattice_" + std::to_string(L) + "_" + std::to_string(niters) + "_seed_" + std::to_string(seed), L, L);

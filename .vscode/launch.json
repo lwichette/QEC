@@ -40,5 +40,13 @@
             "program": "${workspaceFolder}/dev_basic_cuda/dev_basic_cuda",
             "args": "--p 0.06 --open false --temp 0.8 --step 0.05 --up true --nie 1 --leave_out 2 --nit 10 --nw 10 --nl 1 --nrt 1 --L 8 --folder test_folder --write_lattice false --read_lattice false"
         },
+
+        {
+            "name": "Comparison optimized",
+            "type": "cuda-gdb",
+            "request": "launch",
+            "program": "${workspaceFolder}/Comparison/optimized/cuIsing",
+            "args": "--x 128 --y 128 --t 1.7 --J 0.5 --seed 44 --nit 2"
+        }
     ]
 }

@@ -349,7 +349,7 @@ __global__ void update_lattice_ob(
 
 
 int main(int argc, char *argv[]){
-    float p = 0.06;
+    float p = 0.5;
     float inv_temp = 1/1.7;
     
     bool up = true;
@@ -404,9 +404,9 @@ int main(int argc, char *argv[]){
 
     for (int j=0; j < niters; j++){
 
-        update_lattice_ob<true><<<blocks,THREADS>>>(lattice_b, lattice_w, d_interactions, seed, j+1, L, L/2, inv_temp);
+        update_lattice<true><<<blocks,THREADS>>>(lattice_b, lattice_w, d_interactions, seed, j+1, L, L/2, inv_temp);
 
-        update_lattice_ob<false><<<blocks,THREADS>>>(lattice_w, lattice_b, d_interactions, seed, j+1, L, L/2, inv_temp);
+        update_lattice<false><<<blocks,THREADS>>>(lattice_w, lattice_b, d_interactions, seed, j+1, L, L/2, inv_temp);
     }
     
     write_lattice_to_disc(lattice_b, lattice_w, "lattices/lattice_" + std::to_string(L) + "_" + std::to_string(niters) + "_seed_" + std::to_string(seed), L, L);

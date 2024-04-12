@@ -1219,6 +1219,26 @@ void getHamiltonianOpenBoundary(
 	return;
 }
 
+
+template<typename type>
+__global__
+void getPartitionFunction(
+					const int num_errors,
+					const int num_lattices,
+					const int nsteps,
+					type* hamiltSrc, // ordering of Hamilts within is important: For each error one finds blocks for each iteration step  of num lattice many Hamiltonian values.
+					type* partitionDst // double array of length num_lattices to store partition function for each temp averaged over error chains.
+				) {
+	int tid = blockIdx.x * blockDim.x + threadIdx.x;
+	int totalElements = num_errors*num_lattices*nsteps;
+	if (tid < totalElements){
+		int lattice_idx = tid%num_lattices;
+		double boltzmannfactor = hamiltSrc[tid]/num_errors; // exp with betas still missing
+		atomicAdd(&partitionDst[lattice_idx], boltzmannfactor);
+		printf("latticeIdx = %.d tid = %.d boltzmannfac = %.2f \n", lattice_idx, tid, boltzmannfactor);
+	}
+}
+
 template<int BDIM_X,
 	 int BDIM_Y,
 	 int LOOP_X,
@@ -2241,8 +2261,11 @@ int main(int argc, char **argv) {
 	unsigned long long *hamB_d=NULL;
 	unsigned long long *hamW_d=NULL;
 
-	// storage of getHamiltonian result per sublattice
-	double* getHamiltonian_d=NULL;
+	// storage of getHamiltonian result per sublattice error and steps
+	double* getHamiltonian_d = NULL;
+
+	// storage of getPartitionFunction per sublattice
+	double* getPartitionFunction_d = NULL;
 
 	// storage of getHamiltonian_x_spin per spin
 	double* getHamiltonian_x_spin_d=NULL;
@@ -2631,6 +2654,9 @@ int main(int argc, char **argv) {
 		CHECK_CUDA(cudaMalloc(&getHamiltonian_d, num_lattices*num_errors*nsteps*sizeof(*getHamiltonian_d)));
 		CHECK_CUDA(cudaMemset(getHamiltonian_d, 0, num_lattices*num_errors*nsteps*sizeof(*getHamiltonian_d)));
 
+		CHECK_CUDA(cudaMalloc(&getPartitionFunction_d, num_lattices*sizeof(*getPartitionFunction_d)));
+		CHECK_CUDA(cudaMemset(getPartitionFunction_d, 0, num_lattices*sizeof(*getPartitionFunction_d)));
+
 		CHECK_CUDA(cudaMalloc(&getHamiltonian_x_spin_d, X*Y*sizeof(*getHamiltonian_x_spin_d)));
 		CHECK_CUDA(cudaMemset(getHamiltonian_x_spin_d, 0, X*Y*sizeof(*getHamiltonian_x_spin_d)));
 
@@ -2652,6 +2678,8 @@ int main(int argc, char **argv) {
 		CHECK_CUDA(cudaMallocManaged(&getHamiltonian_d, num_lattices*nsteps*num_errors*sizeof(*getHamiltonian_d), cudaMemAttachGlobal));
 		CHECK_CUDA(cudaMemset(getHamiltonian_d, 0, num_lattices*nsteps*num_errors*sizeof(*getHamiltonian_d)));
 
+		CHECK_CUDA(cudaMallocManaged(&getPartitionFunction_d, num_lattices*sizeof(*getPartitionFunction_d), cudaMemAttachGlobal));
+		CHECK_CUDA(cudaMemset(getPartitionFunction_d, 0, num_lattices*sizeof(*getPartitionFunction_d)));
 
 		// Loop over devices
 		for(int i = 0; i < ndev; i++) {
@@ -2859,7 +2887,7 @@ int main(int argc, char **argv) {
 			dumpLattice(fname, ndev, Y, lld, llen, llenLoc, v_d);
 
 			char rname[256];
-			snprintf(rname, sizeof(rname), "bonds_seeds_%u", seed);
+			snprintf(rname, sizeof(rname), "bonds_seeds_%llu", seed);
 			dumpInteractions(rname, ndev, Y, SPIN_X_WORD, lld, llen, llenLoc, hamW_d);
 		}
 
@@ -3072,6 +3100,23 @@ int main(int argc, char **argv) {
 	std::string filenamehamilt = "hamiltonian";
 	dumpHamiltonian(filenamehamilt, num_errors, nsteps, num_lattices, getHamiltonian_d);
 
+	// int blockSize = BLOCK_X*BLOCK_Y;
+	// int total_elements = num_errors * nsteps * num_lattices;
+	// getPartitionFunction<<<(total_elements + blockSize - 1)/blockSize, blockSize>>>(num_errors, num_lattices, nsteps, getHamiltonian_d, getPartitionFunction_d);
+
+	// double *partition_host = (double*)malloc(num_lattices * sizeof(double));
+    // cudaMemcpy(partition_host, getPartitionFunction_d, num_lattices * sizeof(double), cudaMemcpyDeviceToHost);
+    // FILE *file = fopen("partitionFunction.txt", "w");
+    // if (file == NULL) {
+    //     fprintf(stderr, "Error opening file for writing.\n");
+    //     return 1;
+    // }
+
+	// for (int i = 0; i < num_lattices; ++i) {
+    //     fprintf(file, "%.2f ", partition_host[i]);
+    // }
+    // fprintf(file, "\n");
+
 	if (ndev == 1) {
 		CHECK_CUDA(cudaEventRecord(stop, 0));
 		CHECK_CUDA(cudaEventSynchronize(stop));
@@ -3115,6 +3160,8 @@ int main(int argc, char **argv) {
 	// free memory for all GPUs and stuff
 	CHECK_CUDA(cudaFree(v_d));
 	CHECK_CUDA(cudaFree(ham_d));
+	CHECK_CUDA(cudaFree(getPartitionFunction_d));
+	CHECK_CUDA(cudaFree(getHamiltonian_d));
 
 	if (ndev == 1) {
 		CHECK_CUDA(cudaFree(exp_d[0]));

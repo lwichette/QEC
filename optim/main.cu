@@ -1220,6 +1220,230 @@ void getHamiltonianOpenBoundary(
 }
 
 
+template<int BDIM_X,
+	 int BDIM_Y,
+	 int LOOP_X,
+	 int LOOP_Y,
+	 int BITXSP,
+	 int COLOR,
+	 int SPIN_X_WORD,
+	 typename INT_T,
+	 typename INT2_T>
+__global__
+void getHamiltonianPeriodicBoundary(
+					const int devid,
+					const int e,
+		      		const int it,
+		      		const int slX,
+		      		const int slY,
+					const int num_lattices,
+					const int nsteps,
+		      		const long long begY,
+		      		const long long dimX,
+		      		const INT2_T *__restrict__ jDst,
+		      		const INT2_T *__restrict__ vSrc,
+		            INT2_T *__restrict__ vDst,
+					double *hamiltDst // destination of hamiltonians per sublattice
+				) {
+
+	// x and y location in Thread lattice
+	const int tidx = threadIdx.x;
+	const int tidy = threadIdx.y;
+
+	// Initialize shared memory of Block size + neighbors
+	__shared__ INT2_T shTile[BDIM_Y*LOOP_Y+2][BDIM_X*LOOP_X+2];
+
+	// Load spin tiles of opposite lattice
+	loadTile<BDIM_X, BDIM_Y,
+		 BDIM_X*LOOP_X,
+		 BDIM_Y*LOOP_Y,
+		 1, 1, INT2_T>(slX, slY, begY, dimX, vSrc, shTile);
+
+	__syncthreads();
+
+	// get i and j location in block/thread grid
+	const int __i = blockIdx.y*BDIM_Y*LOOP_Y + tidy;
+	const int __j = blockIdx.x*BDIM_X*LOOP_X + tidx;
+
+	// array of size BMULT_Y x BMULT_X of unsigned long long
+	INT2_T __me[LOOP_Y][LOOP_X];
+
+	// // Store spin words in array
+	#pragma unroll
+	for(int i = 0; i < LOOP_Y; i++) {
+		#pragma unroll
+		for(int j = 0; j < LOOP_X; j++) {
+			__me[i][j] = vDst[(begY+__i+i*BDIM_Y)*dimX + __j+j*BDIM_X];
+		}
+	}
+
+	// initialize up, down center arrays
+	INT2_T __up[LOOP_Y][LOOP_X];
+	INT2_T __ct[LOOP_Y][LOOP_X];
+	INT2_T __dw[LOOP_Y][LOOP_X];
+
+	// Load up, down, center neighbors from other word lattice
+	#pragma unroll
+	for(int i = 0; i < LOOP_Y; i++) {
+		#pragma unroll
+		for(int j = 0; j < LOOP_X; j++) {
+			// up has +0 in y direction index as shift by additional row in load tile. Same row plus one accordingly and only one down a plus two.
+			// same x direction thread goes to plus one by additional entry in x direction in loadTile, too.
+			__up[i][j] = shTile[i*BDIM_Y +   tidy][j*BDIM_X + 1+tidx];
+			__ct[i][j] = shTile[i*BDIM_Y + 1+tidy][j*BDIM_X + 1+tidx];
+			__dw[i][j] = shTile[i*BDIM_Y + 2+tidy][j*BDIM_X + 1+tidx];
+		}
+	}
+
+	// BDIM_Y is power of two so row parity won't change across loops
+	// Check here which color is currently investigated and whether row (__i) is even or odd
+	// Example: black lattice at even row and white lattice at odd row give readBack = 1 = True
+	const int readBack = (COLOR == C_BLACK) ? !(__i%2) : (__i%2);
+
+	// Load missing side neighbors
+	INT2_T __sd[LOOP_Y][LOOP_X];
+
+	#pragma unroll
+	for(int i = 0; i < LOOP_Y; i++) {
+		#pragma unroll
+		for(int j = 0; j < LOOP_X; j++) {
+			// Hence with read back we are missing left neighbor and without readback missing right neighbor in center tile
+			__sd[i][j] = (readBack) ? shTile[i*BDIM_Y + 1+tidy][j*BDIM_X +   tidx]:
+						  shTile[i*BDIM_Y + 1+tidy][j*BDIM_X + 2+tidx];
+		}
+	}
+
+	// if read back true: Left neighbor of most left spin entry in me must be deduced from rightest spin in sd array and combined with remaining spins from ct.
+	// if read back false: right neighbor of most right spin entry in me must be deduced from leftest spin in sd array and combined with remaining spins from ct.
+	if (readBack) {
+		#pragma unroll
+		// (BLACK LATTICE) Shift __sd such that it contains the left neighbors of the corresponding __me word
+		// (BLACK LATTICE) __ct then contains the right neighbors
+		for(int i = 0; i < LOOP_Y; i++) {
+			#pragma unroll
+			for(int j = 0; j < LOOP_X; j++) {
+				__sd[i][j].x = (__ct[i][j].x << BITXSP) | (__sd[i][j].y >> (8*sizeof(__sd[i][j].y)-BITXSP)); // looks like furthest spin on the left side is in binary rep most at most right position!
+				__sd[i][j].y = (__ct[i][j].y << BITXSP) | (__ct[i][j].x >> (8*sizeof(__ct[i][j].x)-BITXSP)); // only the x word needs left neighbor from the sd array. the y word gets its remaining spin from the x word.
+			}
+		}
+	} else {
+		// (BLACK LATTICE) Shift __sd such that it contains the right neighbors of the corresponding __me word
+		// (BLACK LATTICE) __ct then contains the left neighbors
+		#pragma unroll
+		for(int i = 0; i < LOOP_Y; i++) {
+			#pragma unroll
+			for(int j = 0; j < LOOP_X; j++) {
+				__sd[i][j].y = (__ct[i][j].y >> BITXSP) | (__sd[i][j].x << (8*sizeof(__sd[i][j].x)-BITXSP));
+				__sd[i][j].x = (__ct[i][j].x >> BITXSP) | (__ct[i][j].y << (8*sizeof(__ct[i][j].y)-BITXSP));
+			}
+		}
+	}
+
+	if (jDst != NULL) {
+		// Initialize array of size (1,2) to store the interaction terms
+		INT2_T __J[LOOP_Y][LOOP_X];
+
+		// Load interactions for current word tuple under investigation
+		#pragma unroll
+		for(int i = 0; i < LOOP_Y; i++) {
+			#pragma unroll
+			for(int j = 0; j < LOOP_X; j++) {
+				__J[i][j] = jDst[(begY+__i+i*BDIM_Y)*dimX + __j+j*BDIM_X];
+			}
+		}
+
+		// the 4 bits of J codify: <upJ, downJ, leftJ, rightJ>
+		#pragma unroll
+		for(int i = 0; i < LOOP_Y; i++) {
+			#pragma unroll
+			for(int j = 0; j < LOOP_X; j++) {
+
+				// Perform bitwise xor operation
+				// Column of left side gets the first bit in every group of four which is then shifted by 3 to the right left because spins are only
+				// at the fourth location
+				// XOR is then performed to change sign of spins
+
+				__up[i][j].x ^= (__J[i][j].x & 0x8888888888888888ull) >> 3;
+				__up[i][j].y ^= (__J[i][j].y & 0x8888888888888888ull) >> 3;
+
+				// get down interaction and shift it to the right place
+				__dw[i][j].x ^= (__J[i][j].x & 0x4444444444444444ull) >> 2;
+				__dw[i][j].y ^= (__J[i][j].y & 0x4444444444444444ull) >> 2;
+
+				if (readBack) {
+					// black lattice, even row and white lattice odd row --> readBack = 1
+					// in this case left neighbors must possibly be removed for open boundary
+
+					// __sd[][] holds "left" spins
+					// __ct[][] holds "right" spins
+					// get left interaction and shift it to the right position
+					__sd[i][j].x ^= (__J[i][j].x & 0x2222222222222222ull) >> 1; // the shift is executed before the or operation!
+					__sd[i][j].y ^= (__J[i][j].y & 0x2222222222222222ull) >> 1;
+
+					// get right interaction and shift it to the right position
+					__ct[i][j].x ^= (__J[i][j].x & 0x1111111111111111ull);
+					__ct[i][j].y ^= (__J[i][j].y & 0x1111111111111111ull);
+
+				}
+				else {
+					// black lattice, odd row and white lattice even row --> readBack = 0
+
+					// __ct[][] holds "left" spins
+					// __sd[][] holds "right" spins
+					// get left interaction and shift it to the right position and perform XOR
+					__ct[i][j].x ^= (__J[i][j].x & 0x2222222222222222ull) >> 1;
+					__ct[i][j].y ^= (__J[i][j].y & 0x2222222222222222ull) >> 1;
+
+					// get right interaction and perform XOR
+					__sd[i][j].x ^= (__J[i][j].x & 0x1111111111111111ull);
+					__sd[i][j].y ^= (__J[i][j].y & 0x1111111111111111ull);
+				}
+			}
+		}
+	}
+
+	#pragma unroll
+		for(int i = 0; i < LOOP_Y; i++) {
+		#pragma unroll
+		for(int j = 0; j < LOOP_X; j++) {
+			__ct[i][j].x += __up[i][j].x;
+			__dw[i][j].x += __sd[i][j].x;
+			__ct[i][j].x += __dw[i][j].x;
+
+			__ct[i][j].y += __up[i][j].y;
+			__dw[i][j].y += __sd[i][j].y;
+			__ct[i][j].y += __dw[i][j].y;
+		}
+	}
+
+
+	// This index indicates for which sublattice hamiltonian the current thread is computing a summand.
+	int slidx = (__i/slY)*(dimX/slX) + (__j/slX) + it*num_lattices + e*num_lattices*nsteps;
+
+	#pragma unroll
+	for(int i = 0; i < LOOP_Y; i++) {
+		#pragma unroll
+		for(int j = 0; j < LOOP_X; j++) {
+			#pragma unroll
+			// iterate over every spin in word and determine it's specific Hamiltonian value
+			for(int z = 0; z < 8*sizeof(INT_T); z += BITXSP) {
+				// Extract information whether spin is up or down --> results in 0 or 1
+				double __srcx = (((__me[i][j].x >> z) & 0xF) == 0) ? -1 : 1;
+				double __srcy = (((__me[i][j].y >> z) & 0xF) == 0) ? -1 : 1;
+
+				// Get sum result of neighbors for each spin contained in the words --> results in range zero to 4
+				double __sumx = (__ct[i][j].x >> z) & 0xF;
+				double __sumy = (__ct[i][j].y >> z) & 0xF;
+
+				atomicAdd(&hamiltDst[slidx], __srcx*(__sumx*2-4));
+				atomicAdd(&hamiltDst[slidx], __srcy*(__sumy*2-4));
+			}
+		}
+	}
+	return;
+}
+
+
 template<typename type>
 __global__
 void getPartitionFunction(
@@ -2886,15 +3110,15 @@ int main(int argc, char **argv) {
 			CHECK_CUDA(cudaDeviceSynchronize());
 		}
 
-		if (dumpOut) {
-			char fname[256];
-			snprintf(fname, sizeof(fname), "lattice_%dx%d_T_%f_IT_%08d_", Y, X, temp, 0);
-			dumpLattice(fname, ndev, Y, lld, llen, llenLoc, v_d);
+		// if (dumpOut) {
+		// 	char fname[256];
+		// 	snprintf(fname, sizeof(fname), "lattice_%dx%d_T_%f_IT_%08d_", Y, X, temp, 0);
+		// 	dumpLattice(fname, ndev, Y, lld, llen, llenLoc, v_d);
 
-			char rname[256];
-			snprintf(rname, sizeof(rname), "bonds_seeds_%llu", seed);
-			dumpInteractions(rname, ndev, Y, SPIN_X_WORD, lld, llen, llenLoc, hamW_d);
-		}
+		// 	char rname[256];
+		// 	snprintf(rname, sizeof(rname), "bonds_seeds_%llu", seed);
+		// 	dumpInteractions(rname, ndev, Y, SPIN_X_WORD, lld, llen, llenLoc, hamW_d);
+		// }
 
 		int j;
 
@@ -2953,13 +3177,6 @@ int main(int argc, char **argv) {
 			}
 		}
 
-		// if (dumpOut) {
-		// 	char fname[256];
-		// 	snprintf(fname, sizeof(fname), "lattice_%dx%d_T_%f_IT_%08d_", Y, X, temp, j+1);
-		// 	dumpLattice(fname, ndev, Y, lld, llen, llenLoc, v_d);
-		// }
-
-
 		for(j = nwarmup; j < nwarmup + nsteps; j++) {
 
 			for(int i = 0; i < ndev; i++) {
@@ -3009,9 +3226,19 @@ int main(int argc, char **argv) {
 				}
 			}
 
+			// if (dumpOut) {
+			// 	char fname[256];
+			// 	snprintf(fname, sizeof(fname), "lattice_%dx%d_e%d_T%f_it%08d_", X, Y, e, temp, j-nwarmup);
+			// 	dumpLattice(fname, ndev, Y, lld, llen, llenLoc, v_d);
+
+			// 	char rname[256];
+			// 	snprintf(rname, sizeof(rname), "bonds_seeds_e%d_", e);
+			// 	dumpInteractions(rname, ndev, Y, SPIN_X_WORD, lld, llen, llenLoc, hamW_d);
+			// }
+
 			for(int i = 0; i < ndev; i++) {
 				CHECK_CUDA(cudaSetDevice(i));
-				getHamiltonianOpenBoundary<BLOCK_X, BLOCK_Y,
+				getHamiltonianPeriodicBoundary<BLOCK_X, BLOCK_Y,
 						BMULT_X, BMULT_Y,
 						BIT_X_SPIN, C_BLACK, SPIN_X_WORD,
 						unsigned long long><<<grid, block>>>(i,
@@ -3027,7 +3254,7 @@ int main(int argc, char **argv) {
 											reinterpret_cast<ulonglong2 *>(white_d),
 											reinterpret_cast<ulonglong2 *>(black_d),
 											getHamiltonian_d);
-				getHamiltonianOpenBoundary<BLOCK_X, BLOCK_Y,
+				getHamiltonianPeriodicBoundary<BLOCK_X, BLOCK_Y,
 						BMULT_X, BMULT_Y,
 						BIT_X_SPIN, C_WHITE, SPIN_X_WORD,
 						unsigned long long><<<grid, block>>>(i,

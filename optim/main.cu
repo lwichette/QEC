@@ -1231,13 +1231,14 @@ void getPartitionFunction(
 					type* hamiltSrc, // ordering of Hamilts within is important: For each error one finds blocks for each iteration step  of num lattice many Hamiltonian values.
 					type* partitionDst // double array of length num_lattices to store partition function for each temp averaged over error chains.
 				) {
+	int NORMALIZATION = 100000; //needed for accuracy reasons
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
 	int totalElements = num_errors*num_lattices*nsteps;
 	if (tid < totalElements){
 		int lattice_idx = tid%num_lattices;
 		// double boltzmannfactor = exp(-hamiltSrc[tid]/(double)(temp + lattice_idx * step));
 		// atomicAdd(&partitionDst[lattice_idx], boltzmannfactor/num_errors);
-		double boltzmannfactor = exp(-hamiltSrc[tid]/(128.0*128*(temp + lattice_idx * step)))/num_errors;
+		double boltzmannfactor = exp(-hamiltSrc[tid]/(NORMALIZATION*(temp + lattice_idx * step)))/num_errors;
 		atomicAdd(&partitionDst[lattice_idx], boltzmannfactor);
 		// printf("exp=%.6f \n", exp(-hamiltSrc[tid]/(temp + lattice_idx * step)));
 	}
@@ -3117,7 +3118,7 @@ int main(int argc, char **argv) {
     }
 
 	for (int i = 0; i < num_lattices; ++i) {
-        fprintf(file, "%.2f ", partition_host[i]);
+        fprintf(file, "%.6f ", partition_host[i]);
     }
     fprintf(file, "\n");
 

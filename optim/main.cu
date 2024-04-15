@@ -1226,6 +1226,8 @@ void getPartitionFunction(
 					const int num_errors,
 					const int num_lattices,
 					const int nsteps,
+					float temp, // initial temp
+					float step, // step in temperature form sublattice to sublattice
 					type* hamiltSrc, // ordering of Hamilts within is important: For each error one finds blocks for each iteration step  of num lattice many Hamiltonian values.
 					type* partitionDst // double array of length num_lattices to store partition function for each temp averaged over error chains.
 				) {
@@ -1233,9 +1235,11 @@ void getPartitionFunction(
 	int totalElements = num_errors*num_lattices*nsteps;
 	if (tid < totalElements){
 		int lattice_idx = tid%num_lattices;
-		double boltzmannfactor = hamiltSrc[tid]/num_errors; // exp with betas still missing
+		// double boltzmannfactor = exp(-hamiltSrc[tid]/(double)(temp + lattice_idx * step));
+		// atomicAdd(&partitionDst[lattice_idx], boltzmannfactor/num_errors);
+		double boltzmannfactor = exp(-hamiltSrc[tid]/(128.0*128*(temp + lattice_idx * step)))/num_errors;
 		atomicAdd(&partitionDst[lattice_idx], boltzmannfactor);
-		printf("latticeIdx = %.d tid = %.d boltzmannfac = %.2f \n", lattice_idx, tid, boltzmannfactor);
+		// printf("exp=%.6f \n", exp(-hamiltSrc[tid]/(temp + lattice_idx * step)));
 	}
 }
 
@@ -3100,22 +3104,22 @@ int main(int argc, char **argv) {
 	std::string filenamehamilt = "hamiltonian";
 	dumpHamiltonian(filenamehamilt, num_errors, nsteps, num_lattices, getHamiltonian_d);
 
-	// int blockSize = BLOCK_X*BLOCK_Y;
-	// int total_elements = num_errors * nsteps * num_lattices;
-	// getPartitionFunction<<<(total_elements + blockSize - 1)/blockSize, blockSize>>>(num_errors, num_lattices, nsteps, getHamiltonian_d, getPartitionFunction_d);
+	int blockSize = BLOCK_X*BLOCK_Y;
+	int total_elements = num_errors * nsteps * num_lattices;
+	getPartitionFunction<<<(total_elements + blockSize - 1)/blockSize, blockSize>>>(num_errors, num_lattices, nsteps, temp, step, getHamiltonian_d, getPartitionFunction_d);
 
-	// double *partition_host = (double*)malloc(num_lattices * sizeof(double));
-    // cudaMemcpy(partition_host, getPartitionFunction_d, num_lattices * sizeof(double), cudaMemcpyDeviceToHost);
-    // FILE *file = fopen("partitionFunction.txt", "w");
-    // if (file == NULL) {
-    //     fprintf(stderr, "Error opening file for writing.\n");
-    //     return 1;
-    // }
+	double *partition_host = (double*)malloc(num_lattices * sizeof(double));
+    cudaMemcpy(partition_host, getPartitionFunction_d, num_lattices * sizeof(double), cudaMemcpyDeviceToHost);
+    FILE *file = fopen("partitionFunction.txt", "w");
+    if (file == NULL) {
+        fprintf(stderr, "Error opening file for writing.\n");
+        return 1;
+    }
 
-	// for (int i = 0; i < num_lattices; ++i) {
-    //     fprintf(file, "%.2f ", partition_host[i]);
-    // }
-    // fprintf(file, "\n");
+	for (int i = 0; i < num_lattices; ++i) {
+        fprintf(file, "%.2f ", partition_host[i]);
+    }
+    fprintf(file, "\n");
 
 	if (ndev == 1) {
 		CHECK_CUDA(cudaEventRecord(stop, 0));

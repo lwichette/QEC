@@ -81,7 +81,7 @@ def check_bonds(bonds_new, bonds_old):
                     if check == False:
                         print("RIGHT ERROR", j,i)
 
-def get_interactions(bonds, X, Y, seed):
+def get_interactions(bonds, X, Y):
     """
     This function transforms the given bonds from the optimized code version to the bonds used in
     the basic cuda example. For this function to work, the bonds need to be written out by the
@@ -91,7 +91,6 @@ def get_interactions(bonds, X, Y, seed):
         bonds (np.ndarray): hamW_d interactions written out by c++
         X (int): row-size of lattice
         Y (int): column size of lattice
-        seed (int): seed used to write lattice to corresponding folder
 
     Returns:
         interactions: List

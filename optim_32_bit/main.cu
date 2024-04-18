@@ -680,45 +680,45 @@ void spinUpdate_open_bdry(const int devid,
 				// at the fourth location
 				// XOR is then performed to change sign of spins
 
-				__up[i][j].x ^= (__J[i][j].x & 0x8888888888888888ull) >> 3;
-				__up[i][j].y ^= (__J[i][j].y & 0x8888888888888888ull) >> 3;
+				__up[i][j].x ^= (__J[i][j].x & 0x88888888) >> 3;
+				__up[i][j].y ^= (__J[i][j].y & 0x88888888) >> 3;
 
 				// get down interaction and shift it to the right place
-				__dw[i][j].x ^= (__J[i][j].x & 0x4444444444444444ull) >> 2;
-				__dw[i][j].y ^= (__J[i][j].y & 0x4444444444444444ull) >> 2;
+				__dw[i][j].x ^= (__J[i][j].x & 0x44444444) >> 2;
+				__dw[i][j].y ^= (__J[i][j].y & 0x44444444) >> 2;
 
 				if (readBack) {
 					// __sd[][] holds "left" spins
 					// __ct[][] holds "right" spins
 					// get left interaction and shift it to the right position
-					__sd[i][j].x ^= (__J[i][j].x & 0x2222222222222222ull) >> 1; // the shift is executed before the or operation!
-					__sd[i][j].y ^= (__J[i][j].y & 0x2222222222222222ull) >> 1;
+					__sd[i][j].x ^= (__J[i][j].x & 0x22222222) >> 1; // the shift is executed before the or operation!
+					__sd[i][j].y ^= (__J[i][j].y & 0x22222222) >> 1;
 
 					// get right interaction and shift it to the right position
-					__ct[i][j].x ^= (__J[i][j].x & 0x1111111111111111ull);
-					__ct[i][j].y ^= (__J[i][j].y & 0x1111111111111111ull);
+					__ct[i][j].x ^= (__J[i][j].x & 0x11111111);
+					__ct[i][j].y ^= (__J[i][j].y & 0x11111111);
 
 
 					// if me word at left boundary of sublattice - only j=0 should give true here but I still have to check for it's value.
 					// only if black and even row possible left neighbor spin is boundary or if white and odd row left neighbor is boundary
 					if((__j+j*BDIM_X)%(slX)==0){
-						__sd[i][j].x &= 0x1111111111111110ull; // maps most right spin values in array to zero which should be interaction term for most left spin in lattice
+						__sd[i][j].x &= 0x11111110; // maps most right spin values in array to zero which should be interaction term for most left spin in lattice
 					}
 
 				} else {
 					// __ct[][] holds "left" spins
 					// __sd[][] holds "right" spins
 					// get left interaction and shift it to the right position and perform XOR
-					__ct[i][j].x ^= (__J[i][j].x & 0x2222222222222222ull) >> 1;
-					__ct[i][j].y ^= (__J[i][j].y & 0x2222222222222222ull) >> 1;
+					__ct[i][j].x ^= (__J[i][j].x & 0x22222222) >> 1;
+					__ct[i][j].y ^= (__J[i][j].y & 0x22222222) >> 1;
 
 					// get right interaction and perform XOR
-					__sd[i][j].x ^= (__J[i][j].x & 0x1111111111111111ull);
-					__sd[i][j].y ^= (__J[i][j].y & 0x1111111111111111ull);
+					__sd[i][j].x ^= (__J[i][j].x & 0x11111111);
+					__sd[i][j].y ^= (__J[i][j].y & 0x11111111);
 
 					// only if black and odd row or white even row the right neighbor may be a sublattice boundary
 					if((__j+j*BDIM_X+1)%(slX)==0){
-						__sd[i][j].y &= 0x0111111111111111ull; // maps most left spin values in array to zero which should be interaction term for most right spin in lattice
+						__sd[i][j].y &= 0x01111111; // maps most left spin values in array to zero which should be interaction term for most right spin in lattice
 					}
 				}
 			}

@@ -3317,7 +3317,7 @@ int main(int argc, char **argv) {
 			}
 		}
 
-		if (ndev > 1){
+		if (ndev == 1){
 			CHECK_CUDA(cudaMemset(ham_d, 0, llen*sizeof(*ham_d)));
 		} else{
 			for (int i = 0; i < ndev; i++){

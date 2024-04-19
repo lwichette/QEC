@@ -19,6 +19,13 @@
             "args": "--X 16 --Y 16 --prob 1.0 --nie 1 --nw 100 --nit 100 --temp 1.7 --step 0.0 --up false --ndev 1 --folder test --out"
         },
         {
+            "name": "Optim_8_bit",
+            "type": "cuda-gdb",
+            "request": "launch",
+            "program": "${workspaceFolder}/optim_8_bit/cuIsing",
+            "args": "--X 8 --Y 8 --prob 1.0 --nie 1 --nw 100 --nit 100 --temp 1.7 --step 0.0 --up false --ndev 1 --folder test --out"
+        },
+        {
             "name": "Optim Comparison",
             "type": "cuda-gdb",
             "request": "launch",

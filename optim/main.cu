@@ -2751,8 +2751,6 @@ int main(int argc, char **argv) {
         }
     }
 
-	printf("Leave_out %d \n", leave_out);
-
 	// check if X or Y are zero
 	if (!X || !Y) {
 		// check if X is zero
@@ -3494,7 +3492,7 @@ int main(int argc, char **argv) {
 	// Write lattice
 	if (dumpOut) {
 		char fname[256];
-		snprintf(fname, sizeof(fname), "lattices/lattice_%dx%d_T_%f_IT_%08d", Y, X, temp, nsteps + nwarmup);
+		snprintf(fname, sizeof(fname), "lattices/lattice_%dx%d_T_%f_IT_%08d_lo_%d", Y, X, temp, nsteps + nwarmup, leave_out);
 		dumpLattice(fname, ndev, Y, lld, llen, llenLoc, v_d);
 	}
 

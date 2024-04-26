@@ -1602,6 +1602,8 @@ int main(int argc, char **argv) {
 	int Y = 0;
 
 	int dumpOut = 0;
+
+	bool dumpVar = false;
 	int nsteps, nwarmup;
 
 	// Random number seed
@@ -1653,6 +1655,7 @@ int main(int argc, char **argv) {
             {"ndev", required_argument, 0, 'd'},
 			{"folder", required_argument, 0, 'f'},
 			{"out", no_argument, 0, 'o'},
+			{"var", no_argument, 0, 'v'},
 			{"leave_out", required_argument, 0, 'l'},
             {0, 0, 0, 0}
         };
@@ -1685,6 +1688,9 @@ int main(int argc, char **argv) {
 			case 'l':
                 leave_out = atoi(optarg);
                 break;
+			case 'v':
+				dumpVar = true;
+				break;
 			case 't':
 				temp = atof(optarg);
 				break;

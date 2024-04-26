@@ -60,7 +60,7 @@ using namespace std;
 // BMULT_X Block Multiple X Direction
 
 // Thread size block x and y
-#define BLOCK_X (2)
+#define BLOCK_X (1)
 #define BLOCK_Y (8)
 
 // Unclear
@@ -539,9 +539,9 @@ void spinUpdate_open_bdry(const int devid,
 
 	// __shExp[cur_s{0,1}][sum_s{0,1}] = __expf(-2*cur_s{-1,+1}*F{+1,-1}(sum_s{0,1})*INV_TEMP)
 	// Shared memory to store Exp
-	__shared__ float __shExp[2][5];
-	__shared__ float __shExpEdge[2][4];
-	__shared__ float __shExpVertex[2][3];
+	__shared__ double __shExp[2][5];
+	__shared__ double __shExpEdge[2][4];
+	__shared__ double __shExpVertex[2][3];
 
 	// for small lattices BDIM_X/Y may be smaller than 2/5
 	// Load exponentials into shared memory
@@ -1838,7 +1838,7 @@ void spinUpdateV_2D_k(const int devid,
 
 	// __shExp[cur_s{0,1}][sum_s{0,1}] = __expf(-2*cur_s{-1,+1}*F{+1,-1}(sum_s{0,1})*INV_TEMP)
 	// Shared memory to store Exp
-	__shared__ float __shExp[2][5];
+	__shared__ double __shExp[2][5];
 
 	// for small lattices BDIM_X/Y may be smaller than 2/5
 	// Load exponentials into shared memory
@@ -2394,6 +2394,119 @@ __global__ void calculate_average_magnetization(const int slX,
 	}
 }
 
+__global__ void getMagBinning(const int blocks_per_slx,
+				const int blocks_per_sly,
+				const int num_lattices,
+				const double *d_sums_per_block,
+				const int temp_idx,
+				const int thermal_sample,
+				double *d_binning_mag){
+
+	const long long tid = static_cast<long long>(threadIdx.x + blockIdx.x * blockDim.x);
+
+	int offset = tid*blocks_per_slx*blocks_per_sly;
+
+	if (tid == temp_idx && tid < num_lattices){ // only sublattice at index temp_idx gets mag result computed here
+		double sum = 0;
+		for (int i = 0; i < blocks_per_slx*blocks_per_sly; i++){
+			sum += d_sums_per_block[offset + i];
+		}
+
+		d_binning_mag[thermal_sample] = sum;
+	}
+}
+
+
+// Writes current magnetization result for specific temperature specified by temp_idx to bin storage within d_binning_mag array
+__global__ void getMagForBinningAnalysis(const int blocks_per_slx,
+				const int blocks_per_sly,
+				const int num_lattices,
+				const double *d_sums_per_block,
+				const int mc_idx,
+				const int nsteps,
+				const int num_errors,
+				const int temp_idx,
+				const int binnning_order,
+				const int binning_result_count,
+				double *d_binning_mag){
+
+	const long long tid = static_cast<long long>(threadIdx.x + blockIdx.x * blockDim.x);
+
+	int offset = tid*blocks_per_slx*blocks_per_sly;
+
+	if (tid == temp_idx && tid < num_lattices){ // only sublattice at index temp_idx gets mag result computed here
+		double sum = 0;
+		for (int i = 0; i < blocks_per_slx*blocks_per_sly; i++){
+			sum += d_sums_per_block[offset + i];
+		}
+
+		// Adding current result to correct bin for each binning order (determines offstes in the array which stores all binning results combined.)
+		for (int l=1; l<=binnning_order; l++){
+			// The floor and +.5 procedure is necesssary to correct for approximate pow results which vary by -1 the offset indices.
+			int bin_size = nsteps/floor(pow(2, l)+.5); // this may be troublesome for nsteps which are not powers of two!
+			int offset = floor(pow(2, l)+.5)-2; // depending on l these many array entries belong to previous partition choices.
+			if(mc_idx/bin_size<binning_result_count && nsteps>=floor(pow(2, l)+.5)){
+				d_binning_mag[mc_idx/bin_size+offset] += abs(sum)/(double)(bin_size*num_errors); // the denominator is added for taking the mean over bin size
+			}
+			else{
+				printf("out of range index access.\n");
+			}
+		}
+	}
+	else{
+		return;
+	}
+}
+
+void doBinningAnalysis(bool dumpVar, int binning_order, int binning_result_count, int num_errors, int nwarmup, int nsteps, double temp, int up, int leave_out, double prob, int X, int Y, double *d_binning_mag){
+	if(dumpVar){
+			double *h_binning_mag = (double *)malloc(binning_result_count*sizeof(*h_binning_mag));
+			CHECK_CUDA(cudaMemcpy(h_binning_mag, d_binning_mag, binning_result_count*sizeof(*d_binning_mag), cudaMemcpyDeviceToHost));
+			// std::ofstream f("results/MagBinnings_X" + std::to_string(X) + "_Y" + std::to_string(Y) + "_p" + std::to_string(prob) + "_e" + std::to_string(num_errors) + "_nw" + std::to_string(nwarmup) + "_nit" + std::to_string(nsteps) + "_t" + std::to_string(temp) + "_u" + std::to_string(up) + "_n" + std::to_string(binning_order) + "_lo" + std::to_string(leave_out), std::ios::out | std::ios::trunc);
+			// for (int i=0; i<binning_result_count; i++){
+			// 	f << h_binning_mag[i];
+			// 	if (i != binning_result_count - 1) {
+	        //         f << ", ";
+	        //     }
+			// }
+			// f.close();
+			double variances[binning_order] = {0};
+			double mean_mag = 0.0;
+			for (int l=1; l<=binning_order; l++){
+				double dev = 0.0;
+				if(l==1){
+					int bin_count = 2;
+					for (int k=0; k<bin_count; k++){
+						mean_mag += h_binning_mag[k]/2.0;
+					}
+					for (int k=0; k<bin_count; k++){
+						dev = h_binning_mag[k]- mean_mag;
+						variances[0]+=pow(dev, 2)/(bin_count*(bin_count-1));
+					}
+				}
+				else{
+					int bin_count = floor(pow(2, l)+.5);
+					int offset = floor(pow(2, l)+.5)-2; // depending on l these many array entries belong to previous partition choices.
+					for (int k=0; k<bin_count; k++){
+						dev = h_binning_mag[offset + k]-mean_mag;
+						variances[l-1]+=pow(dev, 2)/(bin_count*(bin_count-1));
+					}
+				}
+			}
+
+			std::string varfname = "results/Variances/VarBinnings_L" + std::to_string(X) + "_p" + std::to_string(prob) + "_e" + std::to_string(num_errors) + "_nw" + std::to_string(nwarmup) + "_nit" + std::to_string(nsteps) + "_t" + std::to_string(temp) + "_u" + std::to_string(up) + "_n" + std::to_string(binning_order) + "_lo" + std::to_string(leave_out);
+			std::ofstream fVars(varfname, std::ios::out | std::ios::trunc);
+			for (int i=0; i<binning_order; i++){
+				fVars << (i+1) << " " << (sqrt(variances[i])) << "\n";
+			}
+			fVars.close();
+		}
+		else{
+			printf("dumpVar is False, hence nothing was binned.");
+		}
+}
+
+
 __global__ void calculate_incremental_susceptibility(const int blocks_per_slx,
 				const int blocks_per_sly,
 				const int num_lattices,
@@ -2542,8 +2655,11 @@ int main(int argc, char **argv) {
 
 	int num_errors = 0;
 
+	int leave_out =1;
+
 	bool up;
 
+	bool dumpVar = false;
 	char *folder = NULL;
 
 	int och;
@@ -2564,10 +2680,12 @@ int main(int argc, char **argv) {
             {"ndev", required_argument, 0, 'd'},
 			{"folder", required_argument, 0, 'f'},
 			{"out", no_argument, 0, 'o'},
+			{"var", no_argument, 0, 'v'},
+			{"leave_out", required_argument, 0, 'l'},
             {0, 0, 0, 0}
         };
 
-        och = getopt_long(argc, argv, "x:y:p:w:n:t:s:u:d:fo:", long_options, &option_index);
+        och = getopt_long(argc, argv, "x:y:p:w:n:t:s:u:l:d:fov", long_options, &option_index);
         if (och == -1)
             break;
 
@@ -2607,6 +2725,12 @@ int main(int argc, char **argv) {
 			case 'o':
 				dumpOut = 1;
 				break;
+			case 'v':
+				dumpVar = true;
+				break;
+			case 'l':
+                leave_out = atoi(optarg);
+                break;
 			case 'f':
 				folder = optarg;
 				break;
@@ -2626,6 +2750,8 @@ int main(int argc, char **argv) {
 				exit(EXIT_FAILURE);
         }
     }
+
+	printf("Leave_out %d \n", leave_out);
 
 	// check if X or Y are zero
 	if (!X || !Y) {
@@ -2725,8 +2851,8 @@ int main(int argc, char **argv) {
 	}
 
 	char filename[2048];
-	snprintf(filename, sizeof(filename), "%s/Y_%d_X_%d_YSL_%d_XSL_%d_e_%d_p_%.4f_t_%.4f_s_%.4f_w_%d_i_%d_u_%d.txt",
-			folderPath, Y, X, YSL, XSL, num_errors, prob, temp, step, nwarmup, nsteps, up);
+	snprintf(filename, sizeof(filename), "%s/Y_%d_X_%d_YSL_%d_XSL_%d_e_%d_p_%.4f_t_%.4f_s_%.4f_w_%d_i_%d_u_%d_lo_%d.txt",
+			folderPath, Y, X, YSL, XSL, num_errors, prob, temp, step, nwarmup, nsteps, up, leave_out);
 
 	// get GPU properties for each GPU
 	cudaDeviceProp props;
@@ -2853,6 +2979,13 @@ int main(int argc, char **argv) {
 	unsigned long long *sum_d[MAX_GPU];
 
 	double *d_sum_per_block, *d_sus_0, *d_sus_k;
+
+	const int binning_order = 13; // This number determines how many (2**binning_order) partitions of the Markov chain shall be maximally evaluated
+	const int binning_result_count = pow(2, binning_order+1)-2; // This number counts how many binning results must be stored for the given binning order. This result comes from the finite geometric series.
+
+	double *d_binning_mag;
+	double *d_magsForBinning;
+
 	thrust::complex<double> *d_weighted_sum_per_blocks;
 
 	// if only one GPU
@@ -2880,6 +3013,11 @@ int main(int argc, char **argv) {
 		CHECK_CUDA(cudaMalloc(&d_sus_k, num_lattices*sizeof(*d_sus_k)));
 		CHECK_CUDA(cudaMemset(d_sus_k, 0, num_lattices*sizeof(*d_sus_k)));
 
+		// declaring and initializing device arrays for storage of magnetization binning results for first sublattice and only first error
+		CHECK_CUDA(cudaMalloc(&d_binning_mag, nsteps*sizeof(*d_binning_mag)));
+		CHECK_CUDA(cudaMemset(d_binning_mag, 0, nsteps*sizeof(*d_binning_mag)));
+		CHECK_CUDA(cudaMalloc(&d_magsForBinning, binning_result_count*sizeof(*d_magsForBinning)));
+		CHECK_CUDA(cudaMemset(d_magsForBinning, 0, binning_result_count*sizeof(*d_magsForBinning)));
 		CHECK_CUDA(cudaMalloc(&getHamiltonian_d, num_lattices*num_errors*nsteps*sizeof(*getHamiltonian_d)));
 		CHECK_CUDA(cudaMemset(getHamiltonian_d, 0, num_lattices*num_errors*nsteps*sizeof(*getHamiltonian_d)));
 
@@ -2903,6 +3041,8 @@ int main(int argc, char **argv) {
 
 		CHECK_CUDA(cudaMallocManaged(&d_sus_0, ndev*num_lattices*sizeof(*d_sus_0), cudaMemAttachGlobal));
 		CHECK_CUDA(cudaMallocManaged(&d_sus_k, ndev*num_lattices*sizeof(*d_sus_k), cudaMemAttachGlobal));
+
+		CHECK_CUDA(cudaMallocManaged(&d_binning_mag, ndev*binning_result_count*sizeof(*d_binning_mag), cudaMemAttachGlobal));
 
 		CHECK_CUDA(cudaMallocManaged(&getHamiltonian_d, num_lattices*nsteps*num_errors*sizeof(*getHamiltonian_d), cudaMemAttachGlobal));
 		CHECK_CUDA(cudaMemset(getHamiltonian_d, 0, num_lattices*nsteps*num_errors*sizeof(*getHamiltonian_d)));
@@ -2953,6 +3093,8 @@ int main(int argc, char **argv) {
 
 			CHECK_CUDA(cudaMemset(d_sus_0 + i*num_lattices, 0, num_lattices*sizeof(*d_sus_0)));
 			CHECK_CUDA(cudaMemset(d_sus_k + i*num_lattices, 0, num_lattices*sizeof(*d_sus_k)));
+
+			CHECK_CUDA(cudaMemset(d_binning_mag + i*binning_result_count, 0, binning_result_count*sizeof(*d_binning_mag)));
 
 			printf("\tGPU %2d done\n", i); fflush(stdout);
 		}
@@ -3065,7 +3207,6 @@ int main(int argc, char **argv) {
 
 		printf("Error %u of %u\n", e, num_errors);
 		fflush(stdout);
-
 		for(int i = 0; i < ndev; i++) {
 			CHECK_CUDA(cudaSetDevice(i));
 			hamiltInitB_k<BLOCK_X, BLOCK_Y,
@@ -3177,7 +3318,7 @@ int main(int argc, char **argv) {
 			}
 		}
 
-		for(j = nwarmup; j < nwarmup + nsteps; j++) {
+		for(j = nwarmup; j < nwarmup + nsteps*leave_out; j++) {
 
 			for(int i = 0; i < ndev; i++) {
 
@@ -3219,58 +3360,51 @@ int main(int argc, char **argv) {
 											reinterpret_cast<ulonglong2 *>(white_d));
 			}
 
-			if (ndev > 1) {
-				for(int i = 0; i < ndev; i++) {
-					CHECK_CUDA(cudaSetDevice(i));
-					CHECK_CUDA(cudaDeviceSynchronize());
-				}
-			}
+			// // have to set this block into leave out as well with edited array size where to store the Hamiltonian
 
-			// if (dumpOut) {
-			// 	char fname[256];
-			// 	snprintf(fname, sizeof(fname), "lattice_%dx%d_e%d_T%f_it%08d_", X, Y, e, temp, j-nwarmup);
-			// 	dumpLattice(fname, ndev, Y, lld, llen, llenLoc, v_d);
-
-			// 	char rname[256];
-			// 	snprintf(rname, sizeof(rname), "bonds_seeds_e%d_", e);
-			// 	dumpInteractions(rname, ndev, Y, SPIN_X_WORD, lld, llen, llenLoc, hamW_d);
+			// if (ndev > 1) {
+			// 	for(int i = 0; i < ndev; i++) {
+			// 		CHECK_CUDA(cudaSetDevice(i));
+			// 		CHECK_CUDA(cudaDeviceSynchronize());
+			// 	}
 			// }
 
-			for(int i = 0; i < ndev; i++) {
-				CHECK_CUDA(cudaSetDevice(i));
-				getHamiltonianPeriodicBoundary<BLOCK_X, BLOCK_Y,
-						BMULT_X, BMULT_Y,
-						BIT_X_SPIN, C_BLACK, SPIN_X_WORD,
-						unsigned long long><<<grid, block>>>(i,
-											e,
-											j-nwarmup,
-											(XSL/2)/SPIN_X_WORD/2,
-											YSL,
-											num_lattices,
-											nsteps,
-											i*Y,
-											lld/2,
-											reinterpret_cast<ulonglong2 *>(hamW_d),
-											reinterpret_cast<ulonglong2 *>(white_d),
-											reinterpret_cast<ulonglong2 *>(black_d),
-											getHamiltonian_d);
-				getHamiltonianPeriodicBoundary<BLOCK_X, BLOCK_Y,
-						BMULT_X, BMULT_Y,
-						BIT_X_SPIN, C_WHITE, SPIN_X_WORD,
-						unsigned long long><<<grid, block>>>(i,
-											e,
-											j-nwarmup,
-											(XSL/2)/SPIN_X_WORD/2,
-											YSL,
-											num_lattices,
-											nsteps,
-											i*Y,
-											lld/2,
-											reinterpret_cast<ulonglong2 *>(hamB_d),
-											reinterpret_cast<ulonglong2 *>(black_d),
-											reinterpret_cast<ulonglong2 *>(white_d),
-											getHamiltonian_d);
-			}
+			// for(int i = 0; i < ndev; i++) {
+			// 	CHECK_CUDA(cudaSetDevice(i));
+			// 	getHamiltonianOpenBoundary<BLOCK_X, BLOCK_Y,
+			// 			BMULT_X, BMULT_Y,
+			// 			BIT_X_SPIN, C_BLACK, SPIN_X_WORD,
+			// 			unsigned long long><<<grid, block>>>(i,
+			// 								e,
+			// 								(j-nwarmup)/leave_out,
+			// 								(XSL/2)/SPIN_X_WORD/2,
+			// 								YSL,
+			// 								num_lattices,
+			// 								nsteps,
+			// 								i*Y,
+			// 								lld/2,
+			// 								reinterpret_cast<ulonglong2 *>(hamW_d),
+			// 								reinterpret_cast<ulonglong2 *>(white_d),
+			// 								reinterpret_cast<ulonglong2 *>(black_d),
+			// 								getHamiltonian_d);
+			// 	getHamiltonianOpenBoundary<BLOCK_X, BLOCK_Y,
+			// 			BMULT_X, BMULT_Y,
+			// 			BIT_X_SPIN, C_WHITE, SPIN_X_WORD,
+			// 			unsigned long long><<<grid, block>>>(i,
+			// 								e,
+			// 								(j-nwarmup)/leave_out,
+			// 								(XSL/2)/SPIN_X_WORD/2,
+			// 								YSL,
+			// 								num_lattices,
+			// 								nsteps,
+			// 								i*Y,
+			// 								lld/2,
+			// 								reinterpret_cast<ulonglong2 *>(hamB_d),
+			// 								reinterpret_cast<ulonglong2 *>(black_d),
+			// 								reinterpret_cast<ulonglong2 *>(white_d),
+			// 								getHamiltonian_d);
+			// }
+
 
 			if (ndev > 1) {
 				for(int i = 0; i < ndev; i++) {
@@ -3279,34 +3413,62 @@ int main(int argc, char **argv) {
 				}
 			}
 
-			for (int i = 0; i < ndev; i++){
-				CHECK_CUDA(cudaSetDevice(i));
-				calculate_average_magnetization<BLOCK_X, BLOCK_Y,
-					BMULT_X, BMULT_Y,
-					BIT_X_SPIN, unsigned long long><<<grid, block>>>(XSL, YSL, i*Y, lld/2,
-								reinterpret_cast<ulonglong2 *>(white_d),
-								reinterpret_cast<ulonglong2 *>(black_d),
-								reinterpret_cast<thrust::complex<double> (*)>(weighted_exp_d[i]),
-								blocks_per_slx,
-								blocks_per_sly,
-								d_sum_per_block + i*num_blocks,
-								d_weighted_sum_per_blocks + i*num_blocks);
-			}
-
-			if (ndev > 1) {
-				for(int i = 0; i < ndev; i++) {
+			if ((j-nwarmup)%leave_out == 0 ){
+				for (int i = 0; i < ndev; i++){
 					CHECK_CUDA(cudaSetDevice(i));
-					CHECK_CUDA(cudaDeviceSynchronize());
+					calculate_average_magnetization<BLOCK_X, BLOCK_Y,
+						BMULT_X, BMULT_Y,
+						BIT_X_SPIN, unsigned long long><<<grid, block>>>(XSL, YSL, i*Y, lld/2,
+									reinterpret_cast<ulonglong2 *>(white_d),
+									reinterpret_cast<ulonglong2 *>(black_d),
+									reinterpret_cast<thrust::complex<double> (*)>(weighted_exp_d[i]),
+									blocks_per_slx,
+									blocks_per_sly,
+									d_sum_per_block + i*num_blocks,
+									d_weighted_sum_per_blocks + i*num_blocks);
 				}
-			}
 
-			for (int i = 0; i < ndev; i++){
-				CHECK_CUDA(cudaSetDevice(i));
-				calculate_incremental_susceptibility<<<1, num_lattices>>>(blocks_per_slx, blocks_per_sly,
-								num_lattices, d_sum_per_block + i*num_blocks,
-								d_weighted_sum_per_blocks + i*num_blocks,
-								d_sus_0 + i*num_lattices,
-								d_sus_k + i*num_lattices);
+				if (ndev > 1) {
+					for(int i = 0; i < ndev; i++) {
+						CHECK_CUDA(cudaSetDevice(i));
+						CHECK_CUDA(cudaDeviceSynchronize());
+					}
+				}
+
+				// Compute incrementally the binning averages for each error chain and update step.
+				if (dumpVar){
+					// for (int i = 0; i < ndev; i++){
+					// 	CHECK_CUDA(cudaSetDevice(i));
+					// 	// Add current mag result to the array storing binning results. This should be executed with nsteps power of 2. and probably should be started with single error.
+					// 	getMagBinning<<<1, num_lattices>>>(blocks_per_slx, blocks_per_sly,
+					// 					num_lattices, d_sum_per_block + i*num_blocks,
+					// 					0,
+					// 					(j-nwarmup)/leave_out,
+					// 					d_binning_mag); // some offset for dev id is missing still
+					// }
+					for (int i = 0; i < ndev; i++){
+						CHECK_CUDA(cudaSetDevice(i));
+						// Add current mag result to the array storing binning results. This should be executed with nsteps power of 2. and probably should be started with single error.
+						getMagForBinningAnalysis<<<1, num_lattices>>>(blocks_per_slx, blocks_per_sly,
+										num_lattices, d_sum_per_block + i*num_blocks,
+										(j-nwarmup)/leave_out,
+										nsteps,
+										num_errors,
+										0,
+										binning_order,
+										binning_result_count,
+										d_magsForBinning); // some offset for dev id is missing still
+					}
+				}
+
+				for (int i = 0; i < ndev; i++){
+					CHECK_CUDA(cudaSetDevice(i));
+					calculate_incremental_susceptibility<<<1, num_lattices>>>(blocks_per_slx, blocks_per_sly,
+									num_lattices, d_sum_per_block + i*num_blocks,
+									d_weighted_sum_per_blocks + i*num_blocks,
+									d_sus_0 + i*num_lattices,
+									d_sus_k + i*num_lattices);
+				}
 			}
 
 			if (ndev > 1) {
@@ -3329,8 +3491,19 @@ int main(int argc, char **argv) {
 		seed += 2;
 	}
 
-	std::string filenamehamilt = "hamiltonian";
-	dumpHamiltonian(filenamehamilt, num_errors, nsteps, num_lattices, getHamiltonian_d);
+	// Write lattice
+	if (dumpOut) {
+		char fname[256];
+		snprintf(fname, sizeof(fname), "lattices/lattice_%dx%d_T_%f_IT_%08d", Y, X, temp, nsteps + nwarmup);
+		dumpLattice(fname, ndev, Y, lld, llen, llenLoc, v_d);
+	}
+
+	doBinningAnalysis(dumpVar, binning_order, binning_result_count, num_errors, nwarmup, nsteps, temp, up, leave_out, prob, X, Y, d_magsForBinning);
+
+	// // only execute when getHamiltonian is executed within the leave out block
+
+	// std::string filenamehamilt = "hamiltonian";
+	// dumpHamiltonian(filenamehamilt, num_errors, nsteps, num_lattices, getHamiltonian_d);
 
 	int blockSize = BLOCK_X*BLOCK_Y;
 	int total_elements = num_errors * nsteps * num_lattices;
@@ -3389,9 +3562,31 @@ int main(int argc, char **argv) {
 	}
 	f.close();
 
+	/*
+	if (dumpVar){
+		printf("Variance is calculated");
+		fflush(stdout);
+
+		double *h_binning_mag = (double *)malloc(nsteps*sizeof(*h_binning_mag));
+		CHECK_CUDA(cudaMemcpy(h_binning_mag, d_binning_mag, nsteps*sizeof(*d_binning_mag), cudaMemcpyDeviceToHost));
+
+		// Öffnen der Datei zum Schreiben
+	    	std::ofstream file("magnetization_each_step.txt");
+
+		// Schreiben des Arrays in die Datei
+		for (int i = 0; i < nsteps; ++i) {
+			file << h_binning_mag[i] << std::endl; // Schreiben des Eintrags mit Zeilenumbruch
+		}
+
+		// Schließen der Datei
+		file.close();
+	}
+	*/
+
 	// free memory for all GPUs and stuff
 	CHECK_CUDA(cudaFree(v_d));
 	CHECK_CUDA(cudaFree(ham_d));
+	CHECK_CUDA(cudaFree(d_binning_mag));
 	CHECK_CUDA(cudaFree(getPartitionFunction_d));
 	CHECK_CUDA(cudaFree(getHamiltonian_d));
 

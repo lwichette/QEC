@@ -1637,6 +1637,8 @@ int main(int argc, char **argv) {
 
 	char *folder = NULL;
 
+	int binning_order = 11; // This number determines how many (2**binning_order) partitions of the Markov chain shall be maximally evaluated
+
 	int och;
     while (1) {
         int option_index = 0;
@@ -1657,10 +1659,11 @@ int main(int argc, char **argv) {
 			{"out", no_argument, 0, 'o'},
 			{"var", no_argument, 0, 'v'},
 			{"leave_out", required_argument, 0, 'l'},
+			{"binning_order", required_argument, 0, 'b'},
             {0, 0, 0, 0}
         };
 
-        och = getopt_long(argc, argv, "x:y:p:w:n:t:s:u:l:d:fo:", long_options, &option_index);
+        och = getopt_long(argc, argv, "x:y:p:w:n:t:s:u:l:b:d:fo:", long_options, &option_index);
         if (och == -1)
             break;
 
@@ -1687,6 +1690,9 @@ int main(int argc, char **argv) {
                 break;
 			case 'l':
                 leave_out = atoi(optarg);
+                break;
+			case 'b':
+                binning_order = atoi(optarg);
                 break;
 			case 'v':
 				dumpVar = true;
@@ -1725,6 +1731,8 @@ int main(int argc, char **argv) {
 				exit(EXIT_FAILURE);
         }
     }
+
+	int binning_result_count = pow(2, binning_order+1)-2; // This number counts how many binning results must be stored for the given binning order. This result comes from the finite geometric series.
 
 	// check if X or Y are zero
 	if (!X || !Y) {
@@ -1950,9 +1958,6 @@ int main(int argc, char **argv) {
 
 	// Can be thrown out
 	unsigned long long *sum_d[MAX_GPU];
-
-	const int binning_order = 13; // This number determines how many (2**binning_order) partitions of the Markov chain shall be maximally evaluated
-	const int binning_result_count = pow(2, binning_order+1)-2; // This number counts how many binning results must be stored for the given binning order. This result comes from the finite geometric series.
 
 	double *d_binning_mag;
 	double *d_magsForBinning;

@@ -24,6 +24,16 @@ using namespace std;
 namespace po = boost::program_options;
 namespace fs = std::filesystem;
 
+__global__ void store_sum(thrust::complex<double> *d_store_sum, double *d_store_mag, const int loc, const int nsteps, const int num_lattices){
+
+    const long long  tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
+    if (tid > 0) return;
+
+    for (int i=0; i< num_lattices; i++){
+        d_store_mag[i*num_lattices*nsteps+loc] = d_store_sum[i].real();
+    }
+}
+
 int main(int argc, char **argv){
 
     double p, start_temp, step;
@@ -210,6 +220,9 @@ int main(int argc, char **argv){
         CHECK_CUDA(cudaMalloc(&d_store_sum_k, num_lattices*sizeof(*d_store_sum_k)));
         CHECK_CUDA(cudaMalloc(&d_store_energy, num_lattices*sizeof(*d_store_energy)));
 
+        double* d_store_mag;
+        CHECK_CUDA(cudaMalloc(&d_store_mag, niters*sizeof(*d_store_mag)));
+
         // Initialize array on the GPU to store incremental sums of the magnetization sums time boltzmann factors over update steps.
         double *d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector, *d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector;
         CHECK_CUDA(cudaMalloc(&d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector, num_lattices*sizeof(*d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector)));
@@ -275,21 +288,37 @@ int main(int argc, char **argv){
 
             CHECK_CUDA(cudaDeviceSynchronize());
 
-            for(int j = 0; j < niters; j++){
+            for(int j = 0; j < niters*leave_out; j++){
                 
                 updateMap[open](lattice_b, lattice_w, randvals, update_rng, d_interactions, d_inv_temp, L, L, num_lattices, blocks_spins, d_energy);
 
                 if(j%leave_out == 0){
+                    
+                    //write_lattice_to_disc(lattice_b, lattice_w, "test_lattice_" + std::to_string(j/leave_out), L, L, num_lattices);
 
                     calculate_B2(d_sum, lattice_b, lattice_w, d_store_sum_0, d_wave_vector_0, L, L, num_lattices, blocks_spins);
                     calculate_B2(d_sum, lattice_b, lattice_w, d_store_sum_k, d_wave_vector_k, L, L, num_lattices, blocks_spins);
 
+                    store_sum<<<1,1>>>(d_store_sum_0, d_store_mag, j/leave_out, niters, num_lattices);
+                    
                     abs_square<<<blocks_temperature_parallel, THREADS>>>(d_store_sum_0, num_lattices);
                     abs_square<<<blocks_temperature_parallel, THREADS>>>(d_store_sum_k, num_lattices);
 
                     incrementalSumMagnetization<<<blocks_temperature_parallel, THREADS>>>(d_store_sum_0, d_store_sum_k, num_lattices, d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_0_wave_vector, d_store_incremental_summation_of_product_of_magnetization_and_boltzmann_factor_k_wave_vector);
                 }
             }
+
+            std::vector<double> h_store_mag(num_lattices*niters);
+            CHECK_CUDA(cudaMemcpy(h_store_mag.data(), d_store_mag, num_lattices*niters*sizeof(double), cudaMemcpyDeviceToHost));
+
+            std::ofstream m;
+            m.open("mag_nit_"+std::to_string(niters)+"_nw_" + std::to_string(nwarmup) + "_lo_" + std::to_string(leave_out) + "_t_" + std::to_string(start_temp) + "_p_" +std::to_string(p) + "_l_" + std::to_string(L) +".txt");
+            if (m.is_open()) {
+                for (int i = 0; i < num_lattices*niters; i++) {
+                    m << h_store_mag[i]  << "\n";
+                }
+            }
+            m.close();
 
             CHECK_CUDA(cudaDeviceSynchronize());
 

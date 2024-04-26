@@ -254,7 +254,7 @@ __global__  void hamiltInitB_k(const int devid,
 
 template<int BDIM_X,
 	 int BDIM_Y,
-	 int LOOP_X, 
+	 int LOOP_X,
 	 int LOOP_Y,
 	 int BITXSP,
 	 typename INT_T,
@@ -292,12 +292,12 @@ __global__ void hamiltInitW_k(const int xsl,
 		#pragma unroll
 		for(int j = 0; j < LOOP_X; j++) {
 			// Up neighbor of me shift one to the right
-			__up[i][j].x = (__me[i][j].x & 0x88888888) >> 1; 
-			__up[i][j].y = (__me[i][j].y & 0x88888888) >> 1; 
-			
+			__up[i][j].x = (__me[i][j].x & 0x88888888) >> 1;
+			__up[i][j].y = (__me[i][j].y & 0x88888888) >> 1;
+
 			// Down neighbor of me shift one to the left
-			__dw[i][j].x = (__me[i][j].x & 0x44444444) << 1; 
-			__dw[i][j].y = (__me[i][j].y & 0x44444444) << 1; 
+			__dw[i][j].x = (__me[i][j].x & 0x44444444) << 1;
+			__dw[i][j].y = (__me[i][j].y & 0x44444444) << 1;
 		}
 	}
 
@@ -311,15 +311,15 @@ __global__ void hamiltInitW_k(const int xsl,
 		for(int i = 0; i < LOOP_Y; i++) {
 			#pragma unroll
 			for(int j = 0; j < LOOP_X; j++) {
-				
+
 				// Left neighbors become right neighbors
 				__ct[i][j].x = (__me[i][j].x & 0x22222222) >> 1;
 				__ct[i][j].y = (__me[i][j].y & 0x22222222) >> 1;
 
 				// Right neighbors become left neighbors
 				__ct[i][j].x |= (__me[i][j].x & 0x11111111) << (BITXSP+1);
-				
-				// Last right neighbor in x word becomes first left neighbor in y word 
+
+				// Last right neighbor in x word becomes first left neighbor in y word
 				__ct[i][j].y |= (__me[i][j].x & 0x11111111) >> (BITXWORD - BITXSP - 1);
 
 				// Right neighbors of y shifted by 5 to the left to become left neighbors
@@ -341,13 +341,13 @@ __global__ void hamiltInitW_k(const int xsl,
 
 				// Logical or with left neighbors shifted by 5 to the right
 				__ct[i][j].y |= (__me[i][j].y & 0x22222222) >> (BITXSP+1);
-				
+
 				// right neighbor from last spin is left neighbor from first spin in y
 				__ct[i][j].x |= (__me[i][j].y & 0x22222222) << (BITXWORD-BITXSP - 1);
-				
+
 				// Left neighbor of me.x becomes right neighor in ct
 				__ct[i][j].x |= (__me[i][j].x & 0x22222222) >> (BITXSP+1);
-				
+
 				// Get first left neighbor of x word and shift it to the last right neighbor
 				__sd[i][j].y = (__me[i][j].x & 0x22222222) << (BITXWORD-BITXSP - 1);
 				__sd[i][j].x = 0;
@@ -364,19 +364,19 @@ __global__ void hamiltInitW_k(const int xsl,
 		// Check if we are at a boarder with yoff
 		// If we are at a boarder --> upoff becomes last row else row above
 		const int upOff = (yoff % ysl) == 0 ? yoff + ysl - 1 : yoff - 1;
-		
+
 		// If we are at down boarder --> dwOff becomes first row, else row below
 		const int dwOff = ((yoff+1)%ysl) == 0 ? yoff - ysl + 1 : yoff + 1;
 
 		#pragma unroll
 		for(int j = 0; j < LOOP_X; j++) {
 
-			// get current column 
+			// get current column
 			const int xoff = __j + j*BDIM_X;
 
 			atomicOr(&hamW[yoff*dimX + xoff].x, __ct[i][j].x);
 			atomicOr(&hamW[yoff*dimX + xoff].y, __ct[i][j].y);
-			
+
 			atomicOr(&hamW[upOff*dimX + xoff].x, __up[i][j].x);
 			atomicOr(&hamW[upOff*dimX + xoff].y, __up[i][j].y);
 
@@ -386,10 +386,10 @@ __global__ void hamiltInitW_k(const int xsl,
 			// If we are at an uneven row
 			// Check if we are at a left column border
 			// if yes take last column, else take left column before
-			// If not readback 
+			// If not readback
 			// check if we are at right column border
 			// if yes take most left column, else take next right column
-			const int sideOff = (!readBack) ? ((xoff   % xsl) == 0 ? xoff+xsl-1 : xoff-1 ): 
+			const int sideOff = (!readBack) ? ((xoff   % xsl) == 0 ? xoff+xsl-1 : xoff-1 ):
 											  (((xoff + 1) % xsl) == 0 ? xoff-xsl+1 : xoff+1);
 
 			atomicOr(&hamW[yoff*dimX + sideOff].x, __sd[i][j].x);
@@ -548,7 +548,7 @@ void spinUpdate_open_bdry(const int devid,
 	// Load exponentials into shared memory
 	const int sly = blockIdx.y/blocks_per_sly;
 	const int slx = blockIdx.x/blocks_per_slx;
-	
+
 	#pragma unroll
 	for(int i = 0; i < 2; i += BDIM_Y) {
 		#pragma unroll
@@ -857,7 +857,7 @@ void spinUpdateV_2D_k(const int devid,
 	// Load exponentials into shared memory
 	const int sly = blockIdx.y/blocks_per_sly;
 	const int slx = blockIdx.x/blocks_per_slx;
-	
+
 	#pragma unroll
 	for(int i = 0; i < 2; i += BDIM_Y) {
 		#pragma unroll
@@ -1256,10 +1256,10 @@ template<int BDIM_X,
 	 int BITXSP,
 	 typename INT_T,
 	 typename INT2_T>
-__global__ void calculate_average_magnetization(const int slX, 
-			const int slY, 
-			const long long begY, 
-			const long long dimX, 
+__global__ void calculate_average_magnetization(const int slX,
+			const int slY,
+			const long long begY,
+			const long long dimX,
 			const INT2_T *__restrict__ v_white,
 			const INT2_T *__restrict__ v_black,
 			const thrust::complex<double> exp[],
@@ -1363,6 +1363,43 @@ __global__ void calculate_average_magnetization(const int slX,
 	}
 }
 
+// Writes current magnetization result for specific temperature specified by temp_idx to bin storage within d_binning_mag array
+__global__ void getMagBinning(const int blocks_per_slx,
+				const int blocks_per_sly,
+				const int num_lattices,
+				const double *d_sums_per_block,
+				const int mc_idx,
+				const int nsteps,
+				const int num_errors,
+				const int temp_idx,
+				const int binnning_order,
+				const int binning_result_count,
+				double *d_binning_mag){
+	const long long tid = static_cast<long long>(threadIdx.x + blockIdx.x * blockDim.x);
+	int offset = tid*blocks_per_slx*blocks_per_sly;
+	if (tid == temp_idx && tid < num_lattices){ // only sublattice at index temp_idx gets mag result computed here
+		double sum = 0;
+		for (int i = 0; i < blocks_per_slx*blocks_per_sly; i++){
+			sum += d_sums_per_block[offset + i];
+		}
+		// Adding current result to correct bin for each binning order (determines offstes in the array which stores all binning results combined.)
+		for (int l=1; l<=binnning_order; l++){
+			// The floor and +.5 procedure is necesssary to correct for approximate pow results which vary by -1 the offset indices.
+			int bin_size = nsteps/floor(pow(2, l)+.5); // this may be troublesome for nsteps which are not powers of two!
+			int offset = floor(pow(2, l)+.5)-2; // depending on l these many array entries belong to previous partition choices.
+			if(mc_idx/bin_size<binning_result_count && nsteps>=pow(2,l)){
+				d_binning_mag[mc_idx/bin_size+offset] += sum/(double)(bin_size*num_errors); // the denominator is added for taking the mean over bin size
+			}
+			else{
+				printf("out of range index access.\n");
+			}
+		}
+	}
+	else{
+		return;
+	}
+}
+
 __global__ void calculate_incremental_susceptibility(const int blocks_per_slx,
 				const int blocks_per_sly,
 				const int num_lattices,
@@ -1370,11 +1407,11 @@ __global__ void calculate_incremental_susceptibility(const int blocks_per_slx,
 				const thrust::complex<double> *d_weighted_sums_per_block,
 				double *d_store_sum,
 				double *d_sus_k){
-	
+
 	const long long tid = static_cast<long long>(threadIdx.x + blockIdx.x * blockDim.x);
-	
+
 	if (tid >= num_lattices) return;
-	
+
 	int offset = tid*blocks_per_slx*blocks_per_sly;
 
 	double sum = 0;
@@ -1408,33 +1445,33 @@ static void dumpInteractions(const char *fprefix,
 		    const size_t llen,
 		    const size_t llenLoc,
 		    const INT_T *hamW_d){
-	
+
 	/*
-	This function takes as an input the interactions hamW_d and writes it to a txt file. 
-	Here each block of four describes the interactions of one spin. The number of rows is equal 
+	This function takes as an input the interactions hamW_d and writes it to a txt file.
+	Here each block of four describes the interactions of one spin. The number of rows is equal
 	to the original number of rows. The number of columns is given by lld*4.
 	*/
 
 	char fname[263];
 
 	if (ndev == 1){
-		
+
 		INT_T *ham_h = (INT_T *)Malloc(llenLoc*sizeof(*ham_h));
 		CHECK_CUDA(cudaMemcpy(ham_h, hamW_d, llenLoc*sizeof(*ham_h), cudaMemcpyDeviceToHost));
-		
+
 		snprintf(fname, sizeof(fname), "%s0.txt", fprefix);
 		FILE *fp = Fopen(fname, "w");
 
 		for (int i = 0; i < Y; i++){
-			
+
 			for(int j = 0; j < lld; j++) {
-				
+
 				INT_T __i = ham_h[i*lld+j];
-				
+
 				for (int l = 0; l < SPIN_X_WORD; l++){
-					
+
 					for (int k = 0; k < BIT_X_SPIN; k++){
-						
+
 						fprintf(fp, "%X ",  (__i >> (l*BIT_X_SPIN + (3 - k)) & 0x1));
 
 					}
@@ -1442,7 +1479,7 @@ static void dumpInteractions(const char *fprefix,
 			}
 			fprintf(fp, "\n");
 		}
-		
+
 		fclose(fp);
 	}
 }
@@ -1501,8 +1538,11 @@ int main(int argc, char **argv) {
 
 	int num_errors = 0;
 
+	int leave_out =1;
+
 	bool up;
 
+	bool dumpVar = false;
 	char *folder = NULL;
 
 	int och;
@@ -1523,10 +1563,12 @@ int main(int argc, char **argv) {
             {"ndev", required_argument, 0, 'd'},
 			{"folder", required_argument, 0, 'f'},
 			{"out", no_argument, 0, 'o'},
+			{"var", no_argument, 0, 'v'},
+			{"leave_out", required_argument, 0, 'l'},
             {0, 0, 0, 0}
         };
 
-        och = getopt_long(argc, argv, "x:y:p:w:n:t:s:u:d:fo:", long_options, &option_index);
+        och = getopt_long(argc, argv, "x:y:p:w:n:t:s:u:l:d:fvo:", long_options, &option_index);
         if (och == -1)
             break;
 
@@ -1566,6 +1608,12 @@ int main(int argc, char **argv) {
 			case 'o':
 				dumpOut = 1;
 				break;
+			case 'v':
+				dumpVar = true;
+				break;
+			case 'l':
+                leave_out = atoi(optarg);
+                break;
 			case 'f':
 				folder = optarg;
 				break;
@@ -1674,7 +1722,7 @@ int main(int argc, char **argv) {
 		NSLX = 1;
 		NSLY = 1;
 	}
-	
+
 	char folderPath[512];
 	sprintf(folderPath, "results/%s", folder);
 
@@ -1682,9 +1730,9 @@ int main(int argc, char **argv) {
 		mkdir(folderPath, 0777);
 		printf("Created results folder");
 	}
-	
+
 	char filename[2048];
-	snprintf(filename, sizeof(filename), "%s/Y_%d_X_%d_YSL_%d_XSL_%d_e_%d_p_%.4f_t_%.4f_s_%.4f_w_%d_i_%d_u_%d.txt", 
+	snprintf(filename, sizeof(filename), "%s/Y_%d_X_%d_YSL_%d_XSL_%d_e_%d_p_%.4f_t_%.4f_s_%.4f_w_%d_i_%d_u_%d.txt",
 			folderPath, Y, X, YSL, XSL, num_errors, prob, temp, step, nwarmup, nsteps, up);
 
 	// get GPU properties for each GPU
@@ -1773,10 +1821,10 @@ int main(int argc, char **argv) {
 
 	const int blocks_per_slx = (XSL/2)/SPIN_X_WORD/2/(BLOCK_X*BMULT_X);
 	const int blocks_per_sly = YSL/(BLOCK_Y*BMULT_Y);
-	
+
 	const int num_lattices = NSLX*NSLY;
 	const int num_blocks = grid.x*grid.y;
-	
+
 	float temp_range[ndev*num_lattices];
 
 	for (int i=0; i < ndev*num_lattices; i++){
@@ -1810,9 +1858,15 @@ int main(int argc, char **argv) {
 
 	// Can be thrown out
 	unsigned long long *sum_d[MAX_GPU];
-	
+
 	double *d_sum_per_block, *d_sus_0, *d_sus_k;
-	thrust::complex<double> *d_weighted_sum_per_blocks; 
+
+	const int binning_order = 13; // This number determines how many (2**binning_order) partitions of the Markov chain shall be maximally evaluated
+	const int binning_result_count = pow(2, binning_order+1)-2; // This number counts how many binning results must be stored for the given binning order. This result comes from the finite geometric series.
+
+	double *d_binning_mag;
+
+	thrust::complex<double> *d_weighted_sum_per_blocks;
 
 	// if only one GPU
 	if (ndev == 1) {
@@ -1839,9 +1893,13 @@ int main(int argc, char **argv) {
 		CHECK_CUDA(cudaMalloc(&d_sus_k, num_lattices*sizeof(*d_sus_k)));
 		CHECK_CUDA(cudaMemset(d_sus_k, 0, num_lattices*sizeof(*d_sus_k)));
 
+		// declaring and initializing device arrays for storage of magnetization binning results for first sublattice
+		CHECK_CUDA(cudaMalloc(&d_binning_mag, binning_result_count*sizeof(*d_binning_mag)));
+		CHECK_CUDA(cudaMemset(d_binning_mag, 0, binning_result_count*sizeof(*d_binning_mag)));
+
 	// More than one GPU
 	} else {
-		
+
 		printf("\nSetting up multi-gpu configuration:\n"); fflush(stdout);
 
 		// Allocate memory accessible by all GPUs
@@ -1853,7 +1911,9 @@ int main(int argc, char **argv) {
 
 		CHECK_CUDA(cudaMallocManaged(&d_sus_0, ndev*num_lattices*sizeof(*d_sus_0), cudaMemAttachGlobal));
 		CHECK_CUDA(cudaMallocManaged(&d_sus_k, ndev*num_lattices*sizeof(*d_sus_k), cudaMemAttachGlobal));
-		
+
+		CHECK_CUDA(cudaMallocManaged(&d_binning_mag, ndev*binning_result_count*sizeof(*d_binning_mag), cudaMemAttachGlobal));
+
 		// Loop over devices
 		for(int i = 0; i < ndev; i++) {
 
@@ -1897,6 +1957,8 @@ int main(int argc, char **argv) {
 
 			CHECK_CUDA(cudaMemset(d_sus_0 + i*num_lattices, 0, num_lattices*sizeof(*d_sus_0)));
 			CHECK_CUDA(cudaMemset(d_sus_k + i*num_lattices, 0, num_lattices*sizeof(*d_sus_k)));
+
+			CHECK_CUDA(cudaMemset(d_binning_mag + i*binning_result_count, 0, binning_result_count*sizeof(*d_binning_mag)));
 
 			printf("\tGPU %2d done\n", i); fflush(stdout);
 		}
@@ -1964,10 +2026,10 @@ int main(int argc, char **argv) {
 	}
 
 	for (int e = 0; e < num_errors; e++){
-		
+
 		printf("Error %u of %u\n", e, num_errors);
 		fflush(stdout);
-		
+
 		for(int i = 0; i < ndev; i++) {
 			CHECK_CUDA(cudaSetDevice(i));
 			hamiltInitB_k<BLOCK_X, BLOCK_Y,
@@ -1978,7 +2040,7 @@ int main(int argc, char **argv) {
 								seed + 1, // just use a different seed
 								i*Y, lld/2,
 								reinterpret_cast<uint2 *>(hamB_d));
-			
+
 			hamiltInitW_k<BLOCK_X, BLOCK_Y,
 						BMULT_X, BMULT_Y,
 						BIT_X_SPIN,
@@ -1995,7 +2057,7 @@ int main(int argc, char **argv) {
 									reinterpret_cast<uint2 *>(black_d),
 									up);
 			CHECK_ERROR("initLattice_k");
-			
+
 			latticeInit_k<BLOCK_X, BLOCK_Y,
 					BMULT_X, BMULT_Y,
 					BIT_X_SPIN, C_WHITE,
@@ -2022,9 +2084,9 @@ int main(int argc, char **argv) {
 			CHECK_CUDA(cudaDeviceSynchronize());
 		}
 
-		int j; 
+		int j;
 
-		for(j = 0; j < nwarmup; j++) {			
+		for(j = 0; j < nwarmup; j++) {
 			for(int i = 0; i < ndev; i++) {
 				CHECK_CUDA(cudaSetDevice(i));
 				spinUpdateV_2D_k<BLOCK_X, BLOCK_Y,
@@ -2079,9 +2141,9 @@ int main(int argc, char **argv) {
 		}
 
 		for(j = nwarmup; j < nwarmup + nsteps; j++) {
-			
+
 			for(int i = 0; i < ndev; i++) {
-				
+
 				CHECK_CUDA(cudaSetDevice(i));
 				spinUpdateV_2D_k<BLOCK_X, BLOCK_Y,
 						BMULT_X, BMULT_Y,
@@ -2119,20 +2181,20 @@ int main(int argc, char **argv) {
 											reinterpret_cast<uint2 *>(black_d),
 											reinterpret_cast<uint2 *>(white_d));
 			}
-			
+
 			if (ndev > 1) {
 				for(int i = 0; i < ndev; i++) {
 					CHECK_CUDA(cudaSetDevice(i));
 					CHECK_CUDA(cudaDeviceSynchronize());
 				}
-			}	
-			
+			}
+
 			for (int i = 0; i < ndev; i++){
 				CHECK_CUDA(cudaSetDevice(i));
 				calculate_average_magnetization<BLOCK_X, BLOCK_Y,
 					BMULT_X, BMULT_Y,
 					BIT_X_SPIN, unsigned int><<<grid, block>>>(XSL, YSL, i*Y, lld/2,
-								reinterpret_cast<uint2 *>(white_d), 
+								reinterpret_cast<uint2 *>(white_d),
 								reinterpret_cast<uint2 *>(black_d),
 								reinterpret_cast<thrust::complex<double> (*)>(weighted_exp_d[i]),
 								blocks_per_slx,
@@ -2147,13 +2209,30 @@ int main(int argc, char **argv) {
 					CHECK_CUDA(cudaDeviceSynchronize());
 				}
 			}
-			
+
+			// Compute incrementally the binning averages for each error chain and update step.
+			if (dumpVar){
+				for (int i = 0; i < ndev; i++){
+					CHECK_CUDA(cudaSetDevice(i));
+					// Add current mag result to the array storing binning results. This should be executed with nsteps power of 2. and probably should be started with single error.
+					getMagBinning<<<1, num_lattices>>>(blocks_per_slx, blocks_per_sly,
+									num_lattices, d_sum_per_block + i*num_blocks,
+									(j-nwarmup)/leave_out,
+									nsteps,
+									num_errors,
+									0,
+									binning_order,
+									binning_result_count,
+									d_binning_mag); // some offset for dev id is missing still
+				}
+			}
+
 			for (int i = 0; i < ndev; i++){
 				CHECK_CUDA(cudaSetDevice(i));
-				calculate_incremental_susceptibility<<<1, num_lattices>>>(blocks_per_slx, blocks_per_sly, 
-								num_lattices, d_sum_per_block + i*num_blocks, 
-								d_weighted_sum_per_blocks + i*num_blocks, 
-								d_sus_0 + i*num_lattices, 
+				calculate_incremental_susceptibility<<<1, num_lattices>>>(blocks_per_slx, blocks_per_sly,
+								num_lattices, d_sum_per_block + i*num_blocks,
+								d_weighted_sum_per_blocks + i*num_blocks,
+								d_sus_0 + i*num_lattices,
 								d_sus_k + i*num_lattices);
 			}
 
@@ -2201,7 +2280,50 @@ int main(int argc, char **argv) {
             (sizeof(*v_d)*((llen/2) + (llen/2) + (llen/2)) + // src color read, dst color read, dst color write
               sizeof(*exp_d)*5*grid.x*grid.y ) /
         1.0E+9) / (et/1.0E+3));
-	
+
+	if(dumpVar){
+		double *h_binning_mag = (double *)malloc(binning_result_count*sizeof(*h_binning_mag));
+		CHECK_CUDA(cudaMemcpy(h_binning_mag, d_binning_mag, binning_result_count*sizeof(*d_binning_mag), cudaMemcpyDeviceToHost));
+		// std::ofstream f("results/MagBinnings" + std::to_string(X) + "_p" + std::to_string(prob) + "_e" + std::to_string(num_errors) + "_nw" + std::to_string(nwarmup) + "_nit" + std::to_string(nsteps) + "_t" + std::to_string(temp) + "_u" + std::to_string(up) + "_n" + std::to_string(binning_order) + "_lo" + std::to_string(leave_out), std::ios::out | std::ios::trunc);
+		// for (int i=0; i<binning_result_count; i++){
+		// 	f << h_binning_mag[i];
+		// 	if (i != binning_result_count - 1) {
+        //         f << ", ";
+        //     }
+		// }
+		// f.close();
+		double variances[binning_order];
+		double mean_mag = 0.0;
+		for (int l=1; l<=binning_order; l++){
+			double dev = 0.0;
+			if(l==1){
+				int bin_count = 2;
+				for (int k=0; k<bin_count; k++){
+					mean_mag += h_binning_mag[k]/2.0;
+				}
+				for (int k=0; k<bin_count; k++){
+					dev = h_binning_mag[k]- mean_mag;
+					variances[0]+=pow(dev, 2)/(bin_count*(bin_count-1));
+				}
+			}
+			else{
+				int bin_count = pow(2, l);
+				int offset = pow(2, l)-2; // depending on l these many array entries belong to previous partition choices.
+				for (int k=0; k<bin_count; k++){
+					dev = h_binning_mag[offset + k]-mean_mag;
+					variances[l-1]+=pow(dev, 2)/(bin_count*(bin_count-1));
+				}
+			}
+		}
+
+		std::string varfname = "results/Variances/VarBinnings_L" + std::to_string(X) + "_p" + std::to_string(prob) + "_e" + std::to_string(num_errors) + "_nw" + std::to_string(nwarmup) + "_nit" + std::to_string(nsteps) + "_t" + std::to_string(temp) + "_u" + std::to_string(up) + "_n" + std::to_string(binning_order) + "_lo" + std::to_string(leave_out);
+		std::ofstream fVars(varfname, std::ios::out | std::ios::trunc);
+		for (int i=0; i<binning_order; i++){
+			fVars << (i+1) << " " << (sqrt(variances[i])) << "\n";
+		}
+		fVars.close();
+	}
+
 	double *h_sus_0 = (double *)malloc(ndev*num_lattices*sizeof(*h_sus_0));
 	double *h_sus_k = (double *)malloc(ndev*num_lattices*sizeof(*h_sus_k));
 
@@ -2220,7 +2342,7 @@ int main(int argc, char **argv) {
 	// free memory for all GPUs and stuff
 	CHECK_CUDA(cudaFree(v_d));
 	CHECK_CUDA(cudaFree(ham_d));
-	
+
 	if (ndev == 1) {
 		CHECK_CUDA(cudaFree(exp_d[0]));
 		CHECK_CUDA(cudaFree(sum_d[0]));

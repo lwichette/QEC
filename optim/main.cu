@@ -1447,6 +1447,8 @@ void getHamiltonianPeriodicBoundary(
 template<typename type>
 __global__
 void getPartitionFunction(
+					const int XSL,
+					const int YSL,
 					const int num_errors,
 					const int num_lattices,
 					const int nsteps,
@@ -1455,18 +1457,22 @@ void getPartitionFunction(
 					type* hamiltSrc, // ordering of Hamilts within is important: For each error one finds blocks for each iteration step  of num lattice many Hamiltonian values.
 					type* partitionDst // double array of length num_lattices to store partition function for each temp averaged over error chains.
 				) {
-	int NORMALIZATION = 100000; //needed for accuracy reasons
+	int NORMALIZATION = 4*XSL*YSL; //needed for accuracy reasons
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
 	int totalElements = num_errors*num_lattices*nsteps;
 	if (tid < totalElements){
 		int lattice_idx = tid%num_lattices;
 		// double boltzmannfactor = exp(-hamiltSrc[tid]/(double)(temp + lattice_idx * step));
 		// atomicAdd(&partitionDst[lattice_idx], boltzmannfactor/num_errors);
-		double boltzmannfactor = exp(-hamiltSrc[tid]/(NORMALIZATION*(temp + lattice_idx * step)))/num_errors;
+		double boltzmannfactor = exp(-hamiltSrc[tid]/(temp + lattice_idx * step)-NORMALIZATION)/num_errors; // Durchschnitt über alle error chains für ein sublattice
 		atomicAdd(&partitionDst[lattice_idx], boltzmannfactor);
 		// printf("exp=%.6f \n", exp(-hamiltSrc[tid]/(temp + lattice_idx * step)));
 	}
 }
+
+
+
+
 
 template<int BDIM_X,
 	 int BDIM_Y,
@@ -3505,18 +3511,18 @@ int main(int argc, char **argv) {
 
 	int blockSize = BLOCK_X*BLOCK_Y;
 	int total_elements = num_errors * nsteps * num_lattices;
-	getPartitionFunction<<<(total_elements + blockSize - 1)/blockSize, blockSize>>>(num_errors, num_lattices, nsteps, temp, step, getHamiltonian_d, getPartitionFunction_d);
+	getPartitionFunction<<<(total_elements + blockSize - 1)/blockSize, blockSize>>>(XSL, YSL, num_errors, num_lattices, nsteps, temp, step, getHamiltonian_d, getPartitionFunction_d);
 
 	double *partition_host = (double*)malloc(num_lattices * sizeof(double));
     cudaMemcpy(partition_host, getPartitionFunction_d, num_lattices * sizeof(double), cudaMemcpyDeviceToHost);
-    FILE *file = fopen("partitionFunction.txt", "w");
+    FILE *file = fopen("freeEnergies.txt", "w");
     if (file == NULL) {
         fprintf(stderr, "Error opening file for writing.\n");
         return 1;
     }
 
 	for (int i = 0; i < num_lattices; ++i) {
-        fprintf(file, "%.6f ", partition_host[i]);
+        fprintf(file, "%.6f ", log(partition_host[i])+4*XSL*YSL);
     }
     fprintf(file, "\n");
 

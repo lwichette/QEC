@@ -36,6 +36,8 @@
 #include <thrust/complex.h>
 #include <fstream>
 #include <iomanip>
+#include <thrust/extrema.h>
+#include <thrust/device_ptr.h>
 
 using namespace std;
 
@@ -1455,16 +1457,16 @@ void getPartitionFunction(
 					float temp, // initial temp
 					float step, // step in temperature form sublattice to sublattice
 					type* hamiltSrc, // ordering of Hamilts within is important: For each error one finds blocks for each iteration step  of num lattice many Hamiltonian values.
-					type* partitionDst // double array of length num_lattices to store partition function for each temp averaged over error chains.
+					type* partitionDst, // double array of length num_lattices to store partition function for each temp averaged over error chains.
+					double* NORMALIZATION
 				) {
-	int NORMALIZATION = 4*XSL*YSL; //needed for accuracy reasons
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
 	int totalElements = num_errors*num_lattices*nsteps;
 	if (tid < totalElements){
 		int lattice_idx = tid%num_lattices;
 		// double boltzmannfactor = exp(-hamiltSrc[tid]/(double)(temp + lattice_idx * step));
 		// atomicAdd(&partitionDst[lattice_idx], boltzmannfactor/num_errors);
-		double boltzmannfactor = exp(-hamiltSrc[tid]/(temp + lattice_idx * step)-NORMALIZATION)/num_errors; // Durchschnitt über alle error chains für ein sublattice
+		double boltzmannfactor = exp(-(hamiltSrc[tid]-NORMALIZATION[lattice_idx])/(temp + lattice_idx * step))/num_errors; // Durchschnitt über alle error chains für ein sublattice
 		atomicAdd(&partitionDst[lattice_idx], boltzmannfactor);
 		// printf("exp=%.6f \n", exp(-hamiltSrc[tid]/(temp + lattice_idx * step)));
 	}
@@ -2508,7 +2510,7 @@ void doBinningAnalysis(bool dumpVar, int binning_order, int binning_result_count
 			fVars.close();
 		}
 		else{
-			printf("dumpVar is False, hence nothing was binned.");
+			printf("dumpVar is False, hence nothing was binned.\n");
 		}
 }
 
@@ -3255,16 +3257,6 @@ int main(int argc, char **argv) {
 			CHECK_CUDA(cudaDeviceSynchronize());
 		}
 
-		// if (dumpOut) {
-		// 	char fname[256];
-		// 	snprintf(fname, sizeof(fname), "lattice_%dx%d_T_%f_IT_%08d_", Y, X, temp, 0);
-		// 	dumpLattice(fname, ndev, Y, lld, llen, llenLoc, v_d);
-
-		// 	char rname[256];
-		// 	snprintf(rname, sizeof(rname), "bonds_seeds_%llu", seed);
-		// 	dumpInteractions(rname, ndev, Y, SPIN_X_WORD, lld, llen, llenLoc, hamW_d);
-		// }
-
 		int j;
 
 		for(j = 0; j < nwarmup; j++) {
@@ -3364,51 +3356,12 @@ int main(int argc, char **argv) {
 											reinterpret_cast<ulonglong2 *>(white_d));
 			}
 
-			// // have to set this block into leave out as well with edited array size where to store the Hamiltonian
-
-			// if (ndev > 1) {
-			// 	for(int i = 0; i < ndev; i++) {
-			// 		CHECK_CUDA(cudaSetDevice(i));
-			// 		CHECK_CUDA(cudaDeviceSynchronize());
-			// 	}
-			// }
-
-			// for(int i = 0; i < ndev; i++) {
-			// 	CHECK_CUDA(cudaSetDevice(i));
-			// 	getHamiltonianOpenBoundary<BLOCK_X, BLOCK_Y,
-			// 			BMULT_X, BMULT_Y,
-			// 			BIT_X_SPIN, C_BLACK, SPIN_X_WORD,
-			// 			unsigned long long><<<grid, block>>>(i,
-			// 								e,
-			// 								(j-nwarmup)/leave_out,
-			// 								(XSL/2)/SPIN_X_WORD/2,
-			// 								YSL,
-			// 								num_lattices,
-			// 								nsteps,
-			// 								i*Y,
-			// 								lld/2,
-			// 								reinterpret_cast<ulonglong2 *>(hamW_d),
-			// 								reinterpret_cast<ulonglong2 *>(white_d),
-			// 								reinterpret_cast<ulonglong2 *>(black_d),
-			// 								getHamiltonian_d);
-			// 	getHamiltonianOpenBoundary<BLOCK_X, BLOCK_Y,
-			// 			BMULT_X, BMULT_Y,
-			// 			BIT_X_SPIN, C_WHITE, SPIN_X_WORD,
-			// 			unsigned long long><<<grid, block>>>(i,
-			// 								e,
-			// 								(j-nwarmup)/leave_out,
-			// 								(XSL/2)/SPIN_X_WORD/2,
-			// 								YSL,
-			// 								num_lattices,
-			// 								nsteps,
-			// 								i*Y,
-			// 								lld/2,
-			// 								reinterpret_cast<ulonglong2 *>(hamB_d),
-			// 								reinterpret_cast<ulonglong2 *>(black_d),
-			// 								reinterpret_cast<ulonglong2 *>(white_d),
-			// 								getHamiltonian_d);
-			// }
-
+			if (ndev > 1) {
+				for(int i = 0; i < ndev; i++) {
+					CHECK_CUDA(cudaSetDevice(i));
+					CHECK_CUDA(cudaDeviceSynchronize());
+				}
+			}
 
 			if (ndev > 1) {
 				for(int i = 0; i < ndev; i++) {
@@ -3437,6 +3390,26 @@ int main(int argc, char **argv) {
 						CHECK_CUDA(cudaSetDevice(i));
 						CHECK_CUDA(cudaDeviceSynchronize());
 					}
+				}
+
+				for(int i = 0; i < ndev; i++) {
+					CHECK_CUDA(cudaSetDevice(i));
+					getHamiltonianPeriodicBoundary<BLOCK_X, BLOCK_Y,
+							BMULT_X, BMULT_Y,
+							BIT_X_SPIN, C_BLACK, SPIN_X_WORD,
+							unsigned long long><<<grid, block>>>(i,
+												e,
+												(j-nwarmup)/leave_out,
+												(XSL/2)/SPIN_X_WORD/2,
+												YSL,
+												num_lattices,
+												nsteps,
+												i*Y,
+												lld/2,
+												reinterpret_cast<ulonglong2 *>(hamW_d),
+												reinterpret_cast<ulonglong2 *>(white_d),
+												reinterpret_cast<ulonglong2 *>(black_d),
+												getHamiltonian_d);
 				}
 
 				// Compute incrementally the binning averages for each error chain and update step.
@@ -3509,9 +3482,23 @@ int main(int argc, char **argv) {
 	// std::string filenamehamilt = "hamiltonian";
 	// dumpHamiltonian(filenamehamilt, num_errors, nsteps, num_lattices, getHamiltonian_d);
 
+	double* max_hamilt = (double*) Malloc(num_lattices*sizeof(double));
+
+
+	for ( int t = 0; t<num_lattices ; t++){
+		thrust::device_ptr<double> d_ptr = thrust::device_pointer_cast(getHamiltonian_d + t*nsteps*num_errors);
+		max_hamilt[t] = *(thrust::max_element(d_ptr, d_ptr + num_errors*nsteps));
+	}
+
+
+	double* max_hamilt_d;
+	cudaMalloc(&max_hamilt_d, num_lattices*sizeof(*max_hamilt_d));
+	cudaMemcpy(max_hamilt_d, max_hamilt, num_lattices*sizeof(*max_hamilt), cudaMemcpyHostToDevice);
+
+
 	int blockSize = BLOCK_X*BLOCK_Y;
 	int total_elements = num_errors * nsteps * num_lattices;
-	getPartitionFunction<<<(total_elements + blockSize - 1)/blockSize, blockSize>>>(XSL, YSL, num_errors, num_lattices, nsteps, temp, step, getHamiltonian_d, getPartitionFunction_d);
+	getPartitionFunction<<<(total_elements + blockSize - 1)/blockSize, blockSize>>>(XSL, YSL, num_errors, num_lattices, nsteps, temp, step, getHamiltonian_d, getPartitionFunction_d, max_hamilt_d);
 
 	double *partition_host = (double*)malloc(num_lattices * sizeof(double));
     cudaMemcpy(partition_host, getPartitionFunction_d, num_lattices * sizeof(double), cudaMemcpyDeviceToHost);
@@ -3522,7 +3509,7 @@ int main(int argc, char **argv) {
     }
 
 	for (int i = 0; i < num_lattices; ++i) {
-        fprintf(file, "%.6f ", log(partition_host[i])+4*XSL*YSL);
+        fprintf(file, "%.6f ", log(partition_host[i])-max_hamilt[i]/(double)temp_range[i]);
     }
     fprintf(file, "\n");
 

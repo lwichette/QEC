@@ -3512,7 +3512,7 @@ int main(int argc, char **argv) {
     }
 
 	for (int i = 0; i < num_lattices; ++i) {
-        fprintf(file, "Temp = %.6f , Free energy = %.6f\n", temp_range[i], log(partition_host[i])-max_hamilt[i]/temp_range[i]);
+        fprintf(file, "Temp = %.6f , Free energy density= %.6f\n", temp_range[i], (-log(partition_host[i])-max_hamilt[i]/temp_range[i])/(temp_range[i]*XSL*YSL));
     }
     fprintf(file, "\n");
 

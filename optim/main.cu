@@ -188,7 +188,7 @@ template<int BDIM_X,
 	 typename INT_T,
 	 typename INT2_T>
 __global__  void hamiltInitB_k(const int devid,
-			       const float tgtProb,
+			       const double tgtProb,
 			       const long long seed,
                                const long long begY,
                                const long long dimX, // ld
@@ -1454,8 +1454,8 @@ void getPartitionFunction(
 					const int num_errors,
 					const int num_lattices,
 					const int nsteps,
-					float temp, // initial temp
-					float step, // step in temperature form sublattice to sublattice
+					double temp, // initial temp
+					double step, // step in temperature form sublattice to sublattice
 					type* hamiltSrc, // ordering of Hamilts within is important: For each error one finds blocks for each iteration step  of num lattice many Hamiltonian values.
 					type* partitionDst, // double array of length num_lattices to store partition function for each temp averaged over error chains.
 					double* NORMALIZATION
@@ -2644,11 +2644,11 @@ int main(int argc, char **argv) {
 	// number of GPUs
 	int ndev = 1;
 
-	float temp  = -1.0f;
-	float step;
+	double temp  = -1.0f;
+	double step;
 
 	// Probability for interactions
-	float prob = 0.0f;
+	double prob = 0.0f;
 
 	// Should we use sublattices or not
 	int useSubLatt = 0;
@@ -2950,7 +2950,7 @@ int main(int argc, char **argv) {
 	const int num_lattices = NSLX*NSLY;
 	const int num_blocks = grid.x*grid.y;
 
-	float temp_range[ndev*num_lattices];
+	double temp_range[ndev*num_lattices];
 
 	for (int i=0; i < ndev*num_lattices; i++){
 		temp_range[i] = temp + i*step;
@@ -3133,7 +3133,7 @@ int main(int argc, char **argv) {
 		for(int i = 0; i < 2; i++) {
 			for(int j = 0; j < 5; j++) {
 				if(temp_range[k] > 0) {
-					exp_h[k][i][j] = expf((i?-2.0f:2.0f)*static_cast<float>(j*2-4)*(1.0f/temp_range[k]));
+					exp_h[k][i][j] = expf((i?-2.0f:2.0f)*static_cast<double>(j*2-4)*(1.0f/temp_range[k]));
 				} else {
 					fprintf(stderr, "Error: Zero temperature is not allowed.\n");
         			exit(EXIT_FAILURE);
@@ -3146,7 +3146,7 @@ int main(int argc, char **argv) {
 		for(int i = 0; i < 2; i++) {
 			for(int j = 0; j < 4; j++) {
 				if(temp_range[k] > 0) {
-					exp_edge_h[k][i][j] = expf((i?-2.0f:2.0f)*static_cast<float>(j*2-3)*(1.0f/temp_range[k]));
+					exp_edge_h[k][i][j] = expf((i?-2.0f:2.0f)*static_cast<double>(j*2-3)*(1.0f/temp_range[k]));
 				} else {
 					fprintf(stderr, "Error: Zero temperature is not allowed.\n");
         			exit(EXIT_FAILURE);
@@ -3159,7 +3159,7 @@ int main(int argc, char **argv) {
 		for(int i = 0; i < 2; i++) {
 			for(int j = 0; j < 3; j++) {
 				if(temp_range[k] > 0) {
-					exp_vertex_h[k][i][j] = expf((i?-2.0f:2.0f)*static_cast<float>(j*2-2)*(1.0f/temp_range[k]));
+					exp_vertex_h[k][i][j] = expf((i?-2.0f:2.0f)*static_cast<double>(j*2-2)*(1.0f/temp_range[k]));
 				} else {
 					fprintf(stderr, "Error: Zero temperature is not allowed.\n");
         			exit(EXIT_FAILURE);
@@ -3502,14 +3502,17 @@ int main(int argc, char **argv) {
 
 	double *partition_host = (double*)malloc(num_lattices * sizeof(double));
     cudaMemcpy(partition_host, getPartitionFunction_d, num_lattices * sizeof(double), cudaMemcpyDeviceToHost);
-    FILE *file = fopen("freeEnergies.txt", "w");
+	char filename_freeEnergy[2048];
+	snprintf(filename_freeEnergy, sizeof(filename_freeEnergy), "%sfreeEnergy_Y_%d_X_%d_YSL_%d_XSL_%d_e_%d_p_%.4f_t_%.4f_s_%.4f_w_%d_i_%d_u_%d_lo_%d.txt",
+			"results/free_energy/", Y, X, YSL, XSL, num_errors, prob, temp, step, nwarmup, nsteps, up, leave_out);
+    FILE *file = fopen(filename_freeEnergy, "w");
     if (file == NULL) {
         fprintf(stderr, "Error opening file for writing.\n");
         return 1;
     }
 
 	for (int i = 0; i < num_lattices; ++i) {
-        fprintf(file, "%.6f ", log(partition_host[i])-max_hamilt[i]/(double)temp_range[i]);
+        fprintf(file, "Temp = %.6f , Free energy = %.6f\n", temp_range[i], log(partition_host[i])-max_hamilt[i]/temp_range[i]);
     }
     fprintf(file, "\n");
 

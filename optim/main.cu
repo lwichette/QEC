@@ -174,7 +174,7 @@ __global__  void latticeInit_k(const int devid,
 	for(int i = 0; i < LOOP_Y; i++) {
 		#pragma unroll
 		for(int j = 0; j < LOOP_X; j++) {
-			vDst[(begY + __i + i*BDIM_Y)*dimX + __j+j*BDIM_X] = __tmp[i][j];
+			vDst[(begY + __i + i*BDIM_Y)*dimX + __j + j*BDIM_X] = __tmp[i][j];
 		}
 	}
 	return;
@@ -187,14 +187,65 @@ template<int BDIM_X,
 	 int BITXSP,
 	 typename INT_T,
 	 typename INT2_T>
-__global__  void hamiltInitB_k(const int devid,
-			       const double tgtProb,
-			       const long long seed,
-                               const long long begY,
-                               const long long dimX, // ld
-                                     INT2_T *__restrict__ hamB) {
+__global__ void add_logical(const int devid, 
+	const long long begY, 
+	const long long dimX, 
+	const int xsl,
+	const int column_index,
+	const int SPIN_X_WORD, 
+	INT2_T *__restrict__ hamB){
+	
+	const int __i = blockIdx.y*BDIM_Y*LOOP_Y + threadIdx.y;
+	const int __j = blockIdx.x*BDIM_X*LOOP_X + threadIdx.x;
 
-	// i column index in block thread picture, j row index in block thread picture
+	int word = column_index / (2*SPIN_X_WORD);
+
+	for(int i=0; i < LOOP_Y; i++){
+		
+		if ((begY + __i + i*BDIM_Y) % 2 == 1){
+			return;
+		}
+
+		for(int j = 0; j < LOOP_X; j++){
+			
+			const int column_off = __j + j*BDIM_X;
+
+			if (((column_off - word) >= 0) & ((column_off - word) % xsl == 0)){
+				
+				int y_word = column_index / SPIN_X_WORD;
+				
+				int spin_id = column_index % SPIN_X_WORD;  
+				
+				INT_T logical_or = INT_T(0);
+
+				logical_or |= 0xC << spin_id*BIT_X_SPIN; 
+
+				if (y_word % 2){
+					hamB[(begY + __i + i*BDIM_Y)*dimX + __j + j*BDIM_X].y ^= logical_or;
+				}
+				else{
+					hamB[(begY + __i + i*BDIM_Y)*dimX + __j + j*BDIM_X].x ^= logical_or;
+				}
+			}
+		}
+	}
+}
+
+template<int BDIM_X,
+	 int BDIM_Y,
+	 int LOOP_X,
+	 int LOOP_Y,
+	 int BITXSP,
+	 typename INT_T,
+	 typename INT2_T>
+__global__  void hamiltInitB_k(const int devid,
+			        const double tgtProb,
+			        const long long seed,
+                    const long long begY,
+                    const long long dimX, // ld
+                    INT2_T *__restrict__ hamB) {
+
+	// i row index in block thread picture, j column index in block thread picture
 	const int __i = blockIdx.y*BDIM_Y*LOOP_Y + threadIdx.y;
 	const int __j = blockIdx.x*BDIM_X*LOOP_X + threadIdx.x;
 
@@ -242,7 +293,7 @@ __global__  void hamiltInitB_k(const int devid,
 	for(int i = 0; i < LOOP_Y; i++) {
 		#pragma unroll
 		for(int j = 0; j < LOOP_X; j++) {
-			hamB[(begY + __i+i*BDIM_Y)*dimX + __j+j*BDIM_X] = __tmp[i][j];
+			hamB[(begY + __i + i*BDIM_Y)*dimX + __j+j*BDIM_X] = __tmp[i][j];
 		}
 	}
 	return;
@@ -356,11 +407,11 @@ __global__ void hamiltInitW_k(const int xsl,
 	for(int i = 0; i < LOOP_Y; i++) {
 
 		// get current row
-		const int yoff = begY+__i + i*BDIM_Y;
+		const int yoff = begY + __i + i*BDIM_Y;
 
 		// Check if we are at a boarder with yoff
 		// If we are at a boarder --> upoff becomes last row else row above
-		const int upOff = ( yoff   %ysl) == 0 ? yoff + ysl-1 : yoff-1;
+		const int upOff = ( yoff   % ysl) == 0 ? yoff + ysl-1 : yoff-1;
 
 		// If we are at down boarder --> dwOff becomes first row, else row below
 		const int dwOff = ((yoff+1)%ysl) == 0 ? yoff - ysl+1 : yoff+1;
@@ -1474,8 +1525,6 @@ void getPartitionFunction(
 
 
 
-
-
 template<int BDIM_X,
 	 int BDIM_Y,
 	 int LOOP_X,
@@ -2466,52 +2515,48 @@ __global__ void getMagForBinningAnalysis(const int blocks_per_slx,
 	}
 }
 
-void doBinningAnalysis(bool dumpVar, int binning_order, int binning_result_count, int num_errors, int nwarmup, int nsteps, double temp, int up, int leave_out, double prob, int X, int Y, double *d_binning_mag){
-	if(dumpVar){
-			double *h_binning_mag = (double *)malloc(binning_result_count*sizeof(*h_binning_mag));
-			CHECK_CUDA(cudaMemcpy(h_binning_mag, d_binning_mag, binning_result_count*sizeof(*d_binning_mag), cudaMemcpyDeviceToHost));
-			// std::ofstream f("results/MagBinnings_X" + std::to_string(X) + "_Y" + std::to_string(Y) + "_p" + std::to_string(prob) + "_e" + std::to_string(num_errors) + "_nw" + std::to_string(nwarmup) + "_nit" + std::to_string(nsteps) + "_t" + std::to_string(temp) + "_u" + std::to_string(up) + "_n" + std::to_string(binning_order) + "_lo" + std::to_string(leave_out), std::ios::out | std::ios::trunc);
-			// for (int i=0; i<binning_result_count; i++){
-			// 	f << h_binning_mag[i];
-			// 	if (i != binning_result_count - 1) {
-	        //         f << ", ";
-	        //     }
-			// }
-			// f.close();
-			double variances[binning_order] = {0};
-			double mean_mag = 0.0;
-			for (int l=1; l<=binning_order; l++){
-				double dev = 0.0;
-				if(l==1){
-					int bin_count = 2;
-					for (int k=0; k<bin_count; k++){
-						mean_mag += h_binning_mag[k]/2.0;
-					}
-					for (int k=0; k<bin_count; k++){
-						dev = h_binning_mag[k]- mean_mag;
-						variances[0]+=pow(dev, 2)/(bin_count*(bin_count-1));
-					}
-				}
-				else{
-					int bin_count = floor(pow(2, l)+.5);
-					int offset = floor(pow(2, l)+.5)-2; // depending on l these many array entries belong to previous partition choices.
-					for (int k=0; k<bin_count; k++){
-						dev = h_binning_mag[offset + k]-mean_mag;
-						variances[l-1]+=pow(dev, 2)/(bin_count*(bin_count-1));
-					}
-				}
-			}
+void doBinningAnalysis(int binning_order, int binning_result_count, int num_errors, int nwarmup, int nsteps, double temp, int up, int leave_out, double prob, int X, int Y, double *d_binning_mag){
 
-			std::string varfname = "results/Variances/VarBinnings_L" + std::to_string(X) + "_p" + std::to_string(prob) + "_e" + std::to_string(num_errors) + "_nw" + std::to_string(nwarmup) + "_nit" + std::to_string(nsteps) + "_t" + std::to_string(temp) + "_u" + std::to_string(up) + "_n" + std::to_string(binning_order) + "_lo" + std::to_string(leave_out);
-			std::ofstream fVars(varfname, std::ios::out | std::ios::trunc);
-			for (int i=0; i<binning_order; i++){
-				fVars << (i+1) << " " << (sqrt(variances[i])) << "\n";
+	double *h_binning_mag = (double *)malloc(binning_result_count*sizeof(*h_binning_mag));
+	CHECK_CUDA(cudaMemcpy(h_binning_mag, d_binning_mag, binning_result_count*sizeof(*d_binning_mag), cudaMemcpyDeviceToHost));
+	// std::ofstream f("results/MagBinnings_X" + std::to_string(X) + "_Y" + std::to_string(Y) + "_p" + std::to_string(prob) + "_e" + std::to_string(num_errors) + "_nw" + std::to_string(nwarmup) + "_nit" + std::to_string(nsteps) + "_t" + std::to_string(temp) + "_u" + std::to_string(up) + "_n" + std::to_string(binning_order) + "_lo" + std::to_string(leave_out), std::ios::out | std::ios::trunc);
+	// for (int i=0; i<binning_result_count; i++){
+	// 	f << h_binning_mag[i];
+	// 	if (i != binning_result_count - 1) {
+	//         f << ", ";
+	//     }
+	// }
+	// f.close();
+	double variances[binning_order] = {0};
+	double mean_mag = 0.0;
+	for (int l=1; l<=binning_order; l++){
+		double dev = 0.0;
+		if(l==1){
+			int bin_count = 2;
+			for (int k=0; k<bin_count; k++){
+				mean_mag += h_binning_mag[k]/2.0;
 			}
-			fVars.close();
+			for (int k=0; k<bin_count; k++){
+				dev = h_binning_mag[k]- mean_mag;
+				variances[0]+=pow(dev, 2)/(bin_count*(bin_count-1));
+			}
 		}
 		else{
-			printf("dumpVar is False, hence nothing was binned.\n");
+			int bin_count = floor(pow(2, l)+.5);
+			int offset = floor(pow(2, l)+.5)-2; // depending on l these many array entries belong to previous partition choices.
+			for (int k=0; k<bin_count; k++){
+				dev = h_binning_mag[offset + k]-mean_mag;
+				variances[l-1]+=pow(dev, 2)/(bin_count*(bin_count-1));
+			}
 		}
+	}
+
+	std::string varfname = "results/Variances/VarBinnings_L" + std::to_string(X) + "_p" + std::to_string(prob) + "_e" + std::to_string(num_errors) + "_nw" + std::to_string(nwarmup) + "_nit" + std::to_string(nsteps) + "_t" + std::to_string(temp) + "_u" + std::to_string(up) + "_n" + std::to_string(binning_order) + "_lo" + std::to_string(leave_out);
+	std::ofstream fVars(varfname, std::ios::out | std::ios::trunc);
+	for (int i=0; i<binning_order; i++){
+		fVars << (i+1) << " " << (sqrt(variances[i])) << "\n";
+	}
+	fVars.close();
 }
 
 
@@ -2611,6 +2656,10 @@ int main(int argc, char **argv) {
 	unsigned long long *hamB_d=NULL;
 	unsigned long long *hamW_d=NULL;
 
+	unsigned long long *ham_d_L = NULL;
+	unsigned long long *hamB_d_L = NULL;
+	unsigned long long *hamW_d_L = NULL;
+
 	// storage of getHamiltonian result per sublattice error and steps
 	double* getHamiltonian_d = NULL;
 
@@ -2667,6 +2716,8 @@ int main(int argc, char **argv) {
 
 	bool up;
 
+	int logical_column;
+
 	bool dumpVar = false;
 	char *folder = NULL;
 
@@ -2690,10 +2741,11 @@ int main(int argc, char **argv) {
 			{"out", no_argument, 0, 'o'},
 			{"var", no_argument, 0, 'v'},
 			{"leave_out", required_argument, 0, 'l'},
+			{"logical_column", required_argument, 0, 'c'},
             {0, 0, 0, 0}
         };
 
-        och = getopt_long(argc, argv, "x:y:p:w:n:t:s:u:l:d:fov", long_options, &option_index);
+        och = getopt_long(argc, argv, "x:y:p:w:n:t:s:u:l:d:c:fov", long_options, &option_index);
         if (och == -1)
             break;
 
@@ -2723,6 +2775,9 @@ int main(int argc, char **argv) {
 				break;
 			case 'd':
 				ndev = atoi(optarg);
+				break;
+			case 'c':
+				logical_column = atoi(optarg);
 				break;
 			case 's':
 				step = atof(optarg);
@@ -3007,6 +3062,9 @@ int main(int argc, char **argv) {
 		CHECK_CUDA(cudaMalloc(&ham_d, llen*sizeof(*ham_d)));
 		CHECK_CUDA(cudaMemset(ham_d, 0, llen*sizeof(*ham_d)));
 
+		CHECK_CUDA(cudaMalloc(&ham_d_L, llen*sizeof(*ham_d)));
+		CHECK_CUDA(cudaMemset(ham_d_L, 0, llen*sizeof(*ham_d)));
+
 		CHECK_CUDA(cudaMalloc(&d_sum_per_block, num_blocks*sizeof(*d_sum_per_block)));
 		CHECK_CUDA(cudaMemset(d_sum_per_block, 0, num_blocks*sizeof(*d_sum_per_block)));
 
@@ -3041,6 +3099,7 @@ int main(int argc, char **argv) {
 		// Allocate memory accessible by all GPUs
 		CHECK_CUDA(cudaMallocManaged(&v_d, llen*sizeof(*v_d), cudaMemAttachGlobal));
 		CHECK_CUDA(cudaMallocManaged(&ham_d, llen*sizeof(*ham_d), cudaMemAttachGlobal));
+		CHECK_CUDA(cudaMallocManaged(&ham_d_L, llen*sizeof(*ham_d_L), cudaMemAttachGlobal));
 
 		CHECK_CUDA(cudaMallocManaged(&d_sum_per_block, ndev*num_blocks*sizeof(*d_sum_per_block), cudaMemAttachGlobal));
 		CHECK_CUDA(cudaMallocManaged(&d_weighted_sum_per_blocks, ndev*num_blocks*sizeof(*d_weighted_sum_per_blocks), cudaMemAttachGlobal));
@@ -3069,9 +3128,11 @@ int main(int argc, char **argv) {
 			CHECK_CUDA(cudaMemAdvise(v_d +            i*llenLoc, llenLoc*sizeof(*v_d), cudaMemAdviseSetPreferredLocation, i));
 			CHECK_CUDA(cudaMemAdvise(v_d + (llen/2) + i*llenLoc, llenLoc*sizeof(*v_d), cudaMemAdviseSetPreferredLocation, i));
 
-			//Same as above
 			CHECK_CUDA(cudaMemAdvise(ham_d +            i*llenLoc, llenLoc*sizeof(*ham_d), cudaMemAdviseSetPreferredLocation, i));
 			CHECK_CUDA(cudaMemAdvise(ham_d + (llen/2) + i*llenLoc, llenLoc*sizeof(*ham_d), cudaMemAdviseSetPreferredLocation, i));
+
+			CHECK_CUDA(cudaMemAdvise(ham_d_L +            i*llenLoc, llenLoc*sizeof(*ham_d_L), cudaMemAdviseSetPreferredLocation, i));
+			CHECK_CUDA(cudaMemAdvise(ham_d_L + (llen/2) + i*llenLoc, llenLoc*sizeof(*ham_d_L), cudaMemAdviseSetPreferredLocation, i));
 
 			// black boundaries up/down
 			CHECK_CUDA(cudaMemAdvise(v_d +            i*llenLoc,             lld*sizeof(*v_d), cudaMemAdviseSetAccessedBy, (i+ndev-1)%ndev));
@@ -3093,6 +3154,9 @@ int main(int argc, char **argv) {
 
 			CHECK_CUDA(cudaMemset(ham_d +            i*llenLoc, 0, llenLoc*sizeof(*ham_d)));
 			CHECK_CUDA(cudaMemset(ham_d + (llen/2) + i*llenLoc, 0, llenLoc*sizeof(*ham_d)));
+
+			CHECK_CUDA(cudaMemset(ham_d_L +            i*llenLoc, 0, llenLoc*sizeof(*ham_d_L)));
+			CHECK_CUDA(cudaMemset(ham_d_L + (llen/2) + i*llenLoc, 0, llenLoc*sizeof(*ham_d_L)));
 
 			CHECK_CUDA(cudaMemset(d_sum_per_block + i*num_blocks, 0, num_blocks*sizeof(*d_sum_per_block)));
 			CHECK_CUDA(cudaMemset(d_weighted_sum_per_blocks + i*num_blocks, 0, num_blocks*sizeof(*d_weighted_sum_per_blocks)));
@@ -3116,6 +3180,9 @@ int main(int argc, char **argv) {
 
 	hamB_d = ham_d;
 	hamW_d = ham_d + llen/2;
+
+	hamB_d_L = ham_d_L;
+	hamW_d_L = ham_d_L + llen/2;
 
 	double *exp_d[MAX_GPU];
 	double  exp_h[num_lattices][2][5];
@@ -3179,8 +3246,6 @@ int main(int argc, char **argv) {
 		CHECK_CUDA(cudaMemcpy(exp_edge_d[i], exp_edge_h, num_lattices*2*4*sizeof(**exp_edge_d), cudaMemcpyHostToDevice));
 	}
 
-
-
 	// Calculate all exp used for weighted summation
 	thrust::complex<double> *weighted_exp_d[MAX_GPU];
 	thrust::complex<double> weighted_exp_h[YSL];
@@ -3223,6 +3288,21 @@ int main(int argc, char **argv) {
 								seed + 1, // just use a different seed
 								i*Y, lld/2,
 								reinterpret_cast<ulonglong2 *>(hamB_d));
+		}
+
+		for(int i = 0; i < ndev; i++) {
+			CHECK_CUDA(cudaSetDevice(i));
+			CHECK_CUDA(cudaDeviceSynchronize());
+		}
+
+		cudaMemcpy(hamB_d_L, hamB_d,llen/2*sizeof(*hamB_d), cudaMemcpyDeviceToDevice);
+
+		for(int i = 0; i < ndev; i++){
+			CHECK_CUDA(cudaSetDevice(i));
+			add_logical<BLOCK_X, BLOCK_Y,
+				BMULT_X, BMULT_Y,
+				BIT_X_SPIN,
+				unsigned long long><<<grid, block>>>(i, i*Y, lld/2, (XSL/2)/SPIN_X_WORD/2, 20, SPIN_X_WORD, reinterpret_cast<ulonglong2 *>(hamB_d_L));
 
 			hamiltInitW_k<BLOCK_X, BLOCK_Y,
 						BMULT_X, BMULT_Y,
@@ -3230,6 +3310,13 @@ int main(int argc, char **argv) {
 						unsigned long long><<<grid, block>>>((XSL/2)/SPIN_X_WORD/2, YSL, i*Y, lld/2,
 										reinterpret_cast<ulonglong2 *>(hamB_d),
 										reinterpret_cast<ulonglong2 *>(hamW_d));
+
+			hamiltInitW_k<BLOCK_X, BLOCK_Y,
+			BMULT_X, BMULT_Y,
+			BIT_X_SPIN,
+			unsigned long long><<<grid, block>>>((XSL/2)/SPIN_X_WORD/2, YSL, i*Y, lld/2,
+							reinterpret_cast<ulonglong2 *>(hamB_d_L),
+							reinterpret_cast<ulonglong2 *>(hamW_d_L));	
 
 			latticeInit_k<BLOCK_X, BLOCK_Y,
 					BMULT_X, BMULT_Y,
@@ -3371,6 +3458,8 @@ int main(int argc, char **argv) {
 			}
 
 			if ((j-nwarmup)%leave_out == 0 ){
+				
+				/*
 				for (int i = 0; i < ndev; i++){
 					CHECK_CUDA(cudaSetDevice(i));
 					calculate_average_magnetization<BLOCK_X, BLOCK_Y,
@@ -3391,6 +3480,7 @@ int main(int argc, char **argv) {
 						CHECK_CUDA(cudaDeviceSynchronize());
 					}
 				}
+				*/
 
 				for(int i = 0; i < ndev; i++) {
 					CHECK_CUDA(cudaSetDevice(i));
@@ -3438,6 +3528,7 @@ int main(int argc, char **argv) {
 					}
 				}
 
+				/*
 				for (int i = 0; i < ndev; i++){
 					CHECK_CUDA(cudaSetDevice(i));
 					calculate_incremental_susceptibility<<<1, num_lattices>>>(blocks_per_slx, blocks_per_sly,
@@ -3446,6 +3537,7 @@ int main(int argc, char **argv) {
 									d_sus_0 + i*num_lattices,
 									d_sus_k + i*num_lattices);
 				}
+				*/
 			}
 
 			if (ndev > 1) {
@@ -3458,10 +3550,11 @@ int main(int argc, char **argv) {
 
 		if (ndev == 1){
 			CHECK_CUDA(cudaMemset(ham_d, 0, llen*sizeof(*ham_d)));
+			CHECK_CUDA(cudaMemset(ham_d_L, 0, llen*sizeof(*ham_d_L)));
 		} else{
 			for (int i = 0; i < ndev; i++){
-				CHECK_CUDA(cudaMemset(ham_d +            i*llenLoc, 0, llenLoc*sizeof(*ham_d)));
-				CHECK_CUDA(cudaMemset(ham_d + (llen/2) + i*llenLoc, 0, llenLoc*sizeof(*ham_d)));
+				CHECK_CUDA(cudaMemset(ham_d_L +            i*llenLoc, 0, llenLoc*sizeof(*ham_d_L)));
+				CHECK_CUDA(cudaMemset(ham_d_L + (llen/2) + i*llenLoc, 0, llenLoc*sizeof(*ham_d_L)));
 			}
 		}
 
@@ -3475,7 +3568,9 @@ int main(int argc, char **argv) {
 		dumpLattice(fname, ndev, Y, lld, llen, llenLoc, v_d);
 	}
 
-	doBinningAnalysis(dumpVar, binning_order, binning_result_count, num_errors, nwarmup, nsteps, temp, up, leave_out, prob, X, Y, d_magsForBinning);
+	if (dumpVar){
+		doBinningAnalysis(binning_order, binning_result_count, num_errors, nwarmup, nsteps, temp, up, leave_out, prob, X, Y, d_magsForBinning);
+	}
 
 	// // only execute when getHamiltonian is executed within the leave out block
 
@@ -3484,17 +3579,14 @@ int main(int argc, char **argv) {
 
 	double* max_hamilt = (double*) Malloc(num_lattices*sizeof(double));
 
-
 	for ( int t = 0; t<num_lattices ; t++){
 		thrust::device_ptr<double> d_ptr = thrust::device_pointer_cast(getHamiltonian_d + t*nsteps*num_errors);
 		max_hamilt[t] = *(thrust::max_element(d_ptr, d_ptr + num_errors*nsteps));
 	}
 
-
 	double* max_hamilt_d;
 	cudaMalloc(&max_hamilt_d, num_lattices*sizeof(*max_hamilt_d));
 	cudaMemcpy(max_hamilt_d, max_hamilt, num_lattices*sizeof(*max_hamilt), cudaMemcpyHostToDevice);
-
 
 	int blockSize = BLOCK_X*BLOCK_Y;
 	int total_elements = num_errors * nsteps * num_lattices;
@@ -3580,6 +3672,7 @@ int main(int argc, char **argv) {
 	// free memory for all GPUs and stuff
 	CHECK_CUDA(cudaFree(v_d));
 	CHECK_CUDA(cudaFree(ham_d));
+	CHECK_CUDA(cudaFree(ham_d_L));
 	CHECK_CUDA(cudaFree(d_binning_mag));
 	CHECK_CUDA(cudaFree(getPartitionFunction_d));
 	CHECK_CUDA(cudaFree(getHamiltonian_d));

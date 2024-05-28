@@ -5,6 +5,12 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Wang Landau",
+            "type": "cuda-gdb",
+            "request": "launch",
+            "program": "${workspaceFolder}/WangLandau/wl",
+        },
+        {
             "name": "Optim new",
             "type": "cuda-gdb",
             "request": "launch",

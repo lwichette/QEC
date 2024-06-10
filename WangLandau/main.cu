@@ -167,6 +167,7 @@ __global__ void wang_landau(
     double factor = std::exp(1.0);
 
     long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
+    
     int blockId = blockIdx.x;
 
     int offset_l = tid * nx * ny;
@@ -177,7 +178,7 @@ __global__ void wang_landau(
         offset_g = (gridDim.x - 1)*blockDim.x*(d_end[0] - d_start[0]) + threadIdx.x*(d_end[gridDim.x - 1] - d_start[gridDim.x - 1]);
     }
     else{
-        offset_g = tid * (d_end[0]-d_start[0]);    
+        offset_g = tid * (d_end[0] - d_start[0]);    
     }
 
     curandStatePhilox4_32_10_t st;
@@ -185,6 +186,7 @@ __global__ void wang_landau(
     
     bool c_H = false;
 
+    // First while Loop into main
     while (factor > std::exp(end_condition)){
         while (!c_H){
             for (int it = 0; it < num_iterations; it++){
@@ -228,7 +230,7 @@ __global__ void wang_landau(
                     }
                     else{
                         d_H[index_old] += 1;
-                        d_G[index_new] = log(d_G[index_new]) + log(factor);
+                        d_G[index_old] = log(d_G[index_old]) + log(factor);
                     }
                 }
             }
@@ -289,7 +291,7 @@ int main(int argc, char **argv){
     const float prob_interactions = 0; // prob of error
     const float prob_spins = 0.5; // prob of down spin
 
-    const int num_intervals = 2; // number of intervals
+    const int num_intervals = 20; // number of intervals
     const int threads_walker = 16; // walkers per interval
     const int num_walker = num_intervals*threads_walker; //number of all walkers
 
@@ -303,7 +305,7 @@ int main(int argc, char **argv){
     std::vector<int> h_end = std::get<1>(result);
     int len_histogram = std::get<2>(result);
     int len_interval = std::get<3>(result); // not sure if needed
-
+ 
     int *d_start, *d_end;
     CHECK_CUDA(cudaMalloc(&d_start, num_intervals*sizeof(*d_start)));
     CHECK_CUDA(cudaMalloc(&d_end, num_intervals*sizeof(*d_end)));
@@ -345,6 +347,6 @@ int main(int argc, char **argv){
     wang_landau<<<num_intervals, threads_walker>>>(d_lattice, d_interactions, d_energy, d_start, d_end, d_H, d_G, num_iterations, L, L, seed + 2, alpha, beta); // all seeds have to be different
     
     cudaDeviceSynchronize();
-    
+
     return 0;
 }

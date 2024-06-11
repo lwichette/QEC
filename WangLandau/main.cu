@@ -29,7 +29,6 @@ std::tuple<std::vector<int>, std::vector<int>, int, int> generate_intervals(cons
     const int step_size = 0.25 * len_interval;
 
     int start_interval = E_min;
-    int end_interval = 0;
 
     int needed_space = 0;
 
@@ -91,13 +90,12 @@ __global__ void init_lattice(signed char* lattice, const int nx, const int ny, c
     curand_init(seed, tid, 0, &st); // offset??
 
     float randval = curand_uniform(&st);
+    signed char val = (randval < prob) ? -1 : 1;
 
-    if (randval < prob){
-        lattice[tid] = -1;
-    }
+    lattice[tid] = val;
 }
 
-__global__ void init_interactions(signed char* interactions, const int nx, const int ny, const int num_lattices, const int seed, const double p){
+__global__ void init_interactions(signed char* interactions, const int nx, const int ny, const int num_lattices, const int seed, const double prob){
     
     long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
     
@@ -108,10 +106,11 @@ __global__ void init_interactions(signed char* interactions, const int nx, const
         curandStatePhilox4_32_10_t st;
     	curand_init(seed, tid, it, &st);
 
-        if (curand_uniform(&st) < p){
-            interactions[tid] = -1;
-        }
+        float randval = curand_uniform(&st);
+        signed char val = (randval < prob) ? -1 : 1;
         
+        interactions[tid] = val;
+
         it += 1;
         tid += blockDim.x * gridDim.x;
     }
@@ -121,33 +120,30 @@ __global__ void calc_energy(signed char* lattice, signed char* interactions, int
 
     long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
 
-    while (tid < num_lattices){
+    int offset_l = tid*nx*ny;
 
-        int offset_l = tid*nx*ny;
+    int energy = 0; 
 
-        int energy = 0; 
+    for (int l = 0; l < nx*ny; l++){
+        
+        int i = l/ny;
+        int j = l%ny;
 
-        for (int l = 0; l < nx*ny; l++){
-            
-            int i = l/ny;
-            int j = l%ny;
+        int inn = (i - 1 >= 0) ? i - 1 : nx - 1;
+        int jnn = (j - 1 >= 0) ? j - 1 : ny - 1;  
 
-            int inn = (i - 1 >= 0) ? i - 1 : nx - 1;
-            int jnn = (j - 1 >= 0) ? j - 1 : ny - 1;  
-
-            energy += lattice[offset_l + i*ny +j]*(lattice[offset_l + inn*ny + j]*interactions[nx*ny + inn*ny + j] + lattice[offset_l + i*ny + jnn]*interactions[i*ny + jnn]);
-        }
-
-        d_energy[tid] = energy;
-
-        tid += blockDim.x * gridDim.x;
+        energy += lattice[offset_l + i*ny +j]*(lattice[offset_l + inn*ny + j]*interactions[nx*ny + inn*ny + j] + lattice[offset_l + i*ny + jnn]*interactions[i*ny + jnn]);
     }
+
+    d_energy[tid] = energy;
+
+    tid += blockDim.x * gridDim.x;
 }
 
 __global__ void check_energy_ranges(int *d_energy, int *d_start, int *d_end){
     
     long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
-    
+        
     int check = 1;
     
     if (d_energy[tid] > d_end[blockIdx.x] || d_energy[tid] < d_start[blockIdx.x]){
@@ -157,107 +153,149 @@ __global__ void check_energy_ranges(int *d_energy, int *d_start, int *d_end){
     assert(check);
 }
 
-__global__ void wang_landau(
-    signed char *d_lattice, signed char *d_interactions, int *d_energy, 
-    int *d_start, int *d_end, int *d_H, float *d_G, const int num_iterations, 
-    const int nx, const int ny, const int seed, double alpha, double end_condition
-    ){
+__device__ void fisher_yates(int *d_shuffle, int seed, int it){
     
-    // Shared memory actually possible
-    double factor = std::exp(1.0);
-
     long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
     
-    int blockId = blockIdx.x;
-
-    int offset_l = tid * nx * ny;
-    int offset_g;
-
-    // Length of interval equal except last one --> length of array is given by num_threads_per_block * (length of interval + length of last interval)  
-    if (blockId == gridDim.x - 1){ 
-        offset_g = (gridDim.x - 1)*blockDim.x*(d_end[0] - d_start[0]) + threadIdx.x*(d_end[gridDim.x - 1] - d_start[gridDim.x - 1]);
-    }
-    else{
-        offset_g = tid * (d_end[0] - d_start[0]);    
-    }
+    int offset = blockDim.x*blockIdx.x;
 
     curandStatePhilox4_32_10_t st;
-    curand_init(seed, tid, 0, &st);
+    curand_init(seed, tid, it, &st);
     
-    bool c_H = false;
+    for (int i = blockDim.x - 1; i > 0; i--){
+        double randval = curand_uniform(&st);
+        randval *= (i + 0.999999);
+        int random_index = (int)truncf(randval);
 
-    // First while Loop into main
-    while (factor > std::exp(end_condition)){
-        while (!c_H){
-            for (int it = 0; it < num_iterations; it++){
-                
-                // Generate random int --> is that actually uniformly?
-                double randval = curand_uniform(&st);
-                randval *= (nx*ny + 0.999999);
-                int random_index = (int)truncf(randval);
+        int temp = d_shuffle[offset + i];
+        d_shuffle[offset + i] = d_shuffle[offset + random_index];
+        d_shuffle[offset + random_index] = temp;
+    }
+}
 
-                int i = random_index/ny;
-                int j = random_index % ny;
+__global__ void replica_exchange(
+    int *d_offsets, int *d_energy, int *d_start, int *d_end, int *d_indices, 
+    float* d_G, bool odd, int seed, int it_seed
+    ){
+    
+    long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
+    
+    if ((blockIdx.x + 1) == (gridDim.x -1)){
+        return;
+    }
+    
+    long long cid = static_cast<long long>(blockDim.x)*blockIdx.x;
 
-                // Set up periodic boundary conditions
-                int ipp = (i + 1 < nx) ? i + 1 : 0;
-                int inn = (i - 1 >= 0) ? i - 1: nx - 1;
-                int jpp = (j + 1 < ny) ? j + 1 : 0;
-                int jnn = (j - 1 >= 0) ? j - 1: ny - 1; 
+    if (threadIdx.x == 0){
+        fisher_yates(d_indices, seed, it_seed);
+    }
 
-                // Nochmal checken
-                signed char energy_diff = -1 * d_lattice[offset_l + i*ny +j]*(d_lattice[offset_l + inn*ny + j]*d_interactions[nx*ny + inn*ny + j] + d_lattice[offset_l + i*ny + jnn]*d_interactions[i*ny + jnn]
-                                                                            + d_lattice[offset_l + ipp*ny + j]*d_interactions[nx*ny + i*ny + j] + d_lattice[offset_l + i*ny + jpp]*d_interactions[i*ny + j]);
-                
-                int d_new_energy = d_energy[blockId] + energy_diff; 
-                
-                if (d_new_energy > d_end[blockId] || d_new_energy < d_start[blockId]){
-                    continue;
-                }
-                else{
-                    int index_old = offset_g + d_energy[blockId] - d_start[blockId];
-                    int index_new = offset_g + d_new_energy - d_start[blockId];
+    if (odd){
+        if (blockIdx.x % 2 != 0) return;
+    }
+    else{
+        if (blockIdx.x % 2 != 1) return;
+    }
+    
+    cid += d_indices[tid];
 
-                    float prob = min(1.0f, d_G[index_old]/d_G[index_new]);
+    double prob = min(1.0, d_G[d_energy[tid]]/d_G[d_energy[tid]]*d_G[d_energy[cid]]/d_G[d_energy[cid]]);
+    
+    curandStatePhilox4_32_10_t st;
+    curand_init(seed, tid, it_seed, &st);
 
-                    if(curand_uniform(&st) < prob){
-                        d_lattice[offset_l + i*ny +j] *= -1;
+    if (curand_uniform(&st) < prob){
+        int temp_off = d_offsets[tid];
+        int temp_energy = d_energy[tid];
 
-                        d_H[index_new] += 1;
-                        d_G[index_new] = log(d_G[index_new]) + log(factor);
+        d_offsets[tid] = d_offsets[cid];
+        d_energy[tid] = d_energy[cid];
 
-                        d_energy[blockId] = d_new_energy;
-                    }
-                    else{
-                        d_H[index_old] += 1;
-                        d_G[index_old] = log(d_G[index_old]) + log(factor);
-                    }
-                }
-            }
+        d_offsets[cid] = temp_off;
+        d_energy[cid] = temp_energy;
+    }
+}
 
-            // Check flatness condition
-            // Stupid way, Loop over it and get average and minimum
-            int min = d_H[offset_g];
-            double avg = 0;
+__global__ void check_histogram(int *d_H, int *d_offset, int *d_end, int* d_start, int* d_cond, int nx, int ny, double alpha){
+    
+    long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
 
-            for (int i = 0; i < (d_end[blockId] - d_start[blockId]); i++){
-                if (d_H[offset_g + i] < min){
-                    min = d_H[offset_g + i];
-                }
-                avg += d_H[offset_g + i];
-            }
+    int min = d_H[d_offset[tid]];
 
-            avg = avg/(d_end[blockId] - d_start[blockId]);
+    double average = 0;
 
-            c_H = (min > alpha*avg) ? true : false;
+    for (int i = 0; i < (d_end[blockIdx.x] - d_start[blockIdx.x]); i++){
+        if (d_H[d_offset[tid] + i] < min){
+            min = d_H[d_offset[tid] + i];
         }
+        average += d_H[d_offset[tid] + i];
+    }
 
-        // Reset to 0
-        for (int i = 0; i < (d_end[blockId] - d_start[blockId]); i++){
-            d_H[i] = 0;
+    if (min > alpha*average){
+        d_cond[tid] = 1;
+    }
+}
+
+__global__ void wang_landau(
+    signed char *d_lattice, signed char *d_interactions, int *d_cond, int *d_energy, 
+    int *d_start, int *d_end, int *d_H, float *d_G, int *d_offset, const int num_iterations, 
+    const int nx, const int ny, const int seed, double factor, int it_seed
+    ){
+    
+    long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
+    
+    if (d_cond[tid] != 0) return;
+
+    int blockId = blockIdx.x;
+    int offset_l = tid * nx * ny;
+
+    curandStatePhilox4_32_10_t st;
+    curand_init(seed, tid, it_seed, &st);
+    
+    for (int it = 0; it < num_iterations; it++){
+        
+        // Generate random int --> is that actually uniformly?
+        double randval = curand_uniform(&st);
+        randval *= (nx*ny - 1 + 0.999999);
+        int random_index = (int)truncf(randval);
+
+        int i = random_index/ny;
+        int j = random_index % ny;
+
+        // Set up periodic boundary conditions
+        int ipp = (i + 1 < nx) ? i + 1 : 0;
+        int inn = (i - 1 >= 0) ? i - 1: nx - 1;
+        int jpp = (j + 1 < ny) ? j + 1 : 0;
+        int jnn = (j - 1 >= 0) ? j - 1: ny - 1; 
+
+        // Nochmal checken
+        signed char energy_diff = -1 * d_lattice[offset_l + i*ny +j]*(d_lattice[offset_l + inn*ny + j]*d_interactions[nx*ny + inn*ny + j] + d_lattice[offset_l + i*ny + jnn]*d_interactions[i*ny + jnn]
+                                                                    + d_lattice[offset_l + ipp*ny + j]*d_interactions[nx*ny + i*ny + j] + d_lattice[offset_l + i*ny + jpp]*d_interactions[i*ny + j]);
+        
+        int d_new_energy = d_energy[tid] + energy_diff; 
+        
+        if (d_new_energy > d_end[blockId] || d_new_energy < d_start[blockId]){
+            continue;
         }
+        else{
+            int index_old = d_offset[tid] + d_energy[tid] - d_start[blockId];
+            int index_new = d_offset[tid] + d_new_energy - d_start[blockId];
 
-        factor = sqrt(factor);
+            float prob = min(1.0f, d_G[index_old]/d_G[index_new]);
+
+            if(curand_uniform(&st) < prob){
+                d_lattice[offset_l + i*ny +j] *= -1;
+
+                d_H[index_new] += 1;
+                d_G[index_new] += log(factor);
+
+                d_energy[tid] = d_new_energy;
+            }
+            else{
+                d_H[index_old] += 1;
+                d_G[index_old] += log(factor);
+            }
+        }
     }
 }
 
@@ -277,13 +315,36 @@ void read(std::vector<signed char>& lattice, std::string filename){
     }
 }
 
+__global__ void init_offsets(int *d_offset, int *d_start, int *d_end){
+
+    long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
+
+    // Length of interval equal except last one --> length of array is given by num_threads_per_block * (length of interval + length of last interval)  
+    if (blockIdx.x == gridDim.x - 1){ 
+        d_offset[tid] = (gridDim.x - 1)*blockDim.x*(d_end[0] - d_start[0]) + threadIdx.x*(d_end[gridDim.x - 1] - d_start[gridDim.x - 1]);
+    }
+    else{
+        d_offset[tid] = tid * (d_end[0] - d_start[0]);    
+    }
+}
+
+__global__ void init_indices(int *d_indices){
+    
+    long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
+
+    d_indices[tid] = threadIdx.x;
+}
+
 int main(int argc, char **argv){
     
     const int seed = 43;
 
-    const int num_iterations = 100000;
+    const int num_iterations = 10;
+    
     const double alpha = 0.2; // condition for histogram
     const double beta = 0.4; //end condition for factor
+    
+    double factor = std::exp(0);
 
     // lattice
     const int L = 12;
@@ -291,8 +352,8 @@ int main(int argc, char **argv){
     const float prob_interactions = 0; // prob of error
     const float prob_spins = 0.5; // prob of down spin
 
-    const int num_intervals = 20; // number of intervals
-    const int threads_walker = 16; // walkers per interval
+    const int num_intervals = 3; // number of intervals
+    const int threads_walker = 4; // walkers per interval
     const int num_walker = num_intervals*threads_walker; //number of all walkers
 
     // intervals
@@ -305,7 +366,11 @@ int main(int argc, char **argv){
     std::vector<int> h_end = std::get<1>(result);
     int len_histogram = std::get<2>(result);
     int len_interval = std::get<3>(result); // not sure if needed
- 
+    
+    for (int i = 0; i < num_intervals; i++){
+        std::cout << h_start[i] << " " << h_end[i] << endl; 
+    }
+
     int *d_start, *d_end;
     CHECK_CUDA(cudaMalloc(&d_start, num_intervals*sizeof(*d_start)));
     CHECK_CUDA(cudaMalloc(&d_end, num_intervals*sizeof(*d_end)));
@@ -322,19 +387,27 @@ int main(int argc, char **argv){
     CHECK_CUDA(cudaMalloc(&d_G, len_histogram * sizeof(*d_G)));
     CHECK_CUDA(cudaMemset(d_G, 0, len_histogram*sizeof(*d_G)));
 
+    int *d_offset;
+    CHECK_CUDA(cudaMalloc(&d_offset, num_walker*sizeof(*d_offset)));
+
+    int *d_cond;
+    CHECK_CUDA(cudaMalloc(&d_cond, num_walker*sizeof(*d_cond)));
+    CHECK_CUDA(cudaMemset(d_cond, 0, num_walker*sizeof(*d_cond)));
+
+    int *d_indices;
+    CHECK_CUDA(cudaMalloc(&d_indices, num_walker*sizeof(*d_indices)));
+
     // lattice & interactions and energies
     signed char *d_lattice;
     CHECK_CUDA(cudaMalloc(&d_lattice, num_walker * L * L * sizeof(*d_lattice)));
-    CHECK_CUDA(cudaMemset(d_lattice, 1, num_walker * L * L * sizeof(*d_lattice)));
     
     signed char* d_interactions;
     CHECK_CUDA(cudaMalloc(&d_interactions, L * L * 2 * sizeof(*d_interactions)));
-    CHECK_CUDA(cudaMemset(d_interactions, 1, L * L * 2 * sizeof(*d_interactions)));
 
     int* d_energy;
     CHECK_CUDA(cudaMalloc(&d_energy, num_walker * sizeof(*d_energy)));
     
-    const int blocks_init = (L*L*2*num_walker + THREADS - 1)/THREADS;
+    const int blocks_init = (L*L*num_walker + THREADS - 1)/THREADS;
 
     init_lattice<<<blocks_init, THREADS>>>(d_lattice, L, L, num_walker, seed, prob_spins);
     
@@ -344,7 +417,35 @@ int main(int argc, char **argv){
     
     check_energy_ranges<<<num_intervals, threads_walker>>>(d_energy, d_start, d_end);
 
-    wang_landau<<<num_intervals, threads_walker>>>(d_lattice, d_interactions, d_energy, d_start, d_end, d_H, d_G, num_iterations, L, L, seed + 2, alpha, beta); // all seeds have to be different
+    init_offsets<<<num_intervals, threads_walker>>>(d_offset, d_start, d_end);
+    
+    init_indices<<<num_intervals, threads_walker>>>(d_indices);
+
+    int it = 0;
+    int min_value = 0;
+
+    //while (factor > std::exp(beta)){
+        // seeds anpassen
+    while(min_value == 0){
+        
+        wang_landau<<<num_intervals, threads_walker>>>(d_lattice, d_interactions, d_cond, d_energy, d_start, d_end, d_H, d_G, d_offset, num_iterations, L, L, seed + 2, factor, it);
+        
+        check_histogram<<<num_intervals, threads_walker>>>(d_H, d_offset, d_end, d_start, d_cond, L, L, alpha);
+
+        thrust::device_ptr<int> dev_ptr(d_cond);
+        thrust::device_ptr<int> min_ptr = thrust::min_element(dev_ptr, dev_ptr + num_walker);
+
+        min_value = *min_ptr;
+
+        replica_exchange<<<num_intervals, threads_walker>>>(d_offset, d_energy, d_start, d_end, d_indices, d_G, true, seed, it);
+        replica_exchange<<<num_intervals, threads_walker>>>(d_offset, d_energy, d_start, d_end, d_indices, d_G, false, seed, it);
+
+        it += 1;
+    }
+
+    cudaMemset(d_H, 0, len_histogram*sizeof(*d_H));
+
+    factor = sqrt(factor);
     
     cudaDeviceSynchronize();
 

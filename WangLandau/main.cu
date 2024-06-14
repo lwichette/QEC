@@ -10,6 +10,7 @@
 #include <tuple>
 #include <cmath>
 #include <algorithm>
+#include <unistd.h> // For Sleep
 
 #include "./header/cudamacro.h"
 
@@ -18,7 +19,7 @@ using namespace std;
 const unsigned int THREADS = 128;
 
 // Might be possible to do on GPU 
-std::tuple<std::vector<int>, std::vector<int>, int, int> generate_intervals(const int E_min, const int E_max, const int num_intervals, const int num_walker){
+std::tuple<std::vector<int>, std::vector<int>, long long, int> generate_intervals(const int E_min, const int E_max, const int num_intervals, const int num_walker){
     
     std::vector<int> h_start(num_intervals);
     std::vector<int> h_end(num_intervals);
@@ -30,7 +31,7 @@ std::tuple<std::vector<int>, std::vector<int>, int, int> generate_intervals(cons
 
     int start_interval = E_min;
 
-    int needed_space = 0;
+    long long needed_space = 0;
 
     for (int i = 0; i < num_intervals; i++){
         
@@ -153,19 +154,20 @@ __global__ void check_energy_ranges(int *d_energy, int *d_start, int *d_end){
     assert(check);
 }
 
-__device__ void fisher_yates(int *d_shuffle, int seed, int it){
+__device__ void fisher_yates(int *d_shuffle, int seed, int *d_iter){
     
     long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
     
     int offset = blockDim.x*blockIdx.x;
 
     curandStatePhilox4_32_10_t st;
-    curand_init(seed, tid, it, &st);
+    curand_init(seed, tid, d_iter[tid], &st);
     
     for (int i = blockDim.x - 1; i > 0; i--){
         double randval = curand_uniform(&st);
         randval *= (i + 0.999999);
         int random_index = (int)truncf(randval);
+        d_iter[tid] += 1;
 
         int temp = d_shuffle[offset + i];
         d_shuffle[offset + i] = d_shuffle[offset + random_index];
@@ -175,22 +177,24 @@ __device__ void fisher_yates(int *d_shuffle, int seed, int it){
 
 __global__ void replica_exchange(
     int *d_offsets, int *d_energy, int *d_start, int *d_end, int *d_indices, 
-    float* d_G, bool odd, int seed, int it_seed
+    float* d_G, bool even, int seed, int *d_iter
     ){
     
     long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
     
-    if ((blockIdx.x + 1) == (gridDim.x -1)){
+    // Check if last block
+    if (blockIdx.x == (gridDim.x -1)){
         return;
     }
     
-    long long cid = static_cast<long long>(blockDim.x)*blockIdx.x;
+    //change index
+    long long cid = static_cast<long long>(blockDim.x)*(blockIdx.x + 1);
 
     if (threadIdx.x == 0){
-        fisher_yates(d_indices, seed, it_seed);
+        fisher_yates(d_indices, seed, d_iter);
     }
 
-    if (odd){
+    if (even){
         if (blockIdx.x % 2 != 0) return;
     }
     else{
@@ -199,12 +203,17 @@ __global__ void replica_exchange(
     
     cid += d_indices[tid];
 
+    //Check energy ranges
+    if (d_energy[tid] > d_end[blockIdx.x+1] || d_energy[tid] < d_start[blockIdx.x + 1]) return;
+    if (d_energy[cid] > d_end[blockIdx.x] || d_energy[tid] < d_start[blockIdx.x]) return;
+
     double prob = min(1.0, d_G[d_energy[tid]]/d_G[d_energy[tid]]*d_G[d_energy[cid]]/d_G[d_energy[cid]]);
     
     curandStatePhilox4_32_10_t st;
-    curand_init(seed, tid, it_seed, &st);
+    curand_init(seed, tid, d_iter[tid], &st);
 
     if (curand_uniform(&st) < prob){
+        
         int temp_off = d_offsets[tid];
         int temp_energy = d_energy[tid];
 
@@ -213,6 +222,8 @@ __global__ void replica_exchange(
 
         d_offsets[cid] = temp_off;
         d_energy[cid] = temp_energy;
+        
+        d_iter[tid] += 1;
     }
 }
 
@@ -237,20 +248,18 @@ __global__ void check_histogram(int *d_H, int *d_offset, int *d_end, int* d_star
 }
 
 __global__ void wang_landau(
-    signed char *d_lattice, signed char *d_interactions, int *d_cond, int *d_energy, 
+    signed char *d_lattice, signed char *d_interactions, int *d_energy, 
     int *d_start, int *d_end, int *d_H, float *d_G, int *d_offset, const int num_iterations, 
-    const int nx, const int ny, const int seed, double factor, int it_seed
+    const int nx, const int ny, const int seed, double factor, int* d_iter
     ){
     
     long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
-    
-    if (d_cond[tid] != 0) return;
 
     int blockId = blockIdx.x;
     int offset_l = tid * nx * ny;
 
     curandStatePhilox4_32_10_t st;
-    curand_init(seed, tid, it_seed, &st);
+    curand_init(seed, tid, d_iter[tid], &st);
     
     for (int it = 0; it < num_iterations; it++){
         
@@ -258,6 +267,8 @@ __global__ void wang_landau(
         double randval = curand_uniform(&st);
         randval *= (nx*ny - 1 + 0.999999);
         int random_index = (int)truncf(randval);
+
+        d_iter[tid] += 1;
 
         int i = random_index/ny;
         int j = random_index % ny;
@@ -290,6 +301,8 @@ __global__ void wang_landau(
                 d_G[index_new] += log(factor);
 
                 d_energy[tid] = d_new_energy;
+
+                d_iter[tid] += 1;
             }
             else{
                 d_H[index_old] += 1;
@@ -337,23 +350,23 @@ __global__ void init_indices(int *d_indices){
 
 int main(int argc, char **argv){
     
-    const int seed = 43;
+    const int seed = 42;
 
-    const int num_iterations = 10;
+    const int num_iterations = 10000;
     
     const double alpha = 0.2; // condition for histogram
     const double beta = 0.4; //end condition for factor
     
-    double factor = std::exp(0);
+    double factor = std::exp(1);
 
     // lattice
-    const int L = 12;
+    const int L = 4;
 
     const float prob_interactions = 0; // prob of error
     const float prob_spins = 0.5; // prob of down spin
 
-    const int num_intervals = 3; // number of intervals
-    const int threads_walker = 4; // walkers per interval
+    const int num_intervals = 1; // number of intervals
+    const int threads_walker = 16; // walkers per interval
     const int num_walker = num_intervals*threads_walker; //number of all walkers
 
     // intervals
@@ -364,12 +377,8 @@ int main(int argc, char **argv){
     auto result = generate_intervals(E_min, E_max, num_intervals, num_walker);
     std::vector<int> h_start = std::get<0>(result);
     std::vector<int> h_end = std::get<1>(result);
-    int len_histogram = std::get<2>(result);
-    int len_interval = std::get<3>(result); // not sure if needed
-    
-    for (int i = 0; i < num_intervals; i++){
-        std::cout << h_start[i] << " " << h_end[i] << endl; 
-    }
+    long long len_histogram = std::get<2>(result);
+    long long len_interval = std::get<3>(result); // not sure if needed
 
     int *d_start, *d_end;
     CHECK_CUDA(cudaMalloc(&d_start, num_intervals*sizeof(*d_start)));
@@ -377,12 +386,12 @@ int main(int argc, char **argv){
 
     CHECK_CUDA(cudaMemcpy(d_start, h_start.data(), num_intervals*sizeof(*d_start), cudaMemcpyHostToDevice));
     CHECK_CUDA(cudaMemcpy(d_end, h_end.data(), num_intervals*sizeof(*d_start), cudaMemcpyHostToDevice));
-    
+
     // Histogramm and G array
     int *d_H; 
     CHECK_CUDA(cudaMalloc(&d_H, len_histogram * sizeof(*d_H)));
     CHECK_CUDA(cudaMemset(d_H, 0, len_histogram*sizeof(*d_H)));
-    
+
     float *d_G;
     CHECK_CUDA(cudaMalloc(&d_G, len_histogram * sizeof(*d_G)));
     CHECK_CUDA(cudaMemset(d_G, 0, len_histogram*sizeof(*d_G)));
@@ -396,6 +405,10 @@ int main(int argc, char **argv){
 
     int *d_indices;
     CHECK_CUDA(cudaMalloc(&d_indices, num_walker*sizeof(*d_indices)));
+
+    int *d_iter;
+    CHECK_CUDA(cudaMalloc(&d_iter, num_walker*sizeof(*d_iter)));
+    CHECK_CUDA(cudaMemset(d_iter, 0, num_walker*sizeof(*d_iter)));
 
     // lattice & interactions and energies
     signed char *d_lattice;
@@ -412,41 +425,52 @@ int main(int argc, char **argv){
     init_lattice<<<blocks_init, THREADS>>>(d_lattice, L, L, num_walker, seed, prob_spins);
     
     init_interactions<<<blocks_init, THREADS>>>(d_interactions, L, L, num_walker, seed + 1, prob_interactions); //use different seed
-
-    calc_energy<<<num_intervals, threads_walker>>>(d_lattice, d_interactions, d_energy, L, L, num_walker);    
     
+    calc_energy<<<num_intervals, threads_walker>>>(d_lattice, d_interactions, d_energy, L, L, num_walker);    
+
     check_energy_ranges<<<num_intervals, threads_walker>>>(d_energy, d_start, d_end);
 
     init_offsets<<<num_intervals, threads_walker>>>(d_offset, d_start, d_end);
     
     init_indices<<<num_intervals, threads_walker>>>(d_indices);
 
-    int it = 0;
-    int min_value = 0;
-
-    //while (factor > std::exp(beta)){
-        // seeds anpassen
-    while(min_value == 0){
+    while (factor > std::exp(beta)){
         
-        wang_landau<<<num_intervals, threads_walker>>>(d_lattice, d_interactions, d_cond, d_energy, d_start, d_end, d_H, d_G, d_offset, num_iterations, L, L, seed + 2, factor, it);
+        int min_value = 0;
         
-        check_histogram<<<num_intervals, threads_walker>>>(d_H, d_offset, d_end, d_start, d_cond, L, L, alpha);
+        while(min_value == 0){  
 
-        thrust::device_ptr<int> dev_ptr(d_cond);
-        thrust::device_ptr<int> min_ptr = thrust::min_element(dev_ptr, dev_ptr + num_walker);
+            cudaMemset(d_cond, 0, num_walker*sizeof(*d_cond));
 
-        min_value = *min_ptr;
+            wang_landau<<<num_intervals, threads_walker>>>(d_lattice, d_interactions, d_energy, d_start, d_end, d_H, d_G, d_offset, num_iterations, L, L, seed + 2, factor, d_iter);
+            
+            std::vector<int> h_histogram(len_histogram);
+            
+            CHECK_CUDA(cudaMemcpy(h_histogram.data(), d_H, len_histogram*sizeof(*d_H), cudaMemcpyDeviceToHost));
 
-        replica_exchange<<<num_intervals, threads_walker>>>(d_offset, d_energy, d_start, d_end, d_indices, d_G, true, seed, it);
-        replica_exchange<<<num_intervals, threads_walker>>>(d_offset, d_energy, d_start, d_end, d_indices, d_G, false, seed, it);
+            for (int i=0; i < len_histogram; i++){
+                std::cout << h_histogram[i] << endl;
+            }
 
-        it += 1;
+            check_histogram<<<num_intervals, threads_walker>>>(d_H, d_offset, d_end, d_start, d_cond, L, L, alpha);
+
+            cudaDeviceSynchronize();
+
+            thrust::device_ptr<int> dev_ptr(d_cond);
+            thrust::device_ptr<int> min_ptr = thrust::min_element(dev_ptr, dev_ptr + num_walker);
+
+            min_value = *min_ptr;
+
+            replica_exchange<<<num_intervals, threads_walker>>>(d_offset, d_energy, d_start, d_end, d_indices, d_G, true, seed + 2, d_iter);
+
+            replica_exchange<<<num_intervals, threads_walker>>>(d_offset, d_energy, d_start, d_end, d_indices, d_G, false, seed + 2, d_iter);
+        }
+
+        cudaMemset(d_H, 0, len_histogram*sizeof(*d_H));
+        
+        factor = sqrt(factor);
     }
-
-    cudaMemset(d_H, 0, len_histogram*sizeof(*d_H));
-
-    factor = sqrt(factor);
-    
+        
     cudaDeviceSynchronize();
 
     return 0;

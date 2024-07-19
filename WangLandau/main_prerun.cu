@@ -9,6 +9,7 @@
 #include <thrust/device_ptr.h>
 #include <tuple>
 #include <cmath>
+//#include <math.h>     
 #include <algorithm>
 #include <unistd.h> // For Sleep
 
@@ -27,8 +28,6 @@ std::tuple<std::vector<int>, std::vector<int>, long long, int> generate_interval
     const int E_range = E_max - E_min + 1;
     const int len_interval = E_range / (1.0f + 0.25*(num_intervals - 1)); //Interval length
     const int step_size = 0.25 * len_interval;
-
-    std::cout << len_interval << endl;
 
     int start_interval = E_min;
 
@@ -173,7 +172,7 @@ __device__ void fisher_yates(int *d_shuffle, int seed, int *d_iter){
 
 __global__ void replica_exchange(
     int *d_offset_lattice, int *d_energy, int *d_start, int *d_end, int *d_indices, 
-    float* d_G, bool even, int seed, int *d_iter
+    float* d_logG, bool even, int seed, int *d_iter
     ){
     
     long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
@@ -205,7 +204,7 @@ __global__ void replica_exchange(
     if (d_energy[tid] > d_end[blockIdx.x+1] || d_energy[tid] < d_start[blockIdx.x + 1]) return;
     if (d_energy[cid] > d_end[blockIdx.x] || d_energy[tid] < d_start[blockIdx.x]) return;
 
-    double prob = min(1.0, d_G[d_energy[tid]]/d_G[d_energy[tid]]*d_G[d_energy[cid]]/d_G[d_energy[cid]]);
+    double prob = min(1.0, d_logG[d_energy[tid]]/d_logG[d_energy[tid]]*d_logG[d_energy[cid]]/d_logG[d_energy[cid]]);
     
     curandStatePhilox4_32_10_t st;
     curand_init(seed, tid, d_iter[tid], &st);
@@ -225,19 +224,19 @@ __global__ void replica_exchange(
     }
 }
 
-__global__ void check_histogram(int *d_H, int *d_offset, int *d_end, int* d_start, int* d_cond, int nx, int ny, double alpha){
+__global__ void check_histogram(int *d_H, int *d_offset_histogramm, int *d_end, int* d_start, int* d_cond, int nx, int ny, double alpha){
     
     long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
 
-    int min = d_H[d_offset[tid]];
+    int min = d_H[d_offset_histogramm[tid]];
 
     double average = 0;
 
     for (int i = 0; i < (d_end[blockIdx.x] - d_start[blockIdx.x] + 1); i++){
-        if (d_H[d_offset[tid] + i] < min){
-            min = d_H[d_offset[tid] + i];
+        if (d_H[d_offset_histogramm[tid] + i] < min){
+            min = d_H[d_offset_histogramm[tid] + i];
         }
-        average += d_H[d_offset[tid] + i];
+        average += d_H[d_offset_histogramm[tid] + i];
     }
 
     average = average/(d_end[blockIdx.x] - d_start[blockIdx.x] + 1);
@@ -249,7 +248,7 @@ __global__ void check_histogram(int *d_H, int *d_offset, int *d_end, int* d_star
 
 __global__ void wang_landau(
     signed char *d_lattice, signed char *d_interactions, int *d_energy, 
-    int *d_start, int *d_end, int *d_H, float *d_G, int *d_offset, int *d_offset_lattice, const int num_iterations, 
+    int *d_start, int *d_end, int *d_H, float *d_logG, int *d_offset_histogramm, int *d_offset_lattice, const int num_iterations, 
     const int nx, const int ny, const int seed, double factor, int* d_iter
     ){
     
@@ -284,23 +283,23 @@ __global__ void wang_landau(
 
         int d_new_energy = d_energy[tid] + energy_diff; 
         
-        int index_old = d_offset[tid] + d_energy[tid] - d_start[blockId];
+        int index_old = d_offset_histogramm[tid] + d_energy[tid] - d_start[blockId];
         
         if (d_new_energy > d_end[blockId] || d_new_energy < d_start[blockId]){
             d_H[index_old] += 1;
-            d_G[index_old] += log(factor);
+            d_logG[index_old] += log(factor);
         }
         else{
             
-            int index_new = d_offset[tid] + d_new_energy - d_start[blockId];
+            int index_new = d_offset_histogramm[tid] + d_new_energy - d_start[blockId];
 
-            float prob = min(1.0f, d_G[index_old]/d_G[index_new]);
+            float prob = exp(d_logG[index_old] - d_logG[index_new]);
 
             if(curand_uniform(&st) < prob){
-                //d_lattice[d_offset_lattice[tid] + i*ny +j] *= -1;
+                d_lattice[d_offset_lattice[tid] + i*ny +j] *= -1;
 
                 d_H[index_new] += 1;
-                d_G[index_new] += log(factor);
+                d_logG[index_new] += log(factor);
 
                 d_energy[tid] = d_new_energy;
 
@@ -308,7 +307,7 @@ __global__ void wang_landau(
             }
             else{
                 d_H[index_old] += 1;
-                d_G[index_old] += log(factor);
+                d_logG[index_old] += log(factor);
             }
         }
     }
@@ -330,16 +329,16 @@ void read(std::vector<signed char>& lattice, std::string filename){
     }
 }
 
-__global__ void init_offsets(int *d_offset, int *d_start, int *d_end){
+__global__ void init_offsets_histogramm(int *d_offset_histogramm, int *d_start, int *d_end){
 
     long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
 
     // Length of interval equal except last one --> length of array is given by num_threads_per_block * (length of interval + length of last interval)  
     if (blockIdx.x == gridDim.x - 1){ 
-        d_offset[tid] = (gridDim.x - 1)*blockDim.x*(d_end[0] - d_start[0] + 1) + threadIdx.x*(d_end[gridDim.x - 1] - d_start[gridDim.x - 1] + 1);
+        d_offset_histogramm[tid] = (gridDim.x - 1)*blockDim.x*(d_end[0] - d_start[0] + 1) + threadIdx.x*(d_end[gridDim.x - 1] - d_start[gridDim.x - 1] + 1);
     }
     else{
-        d_offset[tid] = tid * (d_end[0] - d_start[0] + 1);    
+        d_offset_histogramm[tid] = tid * (d_end[0] - d_start[0] + 1);    
     }
 }
 
@@ -359,7 +358,7 @@ __global__ void init_indices(int *d_indices){
 
 int main(int argc, char **argv){
 
-    const int pre_run_duration = 1;
+    const int pre_run_duration = 1000;
     
     const int seed = 42;
 
@@ -374,10 +373,10 @@ int main(int argc, char **argv){
     const int L = 4;
 
     const float prob_interactions = 0; // prob of error
-    const float prob_spins = 0.5; // prob of down spin
+    const float prob_spins = 0; // prob of down spin
 
     const int num_intervals = 1; // number of intervals
-    const int threads_walker = 1; // walkers per interval
+    const int threads_walker = 16; // walkers per interval
     const int num_walker = num_intervals*threads_walker; //number of all walkers
 
     // intervals
@@ -391,8 +390,6 @@ int main(int argc, char **argv){
     long long len_histogram = std::get<2>(result);
     long long len_interval = std::get<3>(result); // not sure if needed
 
-    std::cout << len_histogram << endl;
-
     int *d_start, *d_end;
     CHECK_CUDA(cudaMalloc(&d_start, num_intervals*sizeof(*d_start)));
     CHECK_CUDA(cudaMalloc(&d_end, num_intervals*sizeof(*d_end)));
@@ -405,12 +402,12 @@ int main(int argc, char **argv){
     CHECK_CUDA(cudaMalloc(&d_H, len_histogram * sizeof(*d_H)));
     CHECK_CUDA(cudaMemset(d_H, 0, len_histogram*sizeof(*d_H)));
 
-    float *d_G;
-    CHECK_CUDA(cudaMalloc(&d_G, len_histogram * sizeof(*d_G)));
-    CHECK_CUDA(cudaMemset(d_G, 0, len_histogram*sizeof(*d_G)));
+    float *d_logG;
+    CHECK_CUDA(cudaMalloc(&d_logG, len_histogram * sizeof(*d_logG)));
+    CHECK_CUDA(cudaMemset(d_logG, 0, len_histogram*sizeof(*d_logG)));
 
-    int *d_offset;
-    CHECK_CUDA(cudaMalloc(&d_offset, num_walker*sizeof(*d_offset)));
+    int *d_offset_histogramm;
+    CHECK_CUDA(cudaMalloc(&d_offset_histogramm, num_walker*sizeof(*d_offset_histogramm)));
 
     int *d_offset_lattice;
     CHECK_CUDA(cudaMalloc(&d_offset_lattice, num_walker*sizeof(*d_offset_lattice)));
@@ -448,17 +445,17 @@ int main(int argc, char **argv){
 
     check_energy_ranges<<<num_intervals, threads_walker>>>(d_energy, d_start, d_end);
 
-    init_offsets<<<num_intervals, threads_walker>>>(d_offset, d_start, d_end);
+    init_offsets_histogramm<<<num_intervals, threads_walker>>>(d_offset_histogramm, d_start, d_end);
     
     init_indices<<<num_intervals, threads_walker>>>(d_indices);
 
     for (int i=0; i < pre_run_duration; i++){
 
-        wang_landau<<<num_intervals, threads_walker>>>(d_lattice, d_interactions, d_energy, d_start, d_end, d_H, d_G, d_offset, d_offset_lattice, num_iterations, L, L, seed + 2, factor, d_iter);
+        wang_landau<<<num_intervals, threads_walker>>>(d_lattice, d_interactions, d_energy, d_start, d_end, d_H, d_logG, d_offset_histogramm, d_offset_lattice, num_iterations, L, L, seed + 2, factor, d_iter);
 
-        replica_exchange<<<num_intervals, threads_walker>>>(d_offset_lattice, d_energy, d_start, d_end, d_indices, d_G, true, seed + 2, d_iter);
+        replica_exchange<<<num_intervals, threads_walker>>>(d_offset_lattice, d_energy, d_start, d_end, d_indices, d_logG, true, seed + 2, d_iter);
 
-        replica_exchange<<<num_intervals, threads_walker>>>(d_offset_lattice, d_energy, d_start, d_end, d_indices, d_G, false, seed + 2, d_iter);
+        replica_exchange<<<num_intervals, threads_walker>>>(d_offset_lattice, d_energy, d_start, d_end, d_indices, d_logG, false, seed + 2, d_iter);
     }
 
     std::vector<int> h_histogram(len_histogram);

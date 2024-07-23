@@ -590,17 +590,16 @@ void handleNewEnergyError(int *new_energies, int *new_energies_flag, char *histo
 
 int main(int argc, char **argv)
 {
-
     // General parameter which stay regularly unchanged
     const int seed = 42;
-    const int num_iterations = 1000; // iteration count after which flattness gets checked and replica exchange executed
-    const double alpha = 0.8;        // condition for histogram
-    const double beta = 0.1;         // end condition for factor
+    const int num_iterations = 10000; // iteration count after which flattness gets checked and replica exchange executed
+    const double alpha = 0.85;        // condition for histogram
+    const double beta = 0.05;         // end condition for factor
 
     // Model parameter
     const int L = 4;
-    const float prob_interactions = 0; // prob of error
-    const float prob_spins = 0.4;      // prob of down spin
+    const float prob_interactions = 0.1; // prob of error
+    const float prob_spins = 0.4;        // prob of down spin
 
     // Input args parsing
     Options options;

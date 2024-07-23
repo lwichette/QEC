@@ -734,8 +734,10 @@ int main(int argc, char **argv)
     };
 
     std::vector<int> h_histogram_per_walker(interval_result.len_histogram_over_all_walkers);
-
     CHECK_CUDA(cudaMemcpy(h_histogram_per_walker.data(), d_H, interval_result.len_histogram_over_all_walkers * sizeof(*d_H), cudaMemcpyDeviceToHost));
+
+    std::vector<float> h_log_density_per_walker(interval_result.len_histogram_over_all_walkers);
+    CHECK_CUDA(cudaMemcpy(h_log_density_per_walker.data(), d_logG, interval_result.len_histogram_over_all_walkers * sizeof(*d_logG), cudaMemcpyDeviceToHost));
 
     std::vector<int> energies_histogram;
 
@@ -755,18 +757,31 @@ int main(int argc, char **argv)
         }
     }
 
-    std::ofstream f;
-    f.open("histogramm_afterRun.txt");
+    std::ofstream f_hist;
+    f_hist.open("histogramm_afterRun.txt");
 
-    if (f.is_open())
+    if (f_hist.is_open())
     {
         for (int i = 0; i < interval_result.len_histogram_over_all_walkers; i++)
         {
-            f << (int)energies_histogram[i] << " : " << (int)h_histogram_per_walker[i];
-            f << std::endl;
+            f_hist << (int)energies_histogram[i] << " : " << (int)h_histogram_per_walker[i];
+            f_hist << std::endl;
         }
     }
-    f.close();
+    f_hist.close();
+
+    std::ofstream f_log_density;
+    f_log_density.open("log_density_afterRun.txt");
+
+    if (f_log_density.is_open())
+    {
+        for (int i = 0; i < interval_result.len_histogram_over_all_walkers; i++)
+        {
+            f_log_density << (int)energies_histogram[i] << " : " << (float)h_log_density_per_walker[i];
+            f_log_density << std::endl;
+        }
+    }
+    f_log_density.close();
 
     return 0;
 }

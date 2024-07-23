@@ -7,8 +7,8 @@ LBOOSTFLAGS=-lboost_program_options
 
 all: output
 
-output: main_prerun.cu
-	$(CUDACC) $(NVCC_FLAGS) main_prerun.cu -o wl $(LDFLAGS) $(LBOOSTFLAGS)
+output: main_WL.cu
+	$(CUDACC) $(NVCC_FLAGS) main_WL.cu -o wl $(LDFLAGS) $(LBOOSTFLAGS)
 
 clean:
 	rm -f wl

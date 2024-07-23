@@ -588,6 +588,13 @@ void handleNewEnergyError(int *new_energies, int *new_energies_flag, char *histo
     outfile.close();
 }
 
+/*
+To Do:
+    - still the read and write of interactions such that we initialize each WL run with a specific histogram and interaction data
+    - Concatenation of energy density results
+    - unit distributions of log energy density results -> still a problem somewhere as only expected for first factor iteration?
+*/
+
 int main(int argc, char **argv)
 {
     // General parameter which stay regularly unchanged
@@ -782,6 +789,8 @@ int main(int argc, char **argv)
         }
     }
     f_log_density.close();
+
+    // Here may go this concat function from the OWL repo to join normalized versions of the energy densities and may want to dump this instead of the raw version?
 
     return 0;
 }

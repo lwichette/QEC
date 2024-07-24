@@ -109,7 +109,7 @@ int read_histogram(const char *filename, std::vector<int> &nonNullBins, int *E_m
     // Use a set to keep track of unique bins
     std::set<int> uniqueBins;
 
-    while (fscanf(file, "%d : %d", &value, &count) != EOF)
+    while (fscanf(file, "%d %d", &value, &count) != EOF)
     {
         if (count > 0)
         {
@@ -398,7 +398,6 @@ __global__ void check_histogram(int *d_H, int *d_offset_histogramm, int *d_end, 
         // Here is average and min calculation over all bins in histogram which correspond to values in expected energy spectrum
         for (int i = 0; i < (d_end[blockId] - d_start[blockId] + 1); i++) // index range for full histogram on thread
         {
-            bool found_energy_flag = false;
             for (int j = 0; j < len_energy_spectrum; j++) // index range for expected energy spectrum
             {
                 if (d_start[blockId] + i == expected_energy_spectrum[j])
@@ -409,10 +408,6 @@ __global__ void check_histogram(int *d_H, int *d_offset_histogramm, int *d_end, 
                     }
                     average += d_H[d_offset_histogramm[tid] + i];
                     len_reduced_energy_spectrum++;
-                    found_energy_flag = true;
-                }
-                if (found_energy_flag)
-                {
                     break;
                 }
             }
@@ -445,7 +440,10 @@ __global__ void wang_landau(
     int blockId = blockIdx.x;
 
     if (tid >= num_lattices || factor[tid] <= std::exp(beta)) // for each walker single thread and walker with minimal factor shall stop
+    {
+        printf("factor %.6f\n", factor[tid]);
         return;
+    }
 
     curandStatePhilox4_32_10_t st;
     curand_init(seed, tid, d_iter[tid], &st);
@@ -483,12 +481,14 @@ __global__ void wang_landau(
             if (d_new_energy == d_nonNullEnergies[i])
             {
                 foundFlag[tid] = 0;
-            }
-            if (foundFlag[tid] == 0)
-            {
+                // if (d_new_energy == -8)
+                // {
+                //     printf("%d \n", d_nonNullEnergies[i]);
+                // }
                 break;
             }
         }
+
         if (foundFlag[tid] != 0)
         {
             d_newEnergies[tid] = d_new_energy;
@@ -573,7 +573,7 @@ void handleNewEnergyError(int *new_energies, int *new_energies_flag, char *histo
             int new_energy = new_energies[walker_idx];
 
             // Write the new energy to the histogram file
-            outfile << new_energy << " : 1" << std::endl;
+            outfile << new_energy << " 1" << std::endl;
         }
     }
 
@@ -654,19 +654,19 @@ int main(int argc, char **argv)
     const int seed = 42;
     const int num_iterations = 10000; // iteration count after which flattness gets checked and replica exchange executed
     const double alpha = 0.85;        // condition for histogram
-    const double beta = 0.05;         // end condition for factor
+    const double beta = 0.00001;      // end condition for factor
 
     // Model parameter
     const int L = 4;
-    const float prob_interactions = 0.1; // prob of error
-    const float prob_spins = 0.4;        // prob of down spin
+    const float prob_interactions = 0; // prob of error
+    const float prob_spins = 0.4;      // prob of down spin
 
     // Input args parsing
     Options options;
     parse_args(argc, argv, &options, L);
     std::vector<int> nonNullEnergies;
 
-    char *histogram_file = constructHistogramFilePath(prob_interactions, L, L, seed, 100000000);
+    char *histogram_file = constructHistogramFilePath(prob_interactions, L, L, seed, 1000000);
 
     if (read_histogram(histogram_file, nonNullEnergies, &options.E_min, &options.E_max) != 0)
     {
@@ -766,12 +766,6 @@ int main(int argc, char **argv)
         // execute wang landau updates with given number of iterations
         wang_landau<<<options.num_intervals, options.walker_per_interval>>>(d_lattice, d_interactions, d_energy, d_start, d_end, d_H, d_logG, d_offset_histogramm, d_offset_lattice, num_iterations, L, L, seed + 3, d_factor, d_iter, d_nonNullEnergies, d_newEnergies, d_foundNewEnergyFlag, num_walker_total, beta, len_energy_spectrum);
 
-        // get max factor over walkers for abort condition of while loop
-        cudaDeviceSynchronize();
-        thrust::device_ptr<float> d_factor_ptr(d_factor);
-        thrust::device_ptr<float> max_factor_ptr = thrust::max_element(d_factor_ptr, d_factor_ptr + num_walker_total);
-        max_factor = *max_factor_ptr;
-
         // get max of found new energy flag array to condition break and update the histogramm file with value in new energy array
         thrust::device_ptr<int> d_newEnergyFlag_ptr(d_foundNewEnergyFlag);
         thrust::device_ptr<int> max_newEnergyFlag_ptr = thrust::max_element(d_newEnergyFlag_ptr, d_newEnergyFlag_ptr + num_walker_total);
@@ -791,6 +785,12 @@ int main(int argc, char **argv)
 
         // check flatness of histogram
         check_histogram<<<options.num_intervals, options.walker_per_interval>>>(d_H, d_offset_histogramm, d_end, d_start, d_factor, L, L, alpha, d_nonNullEnergies, len_energy_spectrum, num_walker_total);
+
+        // get max factor over walkers for abort condition of while loop
+        cudaDeviceSynchronize();
+        thrust::device_ptr<float> d_factor_ptr(d_factor);
+        thrust::device_ptr<float> max_factor_ptr = thrust::max_element(d_factor_ptr, d_factor_ptr + num_walker_total);
+        max_factor = *max_factor_ptr;
 
         replica_exchange<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, d_energy, d_start, d_end, d_indices, d_logG, true, seed + 4, d_iter);
         replica_exchange<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, d_energy, d_start, d_end, d_indices, d_logG, false, seed + 5, d_iter);

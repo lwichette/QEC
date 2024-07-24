@@ -5,6 +5,10 @@
 #include <cuda_runtime.h>
 #include <getopt.h>
 #include <vector>
+#include <iostream>
+#include <string>
+#include <sstream>
+#include <iomanip> // For setting precision
 #include <thread>
 #include <thrust/reduce.h>
 #include <thrust/device_ptr.h>
@@ -13,6 +17,7 @@
 #include <algorithm>
 #include <unistd.h> // For Sleep
 #include "./header/cudamacro.h"
+#include <chrono> // For timing
 
 const unsigned int THREADS = 128;
 
@@ -31,7 +36,6 @@ typedef struct
     int num_intervals;
     int walker_per_interval;
     float overlap_decimal;
-    char *histogram_file;
     int num_iterations;
 } Options;
 
@@ -40,7 +44,6 @@ void parse_args(int argc, char *argv[], Options *options, int L)
     // overlap decimal is more like the reciprocal non overlap parameter here, i.e. 0 as overlap_decimal is full overlap of intervals.
 
     int opt;
-    options->histogram_file = NULL;
     options->walker_per_interval = 10; // Default value for num_walker
     options->overlap_decimal = 0.25;   // 75% overlap of neighboring intervals as default overlap
     options->E_min = -2 * L * L;
@@ -56,11 +59,10 @@ void parse_args(int argc, char *argv[], Options *options, int L)
             {"Emax", 1, 0, 'M'},
             {"num_intervals", 1, 0, 'i'},
             {"walker_per_interval", 1, 0, 'w'},
-            {"histogram_file", 1, 0, 'f'},
             {"overlap_decimal", 1, 0, 'o'},
             {"num_iterations", 1, 0, 'r'},
             {0, 0, 0, 0}};
-        opt = getopt_long(argc, argv, "m:M:i:w:f:o:r:", long_options, &option_index);
+        opt = getopt_long(argc, argv, "m:M:i:w:o:r:", long_options, &option_index);
         if (opt == -1)
             break;
         switch (opt)
@@ -77,9 +79,6 @@ void parse_args(int argc, char *argv[], Options *options, int L)
         case 'w':
             options->walker_per_interval = std::atoi(optarg);
             break;
-        case 'f':
-            options->histogram_file = optarg;
-            break;
         case 'o':
             options->overlap_decimal = std::atof(optarg);
             break;
@@ -87,15 +86,9 @@ void parse_args(int argc, char *argv[], Options *options, int L)
             options->num_iterations = std::atoi(optarg);
             break;
         default:
-            fprintf(stderr, "Usage: %s [-i num_intervals] [-m E_min] [-M E_max] [-w walker_per_interval] [-f histogram_file] [-o overlap_decimal] [-r num_iterations]\n", argv[0]);
+            fprintf(stderr, "Usage: %s [-i num_intervals] [-m E_min] [-M E_max] [-w walker_per_interval] [-o overlap_decimal] [-r num_iterations]\n", argv[0]);
             exit(EXIT_FAILURE);
         }
-    }
-
-    if (!options->histogram_file)
-    {
-        fprintf(stderr, "No histogram file is given and default E_min E_max were assigned.\n");
-        ;
     }
 }
 
@@ -588,6 +581,44 @@ void handleNewEnergyError(int *new_energies, int *new_energies_flag, char *histo
     outfile.close();
 }
 
+char *constructHistogramFilePath(float prob_interactions, int X, int Y, int seed, int num_iterations)
+{
+    std::stringstream strstr;
+
+    strstr << "histograms/prob_";
+    strstr << std::fixed << std::setprecision(6) << prob_interactions;
+    strstr << "/X_" << X << "_Y_" << Y;
+    strstr << "/histogram_seed_" << seed << "_ni_" << num_iterations << ".txt";
+
+    // Convert the stringstream to a string
+    std::string filePathStr = strstr.str();
+
+    // Allocate memory for the char* result and copy the string data to it
+    char *filePathCStr = new char[filePathStr.length() + 1];
+    std::strcpy(filePathCStr, filePathStr.c_str());
+
+    return filePathCStr;
+}
+
+char *constructInteractionFilePath(float prob_interactions, int X, int Y, int seed)
+{
+    std::stringstream strstr;
+
+    strstr << "interactions/prob_";
+    strstr << std::fixed << std::setprecision(6) << prob_interactions;
+    strstr << "/X_" << X << "_Y_" << Y;
+    strstr << "/histogram_seed_" << seed << ".txt";
+
+    // Convert the stringstream to a string
+    std::string filePathStr = strstr.str();
+
+    // Allocate memory for the char* result and copy the string data to it
+    char *filePathCStr = new char[filePathStr.length() + 1];
+    std::strcpy(filePathCStr, filePathStr.c_str());
+
+    return filePathCStr;
+}
+
 /*
 To Do:
     - still the read and write of interactions such that we initialize each WL run with a specific histogram and interaction data
@@ -597,6 +628,9 @@ To Do:
 
 int main(int argc, char **argv)
 {
+    // Start timing
+    auto start = std::chrono::high_resolution_clock::now();
+
     // General parameter which stay regularly unchanged
     const int seed = 42;
     const int num_iterations = 10000; // iteration count after which flattness gets checked and replica exchange executed
@@ -613,14 +647,14 @@ int main(int argc, char **argv)
     parse_args(argc, argv, &options, L);
     std::vector<int> nonNullEnergies;
 
-    if (options.histogram_file)
+    char *histogram_file = constructHistogramFilePath(prob_interactions, L, L, seed, 100000000);
+
+    if (read_histogram(histogram_file, nonNullEnergies, &options.E_min, &options.E_max) != 0)
     {
-        if (read_histogram(options.histogram_file, nonNullEnergies, &options.E_min, &options.E_max) != 0)
-        {
-            fprintf(stderr, "Error reading histogram file.\n");
-            return 1;
-        }
+        fprintf(stderr, "Error reading histogram file.\n");
+        return 1;
     }
+
     int len_energy_spectrum = nonNullEnergies.size();
     int num_walker_total = options.num_intervals * options.walker_per_interval;
 
@@ -689,22 +723,24 @@ int main(int argc, char **argv)
     CHECK_CUDA(cudaMalloc(&d_foundNewEnergyFlag, num_walker_total * sizeof(int)));
 
     const int blocks_init = (L * L * num_walker_total + THREADS - 1) / THREADS; // why this as basic block count as per spin a thread only needed in init, or?
-
     init_lattice<<<blocks_init, THREADS>>>(d_lattice, L, L, num_walker_total, seed, prob_spins);
+    char *interaction_file = constructInteractionFilePath(prob_interactions, L, L, seed);
+    std::cout << interaction_file << std::endl;
     init_interactions<<<blocks_init, THREADS>>>(d_interactions, L, L, num_walker_total, seed + 1, prob_interactions);
     init_offsets_lattice<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, L, L);
     init_offsets_histogramm<<<options.num_intervals, options.walker_per_interval>>>(d_offset_histogramm, d_start, d_end);
     calc_energy<<<options.num_intervals, options.walker_per_interval>>>(d_lattice, d_interactions, d_energy, d_offset_lattice, L, L, num_walker_total);
-
     find_spin_config_in_energy_range<<<(num_walker_total + options.walker_per_interval - 1) / options.walker_per_interval, options.walker_per_interval>>>(d_lattice, d_interactions, L, L, num_walker_total, seed + 2, d_start, d_end, d_energy, d_offset_lattice);
-
     check_energy_ranges<<<options.num_intervals, options.walker_per_interval>>>(d_energy, d_start, d_end);
-
     init_indices<<<options.num_intervals, options.walker_per_interval>>>(d_indices); // for replica exchange
+
+    // Stop timing
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = end - start;
+    std::cout << "Execution time before Wang Landau has started: " << elapsed.count() << " seconds" << std::endl;
 
     float max_factor = std::exp(1);
     int max_newEnergyFlag = 0;
-
     while (max_factor > std::exp(beta))
     {
         // execute wang landau updates with given number of iterations
@@ -729,7 +765,7 @@ int main(int argc, char **argv)
             CHECK_CUDA(cudaMemcpy(h_newEnergies, d_newEnergies, num_walker_total * sizeof(int), cudaMemcpyDeviceToHost));
             CHECK_CUDA(cudaMemcpy(h_newEnergyFlag, d_foundNewEnergyFlag, num_walker_total * sizeof(int), cudaMemcpyDeviceToHost));
 
-            handleNewEnergyError(h_newEnergies, h_newEnergyFlag, options.histogram_file, num_walker_total);
+            handleNewEnergyError(h_newEnergies, h_newEnergyFlag, histogram_file, num_walker_total);
             return 1;
         }
 
@@ -790,7 +826,7 @@ int main(int argc, char **argv)
     }
     f_log_density.close();
 
-    // Here may go this concat function from the OWL repo to join normalized versions of the energy densities and may want to dump this instead of the raw version?
+    // Here may go this concat function from the paper to join normalized versions of the energy densities and may want to dump this instead of the raw version?
 
     return 0;
 }

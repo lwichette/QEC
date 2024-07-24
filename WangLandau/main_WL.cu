@@ -648,7 +648,7 @@ int main(int argc, char **argv)
     // General parameter which stay regularly unchanged
     const int seed = 42;
     const int num_iterations = 10000; // iteration count after which flattness gets checked and replica exchange executed
-    const double alpha = 0.85;        // condition for histogram
+    const double alpha = 0.8;         // condition for histogram
     const double beta = 0.00001;      // end condition for factor
 
     // Model parameter
@@ -835,7 +835,7 @@ int main(int argc, char **argv)
     {
         for (int i = 0; i < interval_result.len_histogram_over_all_walkers; i++)
         {
-            f_log_density << (int)energies_histogram[i] << " : " << (float)h_log_density_per_walker[i];
+            f_log_density << (int)energies_histogram[i] << " " << (float)std::exp(h_log_density_per_walker[i] - 1330);
             f_log_density << std::endl;
         }
     }

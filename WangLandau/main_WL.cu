@@ -441,7 +441,6 @@ __global__ void wang_landau(
 
     if (tid >= num_lattices || factor[tid] <= std::exp(beta)) // for each walker single thread and walker with minimal factor shall stop
     {
-        printf("factor %.6f\n", factor[tid]);
         return;
     }
 
@@ -481,10 +480,6 @@ __global__ void wang_landau(
             if (d_new_energy == d_nonNullEnergies[i])
             {
                 foundFlag[tid] = 0;
-                // if (d_new_energy == -8)
-                // {
-                //     printf("%d \n", d_nonNullEnergies[i]);
-                // }
                 break;
             }
         }

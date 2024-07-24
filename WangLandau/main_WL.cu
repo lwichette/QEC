@@ -638,7 +638,8 @@ To Do:
     - still the read and write of interactions such that we initialize each WL run with a specific histogram and interaction data
     - New energies smarter way to update histogram
     - Concatenation of energy density results
-    - unit distributions of log energy density results -> still a problem somewhere as only expected for first factor iteration?
+    - initialization of spin configs unit distributed
+    - results storen und normieren
 */
 
 int main(int argc, char **argv)
@@ -816,19 +817,6 @@ int main(int argc, char **argv)
         }
     }
 
-    std::ofstream f_hist;
-    f_hist.open("histogramm_afterRun.txt");
-
-    if (f_hist.is_open())
-    {
-        for (int i = 0; i < interval_result.len_histogram_over_all_walkers; i++)
-        {
-            f_hist << (int)energies_histogram[i] << " : " << (int)h_histogram_per_walker[i];
-            f_hist << std::endl;
-        }
-    }
-    f_hist.close();
-
     std::ofstream f_log_density;
     f_log_density.open("log_density_afterRun.txt");
 
@@ -841,8 +829,6 @@ int main(int argc, char **argv)
         }
     }
     f_log_density.close();
-
-    // Here may go this concat function from the paper to join normalized versions of the energy densities and may want to dump this instead of the raw version?
 
     return 0;
 }

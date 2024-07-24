@@ -636,6 +636,7 @@ void read(std::vector<signed char> &lattice, std::string filename)
 /*
 To Do:
     - still the read and write of interactions such that we initialize each WL run with a specific histogram and interaction data
+    - New energies smarter way to update histogram
     - Concatenation of energy density results
     - unit distributions of log energy density results -> still a problem somewhere as only expected for first factor iteration?
 */

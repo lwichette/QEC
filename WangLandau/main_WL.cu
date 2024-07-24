@@ -822,7 +822,7 @@ int main(int argc, char **argv)
     {
         for (int i = 0; i < interval_result.len_histogram_over_all_walkers; i++)
         {
-            f_log_density << (int)energies_histogram[i] << " " << (float)std::exp(h_log_density_per_walker[i] - 127);
+            f_log_density << (int)energies_histogram[i] << " " << (float)h_log_density_per_walker[i];
             f_log_density << std::endl;
         }
     }

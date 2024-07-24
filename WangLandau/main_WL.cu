@@ -106,9 +106,7 @@ int read_histogram(const char *filename, std::vector<int> &nonNullBins, int *E_m
     int value, count;
     nonNullBins.clear();
 
-    // Use a set to keep track of unique bins
-    std::set<int> uniqueBins;
-
+    int start_writing_zeros = 0;
     while (fscanf(file, "%d %d", &value, &count) != EOF)
     {
         if (count > 0)
@@ -117,11 +115,13 @@ int read_histogram(const char *filename, std::vector<int> &nonNullBins, int *E_m
                 *E_min = value;
             if (value > *E_max)
                 *E_max = value;
-            if (uniqueBins.find(value) == uniqueBins.end())
-            {
-                nonNullBins.push_back(value);
-                uniqueBins.insert(value);
-            }
+
+            nonNullBins.push_back(1);
+            start_writing_zeros = 1;
+        }
+        else if (start_writing_zeros != 0)
+        {
+            nonNullBins.push_back(0);
         }
     }
     fclose(file);
@@ -380,7 +380,7 @@ __global__ void replica_exchange(
     }
 }
 
-__global__ void check_histogram(int *d_H, int *d_offset_histogramm, int *d_end, int *d_start, float *d_factor, int nx, int ny, double alpha, int *expected_energy_spectrum, int len_energy_spectrum, int num_walker_total)
+__global__ void check_histogram(int *d_H, int *d_offset_histogramm, int *d_end, int *d_start, float *d_factor, int nx, int ny, double alpha, int *d_expected_energy_spectrum, int len_energy_spectrum, int num_walker_total)
 {
 
     long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
@@ -398,18 +398,15 @@ __global__ void check_histogram(int *d_H, int *d_offset_histogramm, int *d_end, 
         // Here is average and min calculation over all bins in histogram which correspond to values in expected energy spectrum
         for (int i = 0; i < (d_end[blockId] - d_start[blockId] + 1); i++) // index range for full histogram on thread
         {
-            for (int j = 0; j < len_energy_spectrum; j++) // index range for expected energy spectrum
+            if (d_expected_energy_spectrum[d_start[blockId] + i - d_start[0]] == 1)
             {
-                if (d_start[blockId] + i == expected_energy_spectrum[j])
+                if (d_H[d_offset_histogramm[tid] + i] < min)
                 {
-                    if (d_H[d_offset_histogramm[tid] + i] < min)
-                    {
-                        min = d_H[d_offset_histogramm[tid] + i];
-                    }
-                    average += d_H[d_offset_histogramm[tid] + i];
-                    len_reduced_energy_spectrum++;
-                    break;
+                    min = d_H[d_offset_histogramm[tid] + i];
                 }
+                average += d_H[d_offset_histogramm[tid] + i];
+                len_reduced_energy_spectrum += 1;
+                break;
             }
         }
 
@@ -432,7 +429,7 @@ __global__ void check_histogram(int *d_H, int *d_offset_histogramm, int *d_end, 
 __global__ void wang_landau(
     signed char *d_lattice, signed char *d_interactions, int *d_energy,
     int *d_start, int *d_end, int *d_H, float *d_logG, int *d_offset_histogramm, int *d_offset_lattice, const int num_iterations,
-    const int nx, const int ny, const int seed, float *factor, int *d_iter, int *d_nonNullEnergies, int *d_newEnergies, int *foundFlag, const int num_lattices, const double beta, int len_energy_spectrum)
+    const int nx, const int ny, const int seed, float *factor, int *d_iter, int *d_expected_energy_spectrum, int *d_newEnergies, int *foundFlag, const int num_lattices, const double beta, int len_energy_spectrum)
 {
 
     long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
@@ -475,17 +472,14 @@ __global__ void wang_landau(
         foundFlag[tid] = tid + 1;
 
         // check for found new energy
-        for (int i = 0; i < len_energy_spectrum; i++)
+        if (d_expected_energy_spectrum[d_new_energy - d_start[0]] == 1) // || d_new_energy > d_end[gridDim.x - 1] || d_new_energy < d_start[0]
         {
-            if (d_new_energy == d_nonNullEnergies[i])
-            {
-                foundFlag[tid] = 0;
-                break;
-            }
+            foundFlag[tid] = 0;
         }
 
         if (foundFlag[tid] != 0)
         {
+            printf("new_energy %d index in spectrum %d \n", d_new_energy, d_new_energy - d_start[0]);
             d_newEnergies[tid] = d_new_energy;
             return;
         }
@@ -640,6 +634,7 @@ To Do:
     - Concatenation of energy density results
     - initialization of spin configs unit distributed
     - results storen und normieren
+    - init flag for found new energy with seperate kernel and only update in wang landau inverted to current setting
 */
 
 int main(int argc, char **argv)
@@ -649,9 +644,9 @@ int main(int argc, char **argv)
 
     // General parameter which stay regularly unchanged
     const int seed = 42;
-    const int num_iterations = 10000; // iteration count after which flattness gets checked and replica exchange executed
-    const double alpha = 0.8;         // condition for histogram
-    const double beta = 0.00001;      // end condition for factor
+    const int num_iterations = 1000; // iteration count after which flattness gets checked and replica exchange executed
+    const double alpha = 0.8;        // condition for histogram
+    const double beta = 0.0001;      // end condition for factor
 
     // Model parameter
     const int L = 4;
@@ -672,6 +667,7 @@ int main(int argc, char **argv)
     }
 
     int len_energy_spectrum = nonNullEnergies.size();
+
     int num_walker_total = options.num_intervals * options.walker_per_interval;
 
     // Get interval information
@@ -728,9 +724,9 @@ int main(int argc, char **argv)
     CHECK_CUDA(cudaMemset(d_energy, 0, num_walker_total * sizeof(*d_energy)));
 
     // energies with non zero counts on device
-    int *d_nonNullEnergies;
-    CHECK_CUDA(cudaMalloc((void **)&d_nonNullEnergies, nonNullEnergies.size() * sizeof(int)));
-    CHECK_CUDA(cudaMemcpy(d_nonNullEnergies, nonNullEnergies.data(), nonNullEnergies.size() * sizeof(int), cudaMemcpyHostToDevice));
+    int *d_expected_energy_spectrum;
+    CHECK_CUDA(cudaMalloc((void **)&d_expected_energy_spectrum, nonNullEnergies.size() * sizeof(int)));
+    CHECK_CUDA(cudaMemcpy(d_expected_energy_spectrum, nonNullEnergies.data(), nonNullEnergies.size() * sizeof(int), cudaMemcpyHostToDevice));
 
     int *d_newEnergies; // To catch energies which are outside of expected spectrum
     CHECK_CUDA(cudaMalloc((void **)&d_newEnergies, num_walker_total * sizeof(int)));
@@ -761,7 +757,8 @@ int main(int argc, char **argv)
     while (max_factor > std::exp(beta))
     {
         // execute wang landau updates with given number of iterations
-        wang_landau<<<options.num_intervals, options.walker_per_interval>>>(d_lattice, d_interactions, d_energy, d_start, d_end, d_H, d_logG, d_offset_histogramm, d_offset_lattice, num_iterations, L, L, seed + 3, d_factor, d_iter, d_nonNullEnergies, d_newEnergies, d_foundNewEnergyFlag, num_walker_total, beta, len_energy_spectrum);
+        wang_landau<<<options.num_intervals, options.walker_per_interval>>>(d_lattice, d_interactions, d_energy, d_start, d_end, d_H, d_logG, d_offset_histogramm, d_offset_lattice, num_iterations, L, L, seed + 3, d_factor, d_iter, d_expected_energy_spectrum, d_newEnergies, d_foundNewEnergyFlag, num_walker_total, beta, len_energy_spectrum);
+        cudaDeviceSynchronize();
 
         // get max of found new energy flag array to condition break and update the histogramm file with value in new energy array
         thrust::device_ptr<int> d_newEnergyFlag_ptr(d_foundNewEnergyFlag);
@@ -780,8 +777,9 @@ int main(int argc, char **argv)
             return 1;
         }
 
+        cudaDeviceSynchronize();
         // check flatness of histogram
-        check_histogram<<<options.num_intervals, options.walker_per_interval>>>(d_H, d_offset_histogramm, d_end, d_start, d_factor, L, L, alpha, d_nonNullEnergies, len_energy_spectrum, num_walker_total);
+        check_histogram<<<options.num_intervals, options.walker_per_interval>>>(d_H, d_offset_histogramm, d_end, d_start, d_factor, L, L, alpha, d_expected_energy_spectrum, len_energy_spectrum, num_walker_total);
 
         // get max factor over walkers for abort condition of while loop
         cudaDeviceSynchronize();
@@ -824,7 +822,7 @@ int main(int argc, char **argv)
     {
         for (int i = 0; i < interval_result.len_histogram_over_all_walkers; i++)
         {
-            f_log_density << (int)energies_histogram[i] << " " << (float)std::exp(h_log_density_per_walker[i] - 1330);
+            f_log_density << (int)energies_histogram[i] << " " << (float)std::exp(h_log_density_per_walker[i] - 127);
             f_log_density << std::endl;
         }
     }

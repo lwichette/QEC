@@ -607,7 +607,7 @@ char *constructInteractionFilePath(float prob_interactions, int X, int Y, int se
     strstr << "interactions/prob_";
     strstr << std::fixed << std::setprecision(6) << prob_interactions;
     strstr << "/X_" << X << "_Y_" << Y;
-    strstr << "/histogram_seed_" << seed << ".txt";
+    strstr << "/interactions_seed_" << seed << ".txt";
 
     // Convert the stringstream to a string
     std::string filePathStr = strstr.str();
@@ -617,6 +617,25 @@ char *constructInteractionFilePath(float prob_interactions, int X, int Y, int se
     std::strcpy(filePathCStr, filePathStr.c_str());
 
     return filePathCStr;
+}
+
+void read(std::vector<signed char> &lattice, std::string filename)
+{
+
+    std::ifstream inputFile(filename);
+
+    if (!inputFile)
+    {
+        std::cerr << "Unable to open file " << filename << std::endl;
+        return; // Return with error code
+    }
+
+    int spin = 0;
+
+    while (inputFile >> spin)
+    {
+        lattice.push_back(static_cast<signed char>(spin));
+    }
 }
 
 /*
@@ -725,8 +744,9 @@ int main(int argc, char **argv)
     const int blocks_init = (L * L * num_walker_total + THREADS - 1) / THREADS; // why this as basic block count as per spin a thread only needed in init, or?
     init_lattice<<<blocks_init, THREADS>>>(d_lattice, L, L, num_walker_total, seed, prob_spins);
     char *interaction_file = constructInteractionFilePath(prob_interactions, L, L, seed);
-    std::cout << interaction_file << std::endl;
-    init_interactions<<<blocks_init, THREADS>>>(d_interactions, L, L, num_walker_total, seed + 1, prob_interactions);
+    std::vector<signed char> h_interactions;
+    read(h_interactions, interaction_file);
+    CHECK_CUDA(cudaMemcpy(d_interactions, h_interactions.data(), L * L * 2 * sizeof(*d_interactions), cudaMemcpyHostToDevice));
     init_offsets_lattice<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, L, L);
     init_offsets_histogramm<<<options.num_intervals, options.walker_per_interval>>>(d_offset_histogramm, d_start, d_end);
     calc_energy<<<options.num_intervals, options.walker_per_interval>>>(d_lattice, d_interactions, d_energy, d_offset_lattice, L, L, num_walker_total);

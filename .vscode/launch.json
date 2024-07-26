@@ -9,7 +9,7 @@
             "type": "cuda-gdb",
             "request": "launch",
             "program": "${workspaceFolder}/WangLandau/wl",
-            "args": "--X 12 --Y 12 --prob 0.1 --nit 100 --nl 1 --nw 1 --seed 42"
+            "args": "-w 3 -i 2 -o 0.25"
         },
         {
             "name": "Optim new",

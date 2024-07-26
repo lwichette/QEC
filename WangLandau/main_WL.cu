@@ -8,18 +8,16 @@
 #include <iostream>
 #include <string>
 #include <sstream>
-#include <iomanip> // For setting precision
+#include <iomanip>
 #include <thread>
 #include <thrust/reduce.h>
 #include <thrust/device_ptr.h>
 #include <tuple>
 #include <cmath>
 #include <algorithm>
-#include <unistd.h> // For Sleep
+#include <unistd.h> 
 #include "./header/cudamacro.h"
-#include <chrono> // For timing
-
-const unsigned int THREADS = 128;
+#include <chrono> 
 
 typedef struct
 {
@@ -327,50 +325,31 @@ __global__ void replica_exchange(
     float *d_logG, bool even, int seed, int *d_offset_iter)
 {
 
+    if (blockIdx.x == (gridDim.x - 1)) return;
+    
+    if ((even && (blockIdx.x % 2 != 0)) || (!even && (blockIdx.x % 2 == 0))) return;
+
     long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
-
-    // Check if last block
-    if (blockIdx.x == (gridDim.x - 1))
-    {
-        return;
-    }
-
-    // change index
     long long cid = static_cast<long long>(blockDim.x) * (blockIdx.x + 1);
 
-    if (threadIdx.x == 0)
-    {
+    if (threadIdx.x == 0){
         fisher_yates(d_indices, seed, d_offset_iter);
     }
 
     __syncthreads();
 
-    if (even)
-    {
-        if (blockIdx.x % 2 != 0)
-            return;
-    }
-    else
-    {
-        if (blockIdx.x % 2 != 1)
-            return;
-    }
-
     cid += d_indices[tid];
 
     // Check energy ranges
-    if (d_energy[tid] > d_end[blockIdx.x + 1] || d_energy[tid] < d_start[blockIdx.x + 1])
-        return;
-    if (d_energy[cid] > d_end[blockIdx.x] || d_energy[tid] < d_start[blockIdx.x])
-        return;
+    if (d_energy[tid] > d_end[blockIdx.x + 1] || d_energy[tid] < d_start[blockIdx.x + 1]) return;
+    if (d_energy[cid] > d_end[blockIdx.x] || d_energy[tid] < d_start[blockIdx.x]) return;
 
-    double prob = min(1.0, d_logG[d_energy[tid]] / d_logG[d_energy[tid]] * d_logG[d_energy[cid]] / d_logG[d_energy[cid]]);
+    double prob = min(1.0, exp(d_logG[d_energy[tid]] - d_logG[d_energy[tid]]) * exp(d_logG[d_energy[cid]] - d_logG[d_energy[cid]]));
 
     curandStatePhilox4_32_10_t st;
     curand_init(seed, tid, d_offset_iter[tid], &st);
 
-    if (curand_uniform(&st) < prob)
-    {
+    if (curand_uniform(&st) < prob){
 
         int temp_off = d_offset_lattice[tid];
         int temp_energy = d_energy[tid];
@@ -380,52 +359,41 @@ __global__ void replica_exchange(
 
         d_offset_lattice[cid] = temp_off;
         d_energy[cid] = temp_energy;
-
-        d_offset_iter[tid] += 1;
     }
+    
+    d_offset_iter[tid] += 1;
 }
 
-__global__ void check_histogram(int *d_H, int *d_offset_histogramm, int *d_end, int *d_start, float *d_factor, int nx, int ny, double alpha, int *d_expected_energy_spectrum, int len_energy_spectrum, int num_walker_total)
-{
+__global__ void check_histogram(int *d_H, int *d_offset_histogramm, int *d_end, int *d_start, float *d_factor, int nx, int ny, double alpha, int *d_expected_energy_spectrum, int len_energy_spectrum, int num_walker_total){
 
     long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
 
     int blockId = blockIdx.x;
 
-    if (tid < num_walker_total)
-    {
+    if (tid < num_walker_total){
         int min = INT_MAX;
-
         double average = 0;
-
         int len_reduced_energy_spectrum = 0;
 
         // Here is average and min calculation over all bins in histogram which correspond to values in expected energy spectrum
-        for (int i = 0; i < (d_end[blockId] - d_start[blockId] + 1); i++) // index range for full histogram on thread
-        {
-            if (d_expected_energy_spectrum[d_start[blockId] + i - d_start[0]] == 1)
-            {
-                if (d_H[d_offset_histogramm[tid] + i] < min)
-                {
+        for (int i = 0; i < (d_end[blockId] - d_start[blockId] + 1); i++){
+            if (d_expected_energy_spectrum[d_start[blockId] + i - d_start[0]] == 1){
+                if (d_H[d_offset_histogramm[tid] + i] < min){
                     min = d_H[d_offset_histogramm[tid] + i];
                 }
                 average += d_H[d_offset_histogramm[tid] + i];
                 len_reduced_energy_spectrum += 1;
-                break;
             }
         }
 
-        if (len_reduced_energy_spectrum > 0)
-        {
+        if (len_reduced_energy_spectrum > 0){
             average = average / len_reduced_energy_spectrum;
         }
-        else
-        {
+        else{
             printf("Error histogram has no length - no average is computable.\n");
         }
 
-        if (min >= alpha * average)
-        {
+        if (min >= alpha * average){
             d_factor[tid] = sqrt(d_factor[tid]);
         }
     }
@@ -441,18 +409,13 @@ __global__ void wang_landau(
 
     int blockId = blockIdx.x;
 
-    if (tid >= num_lattices || factor[tid] <= std::exp(beta)) // for each walker single thread and walker with minimal factor shall stop
-    {
-        return;
-    }
+    if (tid >= num_lattices || factor[tid] <= exp(beta)) return;
 
     curandStatePhilox4_32_10_t st;
     curand_init(seed, tid, d_offset_iter[tid], &st);
 
-    for (int it = 0; it < num_iterations; it++)
-    {
-
-        // Generate random int --> is that actually uniformly?
+    for (int it = 0; it < num_iterations; it++){
+        
         double randval = curand_uniform(&st);
         randval *= (nx * ny - 1 + 0.999999);
         int random_index = (int)trunc(randval);
@@ -462,28 +425,19 @@ __global__ void wang_landau(
         int i = random_index / ny;
         int j = random_index % ny;
 
-        // Set up periodic boundary conditions
         int ipp = (i + 1 < nx) ? i + 1 : 0;
         int inn = (i - 1 >= 0) ? i - 1 : nx - 1;
         int jpp = (j + 1 < ny) ? j + 1 : 0;
         int jnn = (j - 1 >= 0) ? j - 1 : ny - 1;
 
-        // Nochmal checken
         signed char energy_diff = -2 * d_lattice[d_offset_lattice[tid] + i * ny + j] * (d_lattice[d_offset_lattice[tid] + inn * ny + j] * d_interactions[nx * ny + inn * ny + j] + d_lattice[d_offset_lattice[tid] + i * ny + jnn] * d_interactions[i * ny + jnn] + d_lattice[d_offset_lattice[tid] + ipp * ny + j] * d_interactions[nx * ny + i * ny + j] + d_lattice[d_offset_lattice[tid] + i * ny + jpp] * d_interactions[i * ny + j]);
 
         int d_new_energy = d_energy[tid] + energy_diff;
 
-        // Initialize the found new energy flag with thread id + 1 as if energy match is found it will be set to zero and we can by this map non zero entries to tid where new energy appeared.
-        foundFlag[tid] = tid + 1;
+        // If no new energy is found, set it to 0, else to tid + 1
+        foundFlag[tid] = (d_expected_energy_spectrum[d_new_energy - d_start[0]] == 1) ? 0 : tid + 1;
 
-        // check for found new energy
-        if (d_expected_energy_spectrum[d_new_energy - d_start[0]] == 1) // || d_new_energy > d_end[gridDim.x - 1] || d_new_energy < d_start[0]
-        {
-            foundFlag[tid] = 0;
-        }
-
-        if (foundFlag[tid] != 0)
-        {
+        if (foundFlag[tid] != 0){
             printf("new_energy %d index in spectrum %d \n", d_new_energy, d_new_energy - d_start[0]);
             d_newEnergies[tid] = d_new_energy;
             return;
@@ -491,31 +445,24 @@ __global__ void wang_landau(
 
         int index_old = d_offset_histogramm[tid] + d_energy[tid] - d_start[blockId];
 
-        if (d_new_energy > d_end[blockId] || d_new_energy < d_start[blockId])
-        {
+        if (d_new_energy > d_end[blockId] || d_new_energy < d_start[blockId]){
             d_H[index_old] += 1;
             d_logG[index_old] += log(factor[tid]);
         }
-        else
-        {
+        else{
 
             int index_new = d_offset_histogramm[tid] + d_new_energy - d_start[blockId];
 
-            float prob = exp(d_logG[index_old] - d_logG[index_new]);
+            float prob = min(1.0, exp(d_logG[index_old] - d_logG[index_new]));
 
-            if (curand_uniform(&st) < prob)
-            {
+            if (curand_uniform(&st) < prob){
                 d_lattice[d_offset_lattice[tid] + i * ny + j] *= -1;
-
                 d_H[index_new] += 1;
                 d_logG[index_new] += log(factor[tid]);
-
                 d_energy[tid] = d_new_energy;
-
                 d_offset_iter[tid] += 1;
             }
-            else
-            {
+            else{
                 d_H[index_old] += 1;
                 d_logG[index_old] += log(factor[tid]);
             }
@@ -541,7 +488,6 @@ __global__ void init_offsets_histogramm(int *d_offset_histogramm, int *d_start, 
 
 __global__ void init_offsets_lattice(int *d_offset_lattice, int nx, int ny)
 {
-
     long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
 
     d_offset_lattice[tid] = tid * nx * ny;
@@ -579,7 +525,7 @@ char *constructHistogramFilePath(float prob_interactions, int X, int Y, int seed
 {
     std::stringstream strstr;
 
-    strstr << "histograms/prob_";
+    strstr << "/home/dfki.uni-bremen.de/mbeuerle/User/mbeuerle/Code/qec/WangLandau/histograms/prob_";
     strstr << std::fixed << std::setprecision(6) << prob_interactions;
     strstr << "/X_" << X << "_Y_" << Y;
     strstr << "/histogram_seed_" << seed << "_ni_" << num_iterations << ".txt";
@@ -598,7 +544,7 @@ char *constructInteractionFilePath(float prob_interactions, int X, int Y, int se
 {
     std::stringstream strstr;
 
-    strstr << "interactions/prob_";
+    strstr << "/home/dfki.uni-bremen.de/mbeuerle/User/mbeuerle/Code/qec/WangLandau/interactions/prob_";
     strstr << std::fixed << std::setprecision(6) << prob_interactions;
     strstr << "/X_" << X << "_Y_" << Y;
     strstr << "/interactions_seed_" << seed << ".txt";
@@ -621,7 +567,7 @@ void read(std::vector<signed char> &lattice, std::string filename)
     if (!inputFile)
     {
         std::cerr << "Unable to open file " << filename << std::endl;
-        return; // Return with error code
+        return;
     }
 
     int spin = 0;
@@ -633,9 +579,11 @@ void read(std::vector<signed char> &lattice, std::string filename)
 }
 
 /*
-To Do ranked by urgency:
+To Do:
     - Move the git repository to github instead of gitlab
+    - Paths in construct histogram path, and interaction path
     - command line options
+    - blockID to blockIdx.x to save storage?
     - Check init offsets histogram
     - d_indices array not needed, could in theory use shared memory in each fisher yates call
     - still the read and write of interactions such that we initialize each WL run with a specific histogram and interaction data
@@ -652,14 +600,13 @@ int main(int argc, char **argv)
 
     // General parameter which stay regularly unchanged
     const int seed = 42;
-    const int num_iterations = 1000; // iteration count after which flattness gets checked and replica exchange executed
+    const int num_iterations = 10; // iteration count after which flattness gets checked and replica exchange executed
     const double alpha = 0.8;        // condition for histogram
     const double beta = 0.0001;      // end condition for factor
 
     // Model parameter
     const int L = 4;
     const float prob_interactions = 0; // prob of error
-    const float prob_spins = 0.4;      // prob of down spin
 
     // Input args parsing
     Options options;
@@ -766,9 +713,12 @@ int main(int argc, char **argv)
     float max_factor = std::exp(1);
     int max_newEnergyFlag = 0;
     
+    printf("%d \n", num_iterations);
+    
     while (max_factor > std::exp(beta)){
-        
+
         wang_landau<<<options.num_intervals, options.walker_per_interval>>>(d_lattice, d_interactions, d_energy, d_start, d_end, d_H, d_logG, d_offset_histogramm, d_offset_lattice, num_iterations, L, L, seed + 3, d_factor, d_offset_iter, d_expected_energy_spectrum, d_newEnergies, d_foundNewEnergyFlag, num_walker_total, beta, len_energy_spectrum);
+        
         cudaDeviceSynchronize();
 
         // get max of found new energy flag array to condition break and update the histogramm file with value in new energy array

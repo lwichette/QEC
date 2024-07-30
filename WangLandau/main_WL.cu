@@ -399,15 +399,22 @@ __global__ void check_histogram(int *d_H, int *d_offset_histogramm, int *d_end, 
             }
         }
 
-        if (len_reduced_energy_spectrum > 0){
+        if (len_reduced_energy_spectrum > 0)
+        {
             average = average / len_reduced_energy_spectrum;
-        }
-        else{
-            printf("Error histogram has no length - no average is computable.\n");
-        }
 
-        if (min >= alpha * average){
-            d_factor[tid] = sqrt(d_factor[tid]);
+            if (min >= alpha * average)
+            {
+                d_factor[tid] = sqrt(d_factor[tid]);
+                for (int i = 0; i < (d_end[blockId] - d_start[blockId] + 1); i++)
+                {
+                    d_H[d_offset_histogramm[tid] + i] = 0;
+                }
+            }
+        }
+        else
+        {
+            printf("Error histogram has no sufficient length to check for flatness on walker %lld. \n", tid);
         }
     }
 }

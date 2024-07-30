@@ -28,13 +28,19 @@ typedef struct
 } IntervalResult;
 
 typedef struct
-{
+{   
+    int X;
+    int Y;
+    int num_iterations;
+    float prob_interactions;
+    double alpha;
+    double beta;
     int E_min;
     int E_max;
     int num_intervals;
     int walker_per_interval;
     float overlap_decimal;
-    int num_iterations;
+    int num_iterations_pre_run;
 } Options;
 
 void parse_args(int argc, char *argv[], Options *options, int L)
@@ -42,34 +48,45 @@ void parse_args(int argc, char *argv[], Options *options, int L)
     // overlap decimal is more like the reciprocal non overlap parameter here, i.e. 0 as overlap_decimal is full overlap of intervals.
 
     int opt;
-    options->walker_per_interval = 10; // Default value for num_walker
-    options->overlap_decimal = 0.25;   // 75% overlap of neighboring intervals as default overlap
-    options->E_min = -2 * L * L;
-    options->E_max = 2 * L * L;
-    options->num_intervals = 1;
-    options->num_iterations = 1000;
 
-    while (1)
-    {
+    while (1){
         int option_index = 0;
         static struct option long_options[] = {
-            {"Emin", 1, 0, 'm'},
-            {"Emax", 1, 0, 'M'},
+            {"X", 1, 0, 'x'},
+            {"Y", 1, 0, 'y'},
+            {"num_iterations", 1, 0, 'n'},
+            {"prob_interactions", 1, 0, 'p'},
+            {"alpha", 1, 0, 'a'},
+            {"beta", 1, 0, 'b'},
             {"num_intervals", 1, 0, 'i'},
             {"walker_per_interval", 1, 0, 'w'},
             {"overlap_decimal", 1, 0, 'o'},
-            {"num_iterations", 1, 0, 'r'},
+            {"num_iterations_pre_run", 1, 0, 'r'},
             {0, 0, 0, 0}};
-        opt = getopt_long(argc, argv, "m:M:i:w:o:r:", long_options, &option_index);
+        
+        opt = getopt_long(argc, argv, "x:y:n:p:a:b:i:w:o:r:", long_options, &option_index);
+        
         if (opt == -1)
             break;
         switch (opt)
         {
-        case 'm':
-            options->E_min = std::atoi(optarg);
+        case 'x':
+            options->X = std::atoi(optarg);
             break;
-        case 'M':
-            options->E_max = std::atoi(optarg);
+        case 'y':
+            options->Y = std::atoi(optarg);
+            break;
+        case 'n':
+            options->num_iterations = std::atoi(optarg);
+            break;
+        case 'p':
+            options->prob_interactions = std::atof(optarg);
+            break;
+        case 'a':
+            options->alpha = std::atof(optarg);
+            break;
+        case 'b':
+            options->beta = std::atof(optarg);
             break;
         case 'i':
             options->num_intervals = std::atoi(optarg);
@@ -81,7 +98,7 @@ void parse_args(int argc, char *argv[], Options *options, int L)
             options->overlap_decimal = std::atof(optarg);
             break;
         case 'r':
-            options->num_iterations = std::atoi(optarg);
+            options->num_iterations_pre_run = std::atoi(optarg);
             break;
         default:
             fprintf(stderr, "Usage: %s [-i num_intervals] [-m E_min] [-M E_max] [-w walker_per_interval] [-o overlap_decimal] [-r num_iterations]\n", argv[0]);
@@ -655,7 +672,7 @@ int main(int argc, char **argv)
     std::vector<float> h_factor(num_walker_total, std::exp(1.0f));
     float *d_factor;
     CHECK_CUDA(cudaMalloc(&d_factor, num_walker_total * sizeof(*d_factor)));
-    CHECK_CUDA(cudaMemcpy(d_factor, h_factor.data(), num_walker_total * sizeof(float), cudaMemcpyHostToDevice));
+    CHECK_CUDA(cudaMemcpy(d_factor, h_factor.data(), num_walker_total * sizeof(*d_factor), cudaMemcpyHostToDevice));
 
     // Indices used for replica exchange later
     int *d_indices;
@@ -709,11 +726,8 @@ int main(int argc, char **argv)
     std::chrono::duration<double> elapsed = end - start;
     std::cout << "Execution time before Wang Landau has started: " << elapsed.count() << " seconds" << std::endl;
 
-
     float max_factor = std::exp(1);
     int max_newEnergyFlag = 0;
-    
-    printf("%d \n", num_iterations);
     
     while (max_factor > std::exp(beta)){
 

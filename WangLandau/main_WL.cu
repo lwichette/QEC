@@ -423,7 +423,7 @@ __global__ void wang_landau(
     signed char *d_lattice, signed char *d_interactions, int *d_energy,
     int *d_start, int *d_end, int *d_H, float *d_logG, int *d_offset_histogramm, int *d_offset_lattice, const int num_iterations,
     const int nx, const int ny, const int seed, float *factor, int *d_offset_iter, int *d_expected_energy_spectrum, int *d_newEnergies, int *foundFlag, 
-    const int num_lattices, const double beta, int len_energy_spectrum
+    const int num_lattices, const double beta
     ){
 
     long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
@@ -770,7 +770,7 @@ int main(int argc, char **argv){
     
     while (max_factor > std::exp(options.beta)){
 
-        wang_landau<<<options.num_intervals, options.walker_per_interval>>>(d_lattice, d_interactions, d_energy, d_start, d_end, d_H, d_logG, d_offset_histogramm, d_offset_lattice, options.num_iterations, options.X, options.Y, seed + 3, d_factor, d_offset_iter, d_expected_energy_spectrum, d_newEnergies, d_foundNewEnergyFlag, num_walker_total, options.beta, len_energy_spectrum);
+        wang_landau<<<options.num_intervals, options.walker_per_interval>>>(d_lattice, d_interactions, d_energy, d_start, d_end, d_H, d_logG, d_offset_histogramm, d_offset_lattice, options.num_iterations, options.X, options.Y, seed + 3, d_factor, d_offset_iter, d_expected_energy_spectrum, d_newEnergies, d_foundNewEnergyFlag, num_walker_total, options.beta);
         
         cudaDeviceSynchronize();
 
@@ -791,7 +791,7 @@ int main(int argc, char **argv){
             return 1;
         }
         
-        check_histogram<<<options.num_intervals, options.walker_per_interval>>>(d_H, d_offset_histogramm, d_end, d_start, d_factor, L, L, alpha, d_expected_energy_spectrum, len_energy_spectrum, num_walker_total);
+        check_histogram<<<options.num_intervals, options.walker_per_interval>>>(d_H, d_offset_histogramm, d_end, d_start, d_factor, options.X, options.Y, options.alpha, d_expected_energy_spectrum, len_energy_spectrum, num_walker_total);
         cudaDeviceSynchronize();
 
         // get max factor over walkers for abort condition of while loop

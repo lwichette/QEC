@@ -43,7 +43,7 @@ typedef struct
     int num_iterations_pre_run;
 } Options;
 
-void parse_args(int argc, char *argv[], Options *options, int L)
+void parse_args(int argc, char *argv[], Options *options)
 {
     // overlap decimal is more like the reciprocal non overlap parameter here, i.e. 0 as overlap_decimal is full overlap of intervals.
 
@@ -107,8 +107,7 @@ void parse_args(int argc, char *argv[], Options *options, int L)
     }
 }
 
-int read_histogram(const char *filename, std::vector<int> &nonNullBins, int *E_min, int *E_max)
-{
+int read_histogram(const char *filename, std::vector<int> &h_expected_energy_spectrum, int *E_min, int *E_max){
     FILE *file = fopen(filename, "r");
     if (!file)
     {
@@ -119,7 +118,7 @@ int read_histogram(const char *filename, std::vector<int> &nonNullBins, int *E_m
     *E_min = INT_MAX;
     *E_max = INT_MIN;
     int value, count;
-    nonNullBins.clear();
+    h_expected_energy_spectrum.clear();
 
     int start_writing_zeros = 0;
     while (fscanf(file, "%d %d", &value, &count) != EOF)
@@ -131,12 +130,12 @@ int read_histogram(const char *filename, std::vector<int> &nonNullBins, int *E_m
             if (value > *E_max)
                 *E_max = value;
 
-            nonNullBins.push_back(1);
+            h_expected_energy_spectrum.push_back(1);
             start_writing_zeros = 1;
         }
         else if (start_writing_zeros != 0)
         {
-            nonNullBins.push_back(0);
+            h_expected_energy_spectrum.push_back(0);
         }
     }
     fclose(file);
@@ -219,14 +218,13 @@ __global__ void find_spin_config_in_energy_range(signed char *d_lattice, signed 
     curand_init(seed, tid, 0, &st);
     
     int accept_spin_config = 0;
-    while (accept_spin_config == 0)
-    {
-        if (d_energy[tid] <= d_end[blockId] && d_energy[tid] >= d_start[blockId])
-        {
+    
+    while (accept_spin_config == 0){
+        if (d_energy[tid] <= d_end[blockId] && d_energy[tid] >= d_start[blockId]){
+            // TO DO d_H and d_G update
             accept_spin_config = 1;
         }
-        else
-        {
+        else{
             double randval = curand_uniform(&st);
             randval *= (nx * ny - 1 + 0.999999);
             int random_index = (int)trunc(randval);
@@ -287,8 +285,6 @@ __global__ void calc_energy(signed char *lattice, signed char *interactions, int
     }
 
     d_energy[tid] = energy;
-
-    tid += blockDim.x * gridDim.x;
 }
 
 __global__ void check_energy_ranges(int *d_energy, int *d_start, int *d_end)
@@ -419,8 +415,9 @@ __global__ void check_histogram(int *d_H, int *d_offset_histogramm, int *d_end, 
 __global__ void wang_landau(
     signed char *d_lattice, signed char *d_interactions, int *d_energy,
     int *d_start, int *d_end, int *d_H, float *d_logG, int *d_offset_histogramm, int *d_offset_lattice, const int num_iterations,
-    const int nx, const int ny, const int seed, float *factor, int *d_offset_iter, int *d_expected_energy_spectrum, int *d_newEnergies, int *foundFlag, const int num_lattices, const double beta, int len_energy_spectrum)
-{
+    const int nx, const int ny, const int seed, float *factor, int *d_offset_iter, int *d_expected_energy_spectrum, int *d_newEnergies, int *foundFlag, 
+    const int num_lattices, const double beta, int len_energy_spectrum
+    ){
 
     long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
 
@@ -581,25 +578,71 @@ void read(std::vector<signed char> &lattice, std::string filename)
 
     std::ifstream inputFile(filename);
 
-    if (!inputFile)
-    {
+    if (!inputFile){
         std::cerr << "Unable to open file " << filename << std::endl;
         return;
     }
 
     int spin = 0;
 
-    while (inputFile >> spin)
-    {
+    while (inputFile >> spin){
         lattice.push_back(static_cast<signed char>(spin));
     }
+}
+
+void write(signed char* array, std::string filename, const long nx, const long ny, const int num_lattices, bool lattice){
+    printf("Writing to %s ...\n", filename.c_str());
+
+    int nx_w = (lattice) ? nx : 2*nx;
+
+    std::vector<signed char> array_host(nx_w*ny*num_lattices);
+
+    CHECK_CUDA(cudaMemcpy(array_host.data(), array, nx_w*ny*num_lattices*sizeof(*array), cudaMemcpyDeviceToHost));
+
+    int offset;
+
+    if (num_lattices == 1){
+        offset = 0;
+    
+        std::ofstream f;
+        f.open(filename + std::string(".txt"));
+        
+        if (f.is_open()) {
+            for (int i = 0; i < nx_w; i++) {
+                for (int j = 0; j < ny; j++) {
+                    f << (int)array_host[offset + i * ny + j] << " ";
+                }
+                f << std::endl;
+            }
+        }
+        f.close();
+    }
+    else{
+        for (int l=0; l < num_lattices; l++){
+
+            offset = l*nx_w*ny;
+
+            std::ofstream f;
+            f.open(filename + "_" + std::to_string(l) + std::string(".txt"));
+            if (f.is_open()) {
+                for (int i = 0; i < nx_w; i++) {
+                    for (int j = 0; j < ny; j++) {
+                        f << (int)array_host[offset + i * ny + j] << " ";
+                    }
+                    f << std::endl;
+                }
+            }
+            f.close();
+        }
+    }
+
 }
 
 /*
 To Do:
     - Move the git repository to github instead of gitlab
     - Paths in construct histogram path, and interaction path
-    - command line options
+    - d_factor to double instead of float
     - blockID to blockIdx.x to save storage?
     - Check init offsets histogram
     - d_indices array not needed, could in theory use shared memory in each fisher yates call
@@ -610,37 +653,26 @@ To Do:
     - Concatenation of energy density results
 */
 
-int main(int argc, char **argv)
-{
-    // Start timing
+int main(int argc, char **argv){
+
     auto start = std::chrono::high_resolution_clock::now();
 
-    // General parameter which stay regularly unchanged
     const int seed = 42;
-    const int num_iterations = 10; // iteration count after which flattness gets checked and replica exchange executed
-    const double alpha = 0.8;        // condition for histogram
-    const double beta = 0.0001;      // end condition for factor
 
-    // Model parameter
-    const int L = 4;
-    const float prob_interactions = 0; // prob of error
-
-    // Input args parsing
     Options options;
-    parse_args(argc, argv, &options, L);
+    parse_args(argc, argv, &options);
     
-    int num_walker_total = options.num_intervals * options.walker_per_interval;
+    const int num_walker_total = options.num_intervals * options.walker_per_interval;
 
+    char *histogram_file = constructHistogramFilePath(options.prob_interactions, options.X, options.Y, seed, options.num_iterations_pre_run);
+
+    // Energy spectrum from pre_run
     std::vector<int> h_expected_energy_spectrum;
-    char *histogram_file = constructHistogramFilePath(prob_interactions, L, L, seed, 1000000);
-
-    if (read_histogram(histogram_file, h_expected_energy_spectrum, &options.E_min, &options.E_max) != 0)
-    {
+    if (read_histogram(histogram_file, h_expected_energy_spectrum, &options.E_min, &options.E_max) != 0){
         fprintf(stderr, "Error reading histogram file.\n");
         return 1;
     }
-
-    int len_energy_spectrum = h_expected_energy_spectrum.size();
+    const int len_energy_spectrum = h_expected_energy_spectrum.size();
 
     // Get interval information
     IntervalResult interval_result = generate_intervals(options.E_min, options.E_max, options.num_intervals, options.walker_per_interval, options.overlap_decimal);
@@ -670,6 +702,7 @@ int main(int argc, char **argv)
     
     // f Factors for each walker
     std::vector<float> h_factor(num_walker_total, std::exp(1.0f));
+
     float *d_factor;
     CHECK_CUDA(cudaMalloc(&d_factor, num_walker_total * sizeof(*d_factor)));
     CHECK_CUDA(cudaMemcpy(d_factor, h_factor.data(), num_walker_total * sizeof(*d_factor), cudaMemcpyHostToDevice));
@@ -680,8 +713,8 @@ int main(int argc, char **argv)
 
     // lattice, interactions
     signed char *d_lattice, *d_interactions;
-    CHECK_CUDA(cudaMalloc(&d_lattice, num_walker_total * L * L * sizeof(*d_lattice)));
-    CHECK_CUDA(cudaMalloc(&d_interactions, L * L * 2 * sizeof(*d_interactions)));
+    CHECK_CUDA(cudaMalloc(&d_lattice, num_walker_total * options.X * options.Y * sizeof(*d_lattice)));
+    CHECK_CUDA(cudaMalloc(&d_interactions, options.X * options.Y * 2 * sizeof(*d_interactions)));
 
     // Hamiltonian of lattices
     int *d_energy;
@@ -705,20 +738,19 @@ int main(int argc, char **argv)
     */
 
     // Initialization of lattices, interactions, offsets and indices
-    init_lattice<<<num_walker_total, L*L>>>(d_lattice, L, L, num_walker_total, seed);
-    init_offsets_lattice<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, L, L);
+    init_lattice<<<num_walker_total, options.X*options.Y>>>(d_lattice, options.X, options.Y, num_walker_total, seed);
+    init_offsets_lattice<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, options.X, options.Y);
     init_offsets_histogramm<<<options.num_intervals, options.walker_per_interval>>>(d_offset_histogramm, d_start, d_end);
     init_indices<<<options.num_intervals, options.walker_per_interval>>>(d_indices);
 
-    char *interaction_file = constructInteractionFilePath(prob_interactions, L, L, seed);
+    char *interaction_file = constructInteractionFilePath(options.prob_interactions, options.X, options.Y, seed);
     std::vector<signed char> h_interactions;
     read(h_interactions, interaction_file);
-    CHECK_CUDA(cudaMemcpy(d_interactions, h_interactions.data(), L * L * 2 * sizeof(*d_interactions), cudaMemcpyHostToDevice));
-
+    CHECK_CUDA(cudaMemcpy(d_interactions, h_interactions.data(), options.X * options.Y * 2 * sizeof(*d_interactions), cudaMemcpyHostToDevice));
 
     // Calculate energy and find right configurations
-    calc_energy<<<options.num_intervals, options.walker_per_interval>>>(d_lattice, d_interactions, d_energy, d_offset_lattice, L, L, num_walker_total);    
-    find_spin_config_in_energy_range<<<options.num_intervals, options.walker_per_interval>>>(d_lattice, d_interactions, L, L, num_walker_total, seed + 2, d_start, d_end, d_energy, d_offset_lattice);
+    calc_energy<<<options.num_intervals, options.walker_per_interval>>>(d_lattice, d_interactions, d_energy, d_offset_lattice, options.X, options.Y, num_walker_total);    
+    find_spin_config_in_energy_range<<<options.num_intervals, options.walker_per_interval>>>(d_lattice, d_interactions, options.X, options.Y, num_walker_total, seed + 2, d_start, d_end, d_energy, d_offset_lattice);
     check_energy_ranges<<<options.num_intervals, options.walker_per_interval>>>(d_energy, d_start, d_end);
 
     // Stop timing
@@ -729,9 +761,9 @@ int main(int argc, char **argv)
     float max_factor = std::exp(1);
     int max_newEnergyFlag = 0;
     
-    while (max_factor > std::exp(beta)){
+    while (max_factor > std::exp(options.beta)){
 
-        wang_landau<<<options.num_intervals, options.walker_per_interval>>>(d_lattice, d_interactions, d_energy, d_start, d_end, d_H, d_logG, d_offset_histogramm, d_offset_lattice, num_iterations, L, L, seed + 3, d_factor, d_offset_iter, d_expected_energy_spectrum, d_newEnergies, d_foundNewEnergyFlag, num_walker_total, beta, len_energy_spectrum);
+        wang_landau<<<options.num_intervals, options.walker_per_interval>>>(d_lattice, d_interactions, d_energy, d_start, d_end, d_H, d_logG, d_offset_histogramm, d_offset_lattice, options.num_iterations, options.X, options.Y, seed + 3, d_factor, d_offset_iter, d_expected_energy_spectrum, d_newEnergies, d_foundNewEnergyFlag, num_walker_total, options.beta, len_energy_spectrum);
         
         cudaDeviceSynchronize();
 
@@ -768,7 +800,7 @@ int main(int argc, char **argv)
     ---------------------------------------------
     --------------Post Processing ---------------
     ---------------------------------------------
-    */
+    
    
     std::vector<int> h_histogram_per_walker(interval_result.len_histogram_over_all_walkers);
     CHECK_CUDA(cudaMemcpy(h_histogram_per_walker.data(), d_H, interval_result.len_histogram_over_all_walkers * sizeof(*d_H), cudaMemcpyDeviceToHost));
@@ -807,5 +839,6 @@ int main(int argc, char **argv)
     }
     f_log_density.close();
 
+    */
     return 0;
 }

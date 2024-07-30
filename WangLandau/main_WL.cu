@@ -784,7 +784,8 @@ int main(int argc, char **argv){
             return 1;
         }
         
-        check_histogram<<<options.num_intervals, options.walker_per_interval>>>(d_H, d_offset_histogramm, d_end, d_start, d_factor, L, L, alpha, d_expected_energy_spectrum, len_energy_spectrum, num_walker_total);
+        check_histogram<<<options.num_intervals, options.walker_per_interval>>>(d_H, d_offset_histogramm, d_end, d_start, d_factor, options.X, options.Y, options.alpha, d_expected_energy_spectrum, len_energy_spectrum, num_walker_total);
+        
         cudaDeviceSynchronize();
 
         // get max factor over walkers for abort condition of while loop

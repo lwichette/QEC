@@ -545,31 +545,13 @@ void handleNewEnergyError(int *new_energies, int *new_energies_flag, char *histo
     outfile.close();
 }
 
-char *constructHistogramFilePath(float prob_interactions, int X, int Y, int seed)
+char *constructFilePath(float prob_interactions, int X, int Y, int seed, std::string type)
 {
     std::stringstream strstr;
 
     strstr << "init/prob_" << std::fixed << std::setprecision(6) << prob_interactions;
     strstr << "/X_" << X << "_Y_" << Y;
-    strstr << "/seed_" << seed << "/histogram/histogram.txt";
-
-    // Convert the stringstream to a string
-    std::string filePathStr = strstr.str();
-
-    // Allocate memory for the char* result and copy the string data to it
-    char *filePathCStr = new char[filePathStr.length() + 1];
-    std::strcpy(filePathCStr, filePathStr.c_str());
-
-    return filePathCStr;
-}
-
-char *constructInteractionFilePath(float prob_interactions, int X, int Y, int seed)
-{
-    std::stringstream strstr;
-
-    strstr << "init/prob_" << std::fixed << std::setprecision(6) << prob_interactions;
-    strstr << "/X_" << X << "_Y_" << Y;
-    strstr << "/seed_" << seed << "/interactions/interactions.txt";
+    strstr << "/seed_" << seed << "/" << type << "/" << type << ".txt";
 
     // Convert the stringstream to a string
     std::string filePathStr = strstr.str();
@@ -712,7 +694,7 @@ int main(int argc, char **argv){
     
     const int num_walker_total = options.num_intervals * options.walker_per_interval;
 
-    char *histogram_file = constructHistogramFilePath(options.prob_interactions, options.X, options.Y, seed);
+    char *histogram_file = constructFilePath(options.prob_interactions, options.X, options.Y, seed, "histogram");
 
     // Energy spectrum from pre_run
     std::vector<int> h_expected_energy_spectrum;
@@ -792,7 +774,7 @@ int main(int argc, char **argv){
     init_offsets_histogramm<<<options.num_intervals, options.walker_per_interval>>>(d_offset_histogramm, d_start, d_end);
     init_indices<<<options.num_intervals, options.walker_per_interval>>>(d_indices);
     
-    char *interaction_file = constructInteractionFilePath(options.prob_interactions, options.X, options.Y, seed);
+    char *interaction_file = constructFilePath(options.prob_interactions, options.X, options.Y, seed, "interactions");
     std::vector<signed char> h_interactions;
     read(h_interactions, interaction_file);
     CHECK_CUDA(cudaMemcpy(d_interactions, h_interactions.data(), options.X * options.Y * 2 * sizeof(*d_interactions), cudaMemcpyHostToDevice));

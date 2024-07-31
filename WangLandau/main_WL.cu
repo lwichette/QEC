@@ -302,7 +302,7 @@ __global__ void check_energy_ranges(int *d_energy, int *d_start, int *d_end)
     assert(check);
 }
 
-__device__ void fisher_yates(int *d_shuffle, int seed, int *d_offset_iter)
+__device__ void fisher_yates(int *d_shuffle, int seed, unsigned long long *d_offset_iter)
 {
 
     long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
@@ -335,7 +335,7 @@ __global__ void init_indices(int *d_indices)
 
 __global__ void replica_exchange(
     int *d_offset_lattice, int *d_energy, int *d_start, int *d_end, int *d_indices,
-    float *d_logG, bool even, int seed, int *d_offset_iter)
+    float *d_logG, int *d_offset_histogram, bool even, int seed, unsigned long long *d_offset_iter)
 {
 
     if (blockIdx.x == (gridDim.x - 1)) return;
@@ -357,7 +357,7 @@ __global__ void replica_exchange(
     if (d_energy[tid] > d_end[blockIdx.x + 1] || d_energy[tid] < d_start[blockIdx.x + 1]) return;
     if (d_energy[cid] > d_end[blockIdx.x] || d_energy[tid] < d_start[blockIdx.x]) return;
 
-    double prob = min(1.0, exp(d_logG[d_energy[tid]] - d_logG[d_energy[tid]]) * exp(d_logG[d_energy[cid]] - d_logG[d_energy[cid]]));
+    double prob = min(1.0, exp(d_logG[d_offset_histogram[tid] + d_energy[tid] - d_start[blockIdx.x]] - d_logG[d_offset_histogram[tid] + d_energy[cid] - d_start[blockIdx.x]]) * exp(d_logG[d_offset_histogram[cid] + d_energy[cid] - d_start[blockIdx.x+1]] - d_logG[d_offset_histogram[cid] + d_energy[tid] - d_start[blockIdx.x+1]]));
 
     curandStatePhilox4_32_10_t st;
     curand_init(seed, tid, d_offset_iter[tid], &st);
@@ -377,7 +377,7 @@ __global__ void replica_exchange(
     d_offset_iter[tid] += 1;
 }
 
-__global__ void check_histogram(int *d_H, int *d_offset_histogramm, int *d_end, int *d_start, float *d_factor, int nx, int ny, double alpha, int *d_expected_energy_spectrum, int len_energy_spectrum, int num_walker_total){
+__global__ void check_histogram(int *d_H, int *d_offset_histogramm, int *d_end, int *d_start, double *d_factor, int nx, int ny, double alpha, int *d_expected_energy_spectrum, int len_energy_spectrum, int num_walker_total){
 
     long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
 
@@ -422,7 +422,7 @@ __global__ void check_histogram(int *d_H, int *d_offset_histogramm, int *d_end, 
 __global__ void wang_landau(
     signed char *d_lattice, signed char *d_interactions, int *d_energy,
     int *d_start, int *d_end, int *d_H, float *d_logG, int *d_offset_histogramm, int *d_offset_lattice, const int num_iterations,
-    const int nx, const int ny, const int seed, float *factor, int *d_offset_iter, int *d_expected_energy_spectrum, int *d_newEnergies, int *foundFlag, 
+    const int nx, const int ny, const int seed, double *factor, unsigned long long *d_offset_iter, int *d_expected_energy_spectrum, int *d_newEnergies, int *foundFlag, 
     const int num_lattices, const double beta
     ){
 
@@ -436,7 +436,6 @@ __global__ void wang_landau(
     curand_init(seed, tid, d_offset_iter[tid], &st);
 
     for (int it = 0; it < num_iterations; it++){
-        
         double randval = curand_uniform(&st);
         randval *= (nx * ny - 1 + 0.999999);
         int random_index = (int)trunc(randval);
@@ -649,9 +648,7 @@ void write(signed char* array, std::string filename, const long nx, const long n
 To Do:
     - Move the git repository to github instead of gitlab
     - Paths in construct histogram path, and interaction path
-    - d_factor to double instead of float
     - blockID to blockIdx.x to save storage?
-    - Check init offsets histogram
     - d_indices array not needed, could in theory use shared memory in each fisher yates call
     - still the read and write of interactions such that we initialize each WL run with a specific histogram and interaction data
     - Store results and normalize
@@ -701,16 +698,17 @@ int main(int argc, char **argv){
     CHECK_CUDA(cudaMemset(d_logG, 0, interval_result.len_histogram_over_all_walkers * sizeof(*d_logG)));
 
     // Offset histograms, lattice, seed_iterator
-    int *d_offset_histogramm, *d_offset_lattice, *d_offset_iter;
+    int *d_offset_histogramm, *d_offset_lattice;
+    unsigned long long *d_offset_iter;
     CHECK_CUDA(cudaMalloc(&d_offset_histogramm, num_walker_total * sizeof(*d_offset_histogramm)));
     CHECK_CUDA(cudaMalloc(&d_offset_lattice, num_walker_total * sizeof(*d_offset_lattice)));
     CHECK_CUDA(cudaMalloc(&d_offset_iter, num_walker_total * sizeof(*d_offset_iter)));
     CHECK_CUDA(cudaMemset(d_offset_iter, 0, num_walker_total * sizeof(*d_offset_iter)));
     
     // f Factors for each walker
-    std::vector<float> h_factor(num_walker_total, std::exp(1.0f));
+    std::vector<double> h_factor(num_walker_total, std::exp(1));
 
-    float *d_factor;
+    double *d_factor;
     CHECK_CUDA(cudaMalloc(&d_factor, num_walker_total * sizeof(*d_factor)));
     CHECK_CUDA(cudaMemcpy(d_factor, h_factor.data(), num_walker_total * sizeof(*d_factor), cudaMemcpyHostToDevice));
 
@@ -749,15 +747,16 @@ int main(int argc, char **argv){
     init_offsets_lattice<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, options.X, options.Y);
     init_offsets_histogramm<<<options.num_intervals, options.walker_per_interval>>>(d_offset_histogramm, d_start, d_end);
     init_indices<<<options.num_intervals, options.walker_per_interval>>>(d_indices);
-
+    
     char *interaction_file = constructInteractionFilePath(options.prob_interactions, options.X, options.Y, seed);
     std::vector<signed char> h_interactions;
     read(h_interactions, interaction_file);
     CHECK_CUDA(cudaMemcpy(d_interactions, h_interactions.data(), options.X * options.Y * 2 * sizeof(*d_interactions), cudaMemcpyHostToDevice));
-
+    
     // Calculate energy and find right configurations
     calc_energy<<<options.num_intervals, options.walker_per_interval>>>(d_lattice, d_interactions, d_energy, d_offset_lattice, options.X, options.Y, num_walker_total);    
     find_spin_config_in_energy_range<<<options.num_intervals, options.walker_per_interval>>>(d_lattice, d_interactions, options.X, options.Y, num_walker_total, seed + 2, d_start, d_end, d_energy, d_offset_lattice);
+    cudaDeviceSynchronize();
     check_energy_ranges<<<options.num_intervals, options.walker_per_interval>>>(d_energy, d_start, d_end);
 
     // Stop timing
@@ -769,9 +768,10 @@ int main(int argc, char **argv){
     int max_newEnergyFlag = 0;
     
     while (max_factor > std::exp(options.beta)){
+        
+        printf("Max factor %2f \n", max_factor);
 
         wang_landau<<<options.num_intervals, options.walker_per_interval>>>(d_lattice, d_interactions, d_energy, d_start, d_end, d_H, d_logG, d_offset_histogramm, d_offset_lattice, options.num_iterations, options.X, options.Y, seed + 3, d_factor, d_offset_iter, d_expected_energy_spectrum, d_newEnergies, d_foundNewEnergyFlag, num_walker_total, options.beta);
-        
         cudaDeviceSynchronize();
 
         // get max of found new energy flag array to condition break and update the histogramm file with value in new energy array
@@ -792,19 +792,16 @@ int main(int argc, char **argv){
         }
         
         check_histogram<<<options.num_intervals, options.walker_per_interval>>>(d_H, d_offset_histogramm, d_end, d_start, d_factor, options.X, options.Y, options.alpha, d_expected_energy_spectrum, len_energy_spectrum, num_walker_total);
-<<<<<<< HEAD
-        
-=======
->>>>>>> b1e1fe3f56a8acdbc75d8b3a585113366ad0ae04
         cudaDeviceSynchronize();
 
         // get max factor over walkers for abort condition of while loop
-        thrust::device_ptr<float> d_factor_ptr(d_factor);
-        thrust::device_ptr<float> max_factor_ptr = thrust::max_element(d_factor_ptr, d_factor_ptr + num_walker_total);
+        thrust::device_ptr<double> d_factor_ptr(d_factor);
+        thrust::device_ptr<double> max_factor_ptr = thrust::max_element(d_factor_ptr, d_factor_ptr + num_walker_total);
         max_factor = *max_factor_ptr;
-
-        replica_exchange<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, d_energy, d_start, d_end, d_indices, d_logG, true, seed + 3, d_offset_iter);
-        replica_exchange<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, d_energy, d_start, d_end, d_indices, d_logG, false, seed + 3, d_offset_iter);
+        
+        
+        replica_exchange<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, d_energy, d_start, d_end, d_indices, d_logG, d_offset_histogramm, true, seed + 3, d_offset_iter);
+        replica_exchange<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, d_energy, d_start, d_end, d_indices, d_logG, d_offset_histogramm, false, seed + 3, d_offset_iter);
     };
 
     /*
@@ -815,9 +812,6 @@ int main(int argc, char **argv){
    
     std::vector<int> h_histogram_per_walker(interval_result.len_histogram_over_all_walkers);
     CHECK_CUDA(cudaMemcpy(h_histogram_per_walker.data(), d_H, interval_result.len_histogram_over_all_walkers * sizeof(*d_H), cudaMemcpyDeviceToHost));
-
-    std::vector<float> h_log_density_per_walker(interval_result.len_histogram_over_all_walkers);
-    CHECK_CUDA(cudaMemcpy(h_log_density_per_walker.data(), d_logG, interval_result.len_histogram_over_all_walkers * sizeof(*d_logG), cudaMemcpyDeviceToHost));
 
     std::vector<int> energies_histogram;
 
@@ -837,6 +831,9 @@ int main(int argc, char **argv){
         }
     }
 
+    std::vector<float> h_log_density_per_walker(interval_result.len_histogram_over_all_walkers);
+    CHECK_CUDA(cudaMemcpy(h_log_density_per_walker.data(), d_logG, interval_result.len_histogram_over_all_walkers * sizeof(*d_logG), cudaMemcpyDeviceToHost));
+
     std::ofstream f_log_density;
     f_log_density.open("log_density_afterRun.txt");
 
@@ -849,7 +846,5 @@ int main(int argc, char **argv){
         }
     }
     f_log_density.close();
-
     */
-    return 0;
 }

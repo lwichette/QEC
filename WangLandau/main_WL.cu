@@ -754,6 +754,7 @@ int main(int argc, char **argv){
     
     // Calculate energy and find right configurations
     calc_energy<<<options.num_intervals, options.walker_per_interval>>>(d_lattice, d_interactions, d_energy, d_offset_lattice, options.X, options.Y, num_walker_total);    
+    
     find_spin_config_in_energy_range<<<options.num_intervals, options.walker_per_interval>>>(d_lattice, d_interactions, options.X, options.Y, num_walker_total, seed + 2, d_start, d_end, d_energy, d_offset_lattice);
     cudaDeviceSynchronize();
     check_energy_ranges<<<options.num_intervals, options.walker_per_interval>>>(d_energy, d_start, d_end);

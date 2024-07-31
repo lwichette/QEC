@@ -6,6 +6,9 @@
 #include <getopt.h>
 #include <vector>
 #include <iostream>
+#include <filesystem>
+#include <fstream>
+#include <regex>
 #include <string>
 #include <sstream>
 #include <iomanip>
@@ -108,6 +111,7 @@ void parse_args(int argc, char *argv[], Options *options)
 }
 
 int read_histogram(const char *filename, std::vector<int> &h_expected_energy_spectrum, int *E_min, int *E_max){
+    std::cout << filename;
     FILE *file = fopen(filename, "r");
     if (!file)
     {
@@ -541,14 +545,13 @@ void handleNewEnergyError(int *new_energies, int *new_energies_flag, char *histo
     outfile.close();
 }
 
-char *constructHistogramFilePath(float prob_interactions, int X, int Y, int seed, int num_iterations)
+char *constructHistogramFilePath(float prob_interactions, int X, int Y, int seed)
 {
     std::stringstream strstr;
 
-    strstr << "histograms/prob_";
-    strstr << std::fixed << std::setprecision(6) << prob_interactions;
+    strstr << "init/prob_" << std::fixed << std::setprecision(6) << prob_interactions;
     strstr << "/X_" << X << "_Y_" << Y;
-    strstr << "/histogram_seed_" << seed << "_ni_" << num_iterations << ".txt";
+    strstr << "/seed_" << seed << "/histogram/histogram.txt";
 
     // Convert the stringstream to a string
     std::string filePathStr = strstr.str();
@@ -564,10 +567,9 @@ char *constructInteractionFilePath(float prob_interactions, int X, int Y, int se
 {
     std::stringstream strstr;
 
-    strstr << "interactions/prob_";
-    strstr << std::fixed << std::setprecision(6) << prob_interactions;
+    strstr << "init/prob_" << std::fixed << std::setprecision(6) << prob_interactions;
     strstr << "/X_" << X << "_Y_" << Y;
-    strstr << "/interactions_seed_" << seed << ".txt";
+    strstr << "/seed_" << seed << "/interactions/interactions.txt";
 
     // Convert the stringstream to a string
     std::string filePathStr = strstr.str();
@@ -644,6 +646,49 @@ void write(signed char* array, std::string filename, const long nx, const long n
 
 }
 
+std::vector<signed char> init_lattice_with_pre_run_result(float prob, int seed, int x, int y, std::vector<int> h_start, std::vector<int> h_end, int num_intervals, int num_walkers_total, int num_walkers_per_interval){
+    namespace fs = std::filesystem;
+    std::ostringstream oss;
+    oss << "init/prob_" << std::fixed << std::setprecision(6) << prob;
+    oss << "/X_" << x << "_Y_" << y;
+    oss << "/seed_" << seed;
+    oss << "/lattice";
+
+    std::string lattice_path = oss.str();
+    std::vector<signed char> lattice_over_all_walkers;
+    for(int interval_iterator = 0 ; interval_iterator < num_intervals; interval_iterator++){
+        std::cout << interval_iterator;
+        try {
+            for (const auto& entry : fs::directory_iterator(lattice_path)) {
+                // Check if the entry is a regular file and has a .txt extension
+                if (entry.is_regular_file() && entry.path().extension() == ".txt") {
+                    // Extract the number from the filename
+                    std::string filename = entry.path().stem().string(); // Get the filename without extension
+                    std::regex regex("lattice_(-?\\d+)");
+                    std::smatch match;
+                    if (std::regex_search(filename, match, regex)) {
+                        int number = std::stoi(match[1]);
+                        // Check if the number is between interval boundaries
+                        if (number >= h_start[interval_iterator] && number <= h_end[interval_iterator]) {
+                            std::cout << "Processing file: " << entry.path() << " with energy: " << number << " for interval [" << h_start[interval_iterator] << ", " << h_end[interval_iterator] << std::endl;
+                            for(int walker_per_interval_iterator = 0; walker_per_interval_iterator < num_walkers_per_interval;  walker_per_interval_iterator++){
+                                read(lattice_over_all_walkers, entry.path().string());
+                            }
+                            break;
+                        } 
+                    } else {
+                        std::cerr << "Unable to open file: " << entry.path() << std::endl;
+                    }
+                }
+            }
+        } catch (const fs::filesystem_error& e) {
+            std::cerr << "Filesystem error: " << e.what() << std::endl;
+        }
+    }
+    return lattice_over_all_walkers;
+}
+
+
 /*
 To Do:
     - Paths in construct histogram path, and interaction path
@@ -667,7 +712,7 @@ int main(int argc, char **argv){
     
     const int num_walker_total = options.num_intervals * options.walker_per_interval;
 
-    char *histogram_file = constructHistogramFilePath(options.prob_interactions, options.X, options.Y, seed, options.num_iterations_pre_run);
+    char *histogram_file = constructHistogramFilePath(options.prob_interactions, options.X, options.Y, seed);
 
     // Energy spectrum from pre_run
     std::vector<int> h_expected_energy_spectrum;
@@ -742,7 +787,7 @@ int main(int argc, char **argv){
     */
 
     // Initialization of lattices, interactions, offsets and indices
-    init_lattice<<<num_walker_total, options.X*options.Y>>>(d_lattice, options.X, options.Y, num_walker_total, seed);
+    // init_lattice<<<num_walker_total, options.X*options.Y>>>(d_lattice, options.X, options.Y, num_walker_total, seed);
     init_offsets_lattice<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, options.X, options.Y);
     init_offsets_histogramm<<<options.num_intervals, options.walker_per_interval>>>(d_offset_histogramm, d_start, d_end);
     init_indices<<<options.num_intervals, options.walker_per_interval>>>(d_indices);
@@ -752,10 +797,11 @@ int main(int argc, char **argv){
     read(h_interactions, interaction_file);
     CHECK_CUDA(cudaMemcpy(d_interactions, h_interactions.data(), options.X * options.Y * 2 * sizeof(*d_interactions), cudaMemcpyHostToDevice));
     
+    
+    std::vector<signed char> h_lattice = init_lattice_with_pre_run_result(options.prob_interactions, seed, options.X, options.Y, interval_result.h_start, interval_result.h_end, options.num_intervals, num_walker_total, options.walker_per_interval);
+    CHECK_CUDA(cudaMemcpy(d_lattice, h_lattice.data(), num_walker_total * options.X * options.Y * sizeof(*d_lattice), cudaMemcpyHostToDevice));
     // Calculate energy and find right configurations
     calc_energy<<<options.num_intervals, options.walker_per_interval>>>(d_lattice, d_interactions, d_energy, d_offset_lattice, options.X, options.Y, num_walker_total);    
-    
-    find_spin_config_in_energy_range<<<options.num_intervals, options.walker_per_interval>>>(d_lattice, d_interactions, options.X, options.Y, num_walker_total, seed + 2, d_start, d_end, d_energy, d_offset_lattice);
     cudaDeviceSynchronize();
     check_energy_ranges<<<options.num_intervals, options.walker_per_interval>>>(d_energy, d_start, d_end);
 
@@ -809,34 +855,34 @@ int main(int argc, char **argv){
     ---------------------------------------------
     */
 
-    // std::vector<float> h_log_density_per_walker(interval_result.len_histogram_over_all_walkers);
-    // CHECK_CUDA(cudaMemcpy(h_log_density_per_walker.data(), d_logG, interval_result.len_histogram_over_all_walkers * sizeof(*d_logG), cudaMemcpyDeviceToHost));
+    std::vector<float> h_log_density_per_walker(interval_result.len_histogram_over_all_walkers);
+    CHECK_CUDA(cudaMemcpy(h_log_density_per_walker.data(), d_logG, interval_result.len_histogram_over_all_walkers * sizeof(*d_logG), cudaMemcpyDeviceToHost));
 
-    // std::ofstream f_log_density;
-    // f_log_density.open("log_density_afterRun.txt");
+    std::ofstream f_log_density;
+    f_log_density.open("log_density.txt");
 
-    // int index_h_log_g = 0;
-    // if (f_log_density.is_open())
-    // {
-    //     for (int i = 0; i < options.num_intervals; i++)
-    //     {
+    int index_h_log_g = 0;
+    if (f_log_density.is_open())
+    {
+        for (int i = 0; i < options.num_intervals; i++)
+        {
 
-    //         int start_energy = interval_result.h_start[i];
-    //         int end_energy = interval_result.h_end[i];
-    //         int len_int = interval_result.h_end[i] - interval_result.h_start[i] + 1;
+            int start_energy = interval_result.h_start[i];
+            int end_energy = interval_result.h_end[i];
+            int len_int = interval_result.h_end[i] - interval_result.h_start[i] + 1;
 
-    //         for (int j = 0; j < options.walker_per_interval; j++)
-    //         {
-    //             for (int k = 0; k < len_int; k++)
-    //             {
-    //                 f_log_density << (int)interval_result.h_start[i] + k << " : " << (float)h_log_density_per_walker[index_h_log_g] << " ,";
-    //                 index_h_log_g += 1;
-    //             }
-    //             f_log_density << std::endl;
-    //         }
-    //     }
+            for (int j = 0; j < options.walker_per_interval; j++)
+            {
+                for (int k = 0; k < len_int; k++)
+                {
+                    f_log_density << (int)interval_result.h_start[i] + k << " : " << (float)h_log_density_per_walker[index_h_log_g] << " ,";
+                    index_h_log_g += 1;
+                }
+                f_log_density << std::endl;
+            }
+        }
 
-    // }
-    // f_log_density.close();
+    }
+    f_log_density.close();
     
 }

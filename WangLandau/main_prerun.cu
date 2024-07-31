@@ -17,58 +17,43 @@
 
 using namespace std;
 
+void writeToFile(const std::string& filename, const signed char* data, int nx_w, int ny) {
+    std::ofstream file(filename);
+    if (file.is_open()) {
+        for (int i = 0; i < nx_w; i++) {
+            for (int j = 0; j < ny; j++) {
+                file << static_cast<int>(data[i * ny + j]) << " ";
+            }
+            file << std::endl;
+        }
+    } else {
+        std::cerr << "Error opening file: " << filename << std::endl;
+    }
+    file.close();
+}
 
 void write(
-    signed char* array, std::string filename, const long nx, const long ny, 
-    const int num_lattices, bool lattice, const std::vector<int>& energies = std::vector<int>()
-    ){
-    printf("Writing to %s ...\n", filename.c_str());
+    signed char* array, const std::string& filename, long nx, long ny, 
+    int num_lattices, bool lattice, const std::vector<int>& energies = std::vector<int>()
+) {
+    std::cout << "Writing to " << filename << " ..." << std::endl;
 
-    int nx_w = (lattice) ? nx : 2*nx;
+    int nx_w = (lattice) ? nx : 2 * nx;
+    std::vector<signed char> array_host(nx_w * ny * num_lattices);
 
-    std::vector<signed char> array_host(nx_w*ny*num_lattices);
+    CHECK_CUDA(cudaMemcpy(array_host.data(), array, nx_w * ny * num_lattices * sizeof(signed char), cudaMemcpyDeviceToHost));
 
-    CHECK_CUDA(cudaMemcpy(array_host.data(), array, nx_w*ny*num_lattices*sizeof(*array), cudaMemcpyDeviceToHost));
-
-    int offset;
-
-    if (num_lattices == 1){
-        offset = 0;
-    
-        std::ofstream f;
-        f.open(filename + std::string(".txt"));
-        
-        if (f.is_open()) {
-            for (int i = 0; i < nx_w; i++) {
-                for (int j = 0; j < ny; j++) {
-                    f << (int)array_host[offset + i * ny + j] << " ";
-                }
-                f << std::endl;
+    if (num_lattices == 1) {
+        writeToFile(filename + ".txt", array_host.data(), nx_w, ny);
+    } else {
+        for (int l = 0; l < num_lattices; l++) {
+            int offset = l * nx_w * ny;
+            if (energies[l] == 0 && array_host[offset] == 0) {
+                continue;
             }
-        }
-        f.close();
-    }
-    else{
-        for (int l=0; l < num_lattices; l++){
 
-            offset = l*nx_w*ny;
-
-            std::ofstream f;
-            if (energies.empty()){
-                f.open(filename + "_" + std::to_string(l) + std::string(".txt"));
-            }
-            else{
-                f.open(filename + "_" + std::to_string(energies[l]) + std::string(".txt"));
-            }
-            if (f.is_open()) {
-                for (int i = 0; i < nx_w; i++) {
-                    for (int j = 0; j < ny; j++) {
-                        f << (int)array_host[offset + i * ny + j] << " ";
-                    }
-                    f << std::endl;
-                }
-            }
-            f.close();
+            std::string file_suffix = (energies.empty()) ? std::to_string(l) : std::to_string(energies[l]);
+            writeToFile(filename + "_" + file_suffix + ".txt", array_host.data() + offset, nx_w, ny);
         }
     }
 }

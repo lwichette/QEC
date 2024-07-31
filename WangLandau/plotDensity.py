@@ -33,20 +33,20 @@ def read_data_from_file_new(filename):
                     x, y = pair.split(' : ')
                     x = int(x.strip())
                     y = float(y.strip())
-                    data_dict[x] = y
+                    if y != 0:
+                        data_dict[x] = y
             walker_results.append(data_dict)
 
     return walker_results
 
-def plot_data(x, y):
-    plt.figure(figsize=(10, 6))
-    plt.plot(x, y, marker='o', linestyle='-', color='b')
+def plot_data(x, y, color):
+    plt.plot(x, y, marker='o', linestyle='-', color=color)
     plt.xlabel('X-axis')
     plt.ylabel('Y-axis')
     plt.title('Plot of Data from File')
     plt.grid(True)
 
-def get_renormalized_exp_values(results: dict):
+def get_renormalized_g_values(results: dict):
     exponential_results_x = []
     exponential_results_y = []
     for result in results:
@@ -60,12 +60,26 @@ def get_renormalized_exp_values(results: dict):
         exponential_results_x.append(x_values)
     return exponential_results_x, exponential_results_y
 
+def get_renormalized_log_g_values(results: dict):
+    results_x = []
+    results_y = []
+    for result in results:
+        x_values = np.array(list(result.keys()))
+        y_values = np.array(list(result.values()))
+        normalized_values = y_values / np.sum(y_values)
+        results_y.append(normalized_values)
+        results_x.append(x_values)
+    return results_x, results_y
+
 def main():
     filename = 'WangLandau/log_density_afterRun_12_12_p0.txt'  # Replace with your file path
     walker_results = read_data_from_file_new(filename)
-    exponential_results_x, exponential_results_y = get_renormalized_exp_values(walker_results)
-    for i in range(len(exponential_results_x)):
-        plot_data(exponential_results_x[i], exponential_results_y[i])
+    results_x, results_y = get_renormalized_log_g_values(walker_results)
+
+    plt.figure(figsize=(14, 7))
+    colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
+    for i in range(len(results_x)):
+        plot_data(results_x[i], results_y[i], color=colors[i % len(colors)])
     plt.show()
 
 

@@ -17,7 +17,48 @@
 
 using namespace std;
 
+void writeToFile(const std::string& filename, const signed char* data, int nx_w, int ny) {
+    std::ofstream file(filename);
+    if (file.is_open()) {
+        for (int i = 0; i < nx_w; i++) {
+            for (int j = 0; j < ny; j++) {
+                file << static_cast<int>(data[i * ny + j]) << " ";
+            }
+            file << std::endl;
+        }
+    } else {
+        std::cerr << "Error opening file: " << filename << std::endl;
+    }
+    file.close();
+}
 
+void write(
+    signed char* array, const std::string& filename, long nx, long ny, 
+    int num_lattices, bool lattice, const std::vector<int>& energies = std::vector<int>()
+) {
+    std::cout << "Writing to " << filename << " ..." << std::endl;
+
+    int nx_w = (lattice) ? nx : 2 * nx;
+    std::vector<signed char> array_host(nx_w * ny * num_lattices);
+
+    CHECK_CUDA(cudaMemcpy(array_host.data(), array, nx_w * ny * num_lattices * sizeof(signed char), cudaMemcpyDeviceToHost));
+
+    if (num_lattices == 1) {
+        writeToFile(filename + ".txt", array_host.data(), nx_w, ny);
+    } else {
+        for (int l = 0; l < num_lattices; l++) {
+            int offset = l * nx_w * ny;
+            if (energies[l] == 0 && array_host[offset] == 0) {
+                continue;
+            }
+
+            std::string file_suffix = (energies.empty()) ? std::to_string(l) : std::to_string(energies[l]);
+            writeToFile(filename + "_" + file_suffix + ".txt", array_host.data() + offset, nx_w, ny);
+        }
+    }
+}
+
+/*
 void write(
     signed char* array, std::string filename, const long nx, const long ny, 
     const int num_lattices, bool lattice, const std::vector<int>& energies = std::vector<int>()
@@ -58,6 +99,9 @@ void write(
                 f.open(filename + "_" + std::to_string(l) + std::string(".txt"));
             }
             else{
+                if (energies[l] == 0 && array_host[offset] == 0){
+                    continue;
+                }
                 f.open(filename + "_" + std::to_string(energies[l]) + std::string(".txt"));
             }
             if (f.is_open()) {
@@ -72,6 +116,7 @@ void write(
         }
     }
 }
+*/
 
 __global__ void init_lattice(signed char* lattice, const int nx, const int ny, const int num_lattices, const int seed){
     

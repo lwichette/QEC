@@ -545,7 +545,7 @@ char *constructHistogramFilePath(float prob_interactions, int X, int Y, int seed
 {
     std::stringstream strstr;
 
-    strstr << "/home/dfki.uni-bremen.de/mbeuerle/User/mbeuerle/Code/qec/WangLandau/histograms/prob_";
+    strstr << "histograms/prob_";
     strstr << std::fixed << std::setprecision(6) << prob_interactions;
     strstr << "/X_" << X << "_Y_" << Y;
     strstr << "/histogram_seed_" << seed << "_ni_" << num_iterations << ".txt";
@@ -564,7 +564,7 @@ char *constructInteractionFilePath(float prob_interactions, int X, int Y, int se
 {
     std::stringstream strstr;
 
-    strstr << "/home/dfki.uni-bremen.de/mbeuerle/User/mbeuerle/Code/qec/WangLandau/interactions/prob_";
+    strstr << "interactions/prob_";
     strstr << std::fixed << std::setprecision(6) << prob_interactions;
     strstr << "/X_" << X << "_Y_" << Y;
     strstr << "/interactions_seed_" << seed << ".txt";

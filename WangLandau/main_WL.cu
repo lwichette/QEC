@@ -808,43 +808,36 @@ int main(int argc, char **argv){
     ---------------------------------------------
     --------------Post Processing ---------------
     ---------------------------------------------
-    
-   
-    std::vector<int> h_histogram_per_walker(interval_result.len_histogram_over_all_walkers);
-    CHECK_CUDA(cudaMemcpy(h_histogram_per_walker.data(), d_H, interval_result.len_histogram_over_all_walkers * sizeof(*d_H), cudaMemcpyDeviceToHost));
-
-    std::vector<int> energies_histogram;
-
-    for (int i = 0; i < options.num_intervals; i++)
-    {
-
-        int start_energy = interval_result.h_start[i];
-        int end_energy = interval_result.h_end[i];
-        int len_int = interval_result.h_end[i] - interval_result.h_start[i] + 1;
-
-        for (int j = 0; j < options.walker_per_interval; j++)
-        {
-            for (int k = 0; k < len_int; k++)
-            {
-                energies_histogram.push_back(interval_result.h_start[i] + k);
-            }
-        }
-    }
-
-    std::vector<float> h_log_density_per_walker(interval_result.len_histogram_over_all_walkers);
-    CHECK_CUDA(cudaMemcpy(h_log_density_per_walker.data(), d_logG, interval_result.len_histogram_over_all_walkers * sizeof(*d_logG), cudaMemcpyDeviceToHost));
-
-    std::ofstream f_log_density;
-    f_log_density.open("log_density_afterRun.txt");
-
-    if (f_log_density.is_open())
-    {
-        for (int i = 0; i < interval_result.len_histogram_over_all_walkers; i++)
-        {
-            f_log_density << (int)energies_histogram[i] << " " << (float)h_log_density_per_walker[i];
-            f_log_density << std::endl;
-        }
-    }
-    f_log_density.close();
     */
+
+    // std::vector<float> h_log_density_per_walker(interval_result.len_histogram_over_all_walkers);
+    // CHECK_CUDA(cudaMemcpy(h_log_density_per_walker.data(), d_logG, interval_result.len_histogram_over_all_walkers * sizeof(*d_logG), cudaMemcpyDeviceToHost));
+
+    // std::ofstream f_log_density;
+    // f_log_density.open("log_density_afterRun.txt");
+
+    // int index_h_log_g = 0;
+    // if (f_log_density.is_open())
+    // {
+    //     for (int i = 0; i < options.num_intervals; i++)
+    //     {
+
+    //         int start_energy = interval_result.h_start[i];
+    //         int end_energy = interval_result.h_end[i];
+    //         int len_int = interval_result.h_end[i] - interval_result.h_start[i] + 1;
+
+    //         for (int j = 0; j < options.walker_per_interval; j++)
+    //         {
+    //             for (int k = 0; k < len_int; k++)
+    //             {
+    //                 f_log_density << (int)interval_result.h_start[i] + k << " : " << (float)h_log_density_per_walker[index_h_log_g] << " ,";
+    //                 index_h_log_g += 1;
+    //             }
+    //             f_log_density << std::endl;
+    //         }
+    //     }
+
+    // }
+    // f_log_density.close();
+    
 }

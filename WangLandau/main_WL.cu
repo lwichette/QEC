@@ -646,7 +646,6 @@ void write(signed char* array, std::string filename, const long nx, const long n
 
 /*
 To Do:
-    - Move the git repository to github instead of gitlab
     - Paths in construct histogram path, and interaction path
     - blockID to blockIdx.x to save storage?
     - d_indices array not needed, could in theory use shared memory in each fisher yates call
@@ -798,7 +797,6 @@ int main(int argc, char **argv){
         thrust::device_ptr<double> d_factor_ptr(d_factor);
         thrust::device_ptr<double> max_factor_ptr = thrust::max_element(d_factor_ptr, d_factor_ptr + num_walker_total);
         max_factor = *max_factor_ptr;
-        
         
         replica_exchange<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, d_energy, d_start, d_end, d_indices, d_logG, d_offset_histogramm, true, seed + 3, d_offset_iter);
         replica_exchange<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, d_energy, d_start, d_end, d_indices, d_logG, d_offset_histogramm, false, seed + 3, d_offset_iter);

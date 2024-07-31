@@ -12,6 +12,13 @@
             "args": "-x 16 -y 16 -n 10 -p 0.0 -a 0.8 -b 0.000001 -i 8 -w 8 -o 0.25 -r 10000000"
         },
         {
+            "name": "prerun",
+            "type": "cuda-gdb",
+            "request": "launch",
+            "program": "${workspaceFolder}/WangLandau/prerun",
+            "args": "-x 12 -y 12 -p 0.0 -n 1000 -l 10 -w 8 -s 42 -i 10"
+        },
+        {
             "name": "Optim new",
             "type": "cuda-gdb",
             "request": "launch",

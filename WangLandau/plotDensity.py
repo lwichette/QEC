@@ -157,8 +157,6 @@ def main():
     """get energy per interval pair with lowest deviation of inverse temp"""
     minimum_deviation_energies = find_lowest_inverse_temp_deviation(derivatives_wrt_e)
 
-    print(minimum_deviation_energies)
-
     """rescaling of log(g) values at concatenation points"""
     rescale_results_for_concatenation(results_x, results_y, minimum_deviation_energies)
 

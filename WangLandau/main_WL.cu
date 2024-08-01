@@ -175,7 +175,21 @@ int main(int argc, char **argv){
     CHECK_CUDA(cudaMemcpy(h_log_density_per_walker.data(), d_logG, interval_result.len_histogram_over_all_walkers * sizeof(*d_logG), cudaMemcpyDeviceToHost));
 
     std::ofstream f_log_density;
-    f_log_density.open("log_density.txt");
+
+    std::stringstream result_path;
+    result_path << "results/prob_" << std::fixed << std::setprecision(6) << options.prob_interactions
+       << "/X_" << options.X
+       << "_Y_" << options.Y
+       << "/seed_" << seed
+       << "/intervals" << options.num_intervals
+       << "_iterations" << options.num_iterations
+       << "_overlap" << options.overlap_decimal
+       << "_walkers" << options.walker_per_interval
+       << "_alpha" << options.alpha
+       << "_beta" << options.beta
+       << ".txt";
+
+    f_log_density.open(result_path.str());
 
     int index_h_log_g = 0;
     if (f_log_density.is_open())

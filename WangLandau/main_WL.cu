@@ -127,7 +127,7 @@ int main(int argc, char **argv){
     
     while (max_factor > std::exp(options.beta)){
         
-        printf("Max factor %2f \n", max_factor);
+        // printf("Max factor %2f \n", max_factor);
 
         wang_landau<<<options.num_intervals, options.walker_per_interval>>>(d_lattice, d_interactions, d_energy, d_start, d_end, d_H, d_logG, d_offset_histogramm, d_offset_lattice, options.num_iterations, options.X, options.Y, seed + 3, d_factor, d_offset_iter, d_expected_energy_spectrum, d_newEnergies, d_foundNewEnergyFlag, num_walker_total, options.beta);
         cudaDeviceSynchronize();
@@ -159,6 +159,9 @@ int main(int argc, char **argv){
         
         replica_exchange<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, d_energy, d_start, d_end, d_indices, d_logG, d_offset_histogramm, true, seed + 3, d_offset_iter);
         replica_exchange<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, d_energy, d_start, d_end, d_indices, d_logG, d_offset_histogramm, false, seed + 3, d_offset_iter);
+
+        print_finished_walker_ratio<<<1, num_walker_total>>>(d_factor, num_walker_total, std::exp(options.beta));
+        //
     };
 
     /*

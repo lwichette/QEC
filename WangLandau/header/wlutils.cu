@@ -290,7 +290,7 @@ std::vector<signed char> get_lattice_with_pre_run_result(float prob, int seed, i
     std::string lattice_path = oss.str();
     std::vector<signed char> lattice_over_all_walkers;
     for(int interval_iterator = 0 ; interval_iterator < num_intervals; interval_iterator++){
-        std::cout << interval_iterator;
+        std::cout << interval_iterator << " ";
         try {
             for (const auto& entry : fs::directory_iterator(lattice_path)) {
                 // Check if the entry is a regular file and has a .txt extension
@@ -303,7 +303,7 @@ std::vector<signed char> get_lattice_with_pre_run_result(float prob, int seed, i
                         int number = std::stoi(match[1]);
                         // Check if the number is between interval boundaries
                         if (number >= h_start[interval_iterator] && number <= h_end[interval_iterator]) {
-                            std::cout << "Processing file: " << entry.path() << " with energy: " << number << " for interval [" << h_start[interval_iterator] << ", " << h_end[interval_iterator] << std::endl;
+                            std::cout << "Processing file: " << entry.path() << " with energy: " << number << " for interval [" << h_start[interval_iterator] << ", " << h_end[interval_iterator] << "]" << std::endl;
                             for(int walker_per_interval_iterator = 0; walker_per_interval_iterator < num_walkers_per_interval;  walker_per_interval_iterator++){
                                 read(lattice_over_all_walkers, entry.path().string());
                             }
@@ -762,5 +762,22 @@ __global__ void wang_landau(
     }
 }
 
-
-
+__global__ void print_finished_walker_ratio(double *d_factor, int num_walker_total, const double exp_beta){
+    extern __shared__ int shared_count[];
+    int tid = threadIdx.x + blockIdx.x * blockDim.x;
+    int threadId = threadIdx.x;
+    if (threadId == 0) {
+        shared_count[0] = 0;
+    }
+    __syncthreads();
+    if (tid < num_walker_total) {
+        if (d_factor[tid] <= exp_beta) {
+            atomicAdd(&shared_count[0], 1);
+        }
+    }
+    __syncthreads();
+    if (threadId == 0) {
+        double ratio_of_finished_walkers = (double)shared_count[0] / num_walker_total;
+        printf("ratio of finished walkers: %f\n", ratio_of_finished_walkers);
+    }
+}

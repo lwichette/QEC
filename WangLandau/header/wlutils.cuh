@@ -102,4 +102,7 @@ __global__ void replica_exchange(
     int *d_offset_lattice, int *d_energy, int *d_start, int *d_end, int *d_indices,
     float *d_logG, int *d_offset_histogram, bool even, int seed, unsigned long long *d_offset_iter);
 
+__global__ void print_finished_walker_ratio(double *d_factor, int num_walker_total, const double exp_beta);
+
+
 #endif // UTILS_H

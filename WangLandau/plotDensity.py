@@ -1,25 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+
 def read_data_from_file(filename):
-    x = []
-    y = []
-
-    with open(filename, 'r') as file:
-        for line in file:
-            # Split the line into X and Y values
-            parts = line.split()
-            if len(parts) == 2:
-                if float(parts[1]) != 0:
-                    x_value = float(parts[0])
-                    y_value = float(parts[1])
-                    x.append(x_value)
-                    y.append(y_value)
-
-    return x, y
-
-
-def read_data_from_file_new(filename):
 
     walker_results = []
 
@@ -71,10 +54,116 @@ def get_renormalized_log_g_values(results: dict):
         results_x.append(x_values)
     return results_x, results_y
 
+
+def average_matching_keys(dict_list):
+    from collections import defaultdict
+    
+    # Group dictionaries by their keys
+    grouped_dicts = defaultdict(list)
+    for d in dict_list:
+        key_tuple = tuple(sorted(d.keys()))
+        grouped_dicts[key_tuple].append(d)
+    
+    # Calculate average for each group of dictionaries
+    result_list = []
+    for key_tuple, dicts in grouped_dicts.items():
+        avg_dict = {}
+        for key in key_tuple:
+            avg_dict[key] = sum(d[key] for d in dicts) / len(dicts)
+        result_list.append(avg_dict)
+    
+    return result_list
+
+def get_derivative_wrt_e(walker_results, precision=5):
+    derivatives = []
+    for result in walker_results:
+        derivative = {}
+        keys = sorted(result.keys())
+        for i in range(1, len(keys)):
+            x1, x2 = keys[i-1], keys[i]
+            y1, y2 = result[x1], result[x2]
+            # Compute the derivative
+            deriv = (y2 - y1) / (x2 - x1)
+            # store derivative for left bound of tupel
+            derivative[x1] = round(deriv, precision)
+        derivatives.append(derivative)
+    return derivatives
+
+def find_lowest_inverse_temp_deviation(dictionaries):
+    # Initialize the result list
+    result = []
+
+    # Iterate through neighboring pairs of dictionaries
+    for i in range(len(dictionaries) - 1):
+        dict1 = dictionaries[i]
+        dict2 = dictionaries[i + 1]
+
+        # Find common keys
+        common_keys = set(dict1.keys()) & set(dict2.keys())
+        
+        if not common_keys:
+            continue  # Skip if there are no common keys
+        
+        # Initialize variables to find the minimum deviation
+        min_deviation = float('inf')
+        best_key = None
+        
+        # Iterate through common keys to find the one with the smallest deviation
+        for key in common_keys:
+            value1 = dict1[key]
+            value2 = dict2[key]
+            deviation = abs(value1 - value2)
+            
+            if deviation < min_deviation:
+                min_deviation = deviation
+                best_key = key
+        
+        # Append the best key for this pair to the result list
+        result.append(best_key)
+    return result
+
+def rescale_results_for_concatenation(results_x, results_y, minimum_deviation_energies):
+    for i, e_concat in enumerate(minimum_deviation_energies):
+        e_concat_index_in_preceeding_interval = np.where(results_x[i] == e_concat)
+        e_concat_index_in_following_interval = np.where(results_x[i+1] == e_concat)
+        
+        """resclaing for continous concat"""
+        results_y[i+1] *= results_y[i][e_concat_index_in_preceeding_interval]/results_y[i+1][e_concat_index_in_following_interval]
+
+        """cutting the overlapping parts"""
+        if i != len(minimum_deviation_energies) -1:
+            
+            results_y[i] = results_y[i][:e_concat_index_in_preceeding_interval[0][0]+1]
+            results_x[i] = results_x[i][:e_concat_index_in_preceeding_interval[0][0]+1]
+        else:
+            results_y[i] = results_y[i][:e_concat_index_in_preceeding_interval[0][0]+1]
+            results_x[i] = results_x[i][:e_concat_index_in_preceeding_interval[0][0]+1]
+            results_y[i+1] = results_y[i+1][e_concat_index_in_following_interval[0][0]:]
+            results_x[i+1] = results_x[i+1][e_concat_index_in_following_interval[0][0]:]
+    return
+
 def main():
-    filename = 'WangLandau/log_density_afterRun_12_12_p0.txt'  # Replace with your file path
-    walker_results = read_data_from_file_new(filename)
-    results_x, results_y = get_renormalized_log_g_values(walker_results)
+    filename = 'WangLandau/log_density_10_10_p0.txt'  
+    walker_results = read_data_from_file(filename) 
+    
+    """averages over walker results per intervals"""
+    average_over_intervals_results = average_matching_keys(walker_results)
+    walker_results = average_over_intervals_results
+
+    results_x = []
+    results_y = []
+    for result in walker_results:
+        results_y.append(np.array(list(result.values())))
+        results_x.append(np.array(list(result.keys())))
+
+    """get inverse temp by log(g) derivative"""
+    derivatives_wrt_e = get_derivative_wrt_e(walker_results)
+
+    """get energy per interval pair with lowest deviation of inverse temp"""
+    minimum_deviation_energies = find_lowest_inverse_temp_deviation(derivatives_wrt_e)
+
+    """rescaling of log(g) values at concatenation points"""
+    rescale_results_for_concatenation(results_x, results_y, minimum_deviation_energies)
 
     plt.figure(figsize=(14, 7))
     colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k']

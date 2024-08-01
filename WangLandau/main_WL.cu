@@ -11,6 +11,7 @@ To Do:
     - init flag for found new energy with seperate kernel and only update in wang landau inverted to current setting
     - New energies smarter way to update histogram
     - Concatenation of energy density results
+    - print metric finished walker count / total walker count -> may use for finish condition
 */
 
 int main(int argc, char **argv){

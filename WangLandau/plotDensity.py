@@ -131,19 +131,14 @@ def rescale_results_for_concatenation(results_x, results_y, minimum_deviation_en
         results_y[i+1] *= results_y[i][e_concat_index_in_preceeding_interval]/results_y[i+1][e_concat_index_in_following_interval]
 
         """cutting the overlapping parts"""
-        if i != len(minimum_deviation_energies) -1:
-            
-            results_y[i] = results_y[i][:e_concat_index_in_preceeding_interval[0][0]+1]
-            results_x[i] = results_x[i][:e_concat_index_in_preceeding_interval[0][0]+1]
-        else:
-            results_y[i] = results_y[i][:e_concat_index_in_preceeding_interval[0][0]+1]
-            results_x[i] = results_x[i][:e_concat_index_in_preceeding_interval[0][0]+1]
-            results_y[i+1] = results_y[i+1][e_concat_index_in_following_interval[0][0]:]
-            results_x[i+1] = results_x[i+1][e_concat_index_in_following_interval[0][0]:]
+        results_y[i] = results_y[i][:e_concat_index_in_preceeding_interval[0][0]+1]
+        results_x[i] = results_x[i][:e_concat_index_in_preceeding_interval[0][0]+1]
+        results_y[i+1] = results_y[i+1][e_concat_index_in_following_interval[0][0]:]
+        results_x[i+1] = results_x[i+1][e_concat_index_in_following_interval[0][0]:]
     return
 
 def main():
-    filename = 'WangLandau/log_density_10_10_p0.txt'  
+    filename = 'WangLandau/log_density_10_10_p0_i8_a07_b1e-6.txt' #'WangLandau/log_density_10_10_p0_i4.txt' #
     walker_results = read_data_from_file(filename) 
     
     """averages over walker results per intervals"""

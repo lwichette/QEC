@@ -12,6 +12,7 @@ To Do:
     - New energies smarter way to update histogram
     - Concatenation of energy density results
     - print metric finished walker count / total walker count -> may use for finish condition
+    - maybe implement runtime balanced subdivision as in https://www.osti.gov/servlets/purl/1567362
 */
 
 int main(int argc, char **argv){

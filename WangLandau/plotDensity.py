@@ -138,7 +138,7 @@ def rescale_results_for_concatenation(results_x, results_y, minimum_deviation_en
     return
 
 def main():
-    filename =  'WangLandau/log_density_10_10_p0_i12_a07_b1e-6.txt' # 'WangLandau/log_density_10_10_p0_i8_a07_b1e-6.txt' #'WangLandau/log_density_10_10_p0_i4.txt' #
+    filename =  'WangLandau/results/prob_0.000000/X_10_Y_10/seed_42/log_density_10_10_p0_i12_a07_b1e-6.txt' # 'WangLandau/results/prob_0.000000/X_10_Y_10/seed_42/log_density_10_10_p0_i8_a07_b1e-6.txt' #'WangLandau/results/prob_0.000000/X_10_Y_10/seed_42/log_density_10_10_p0_i4.txt' #
     walker_results = read_data_from_file(filename) 
     
     """averages over walker results per intervals"""

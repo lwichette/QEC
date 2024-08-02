@@ -187,7 +187,7 @@ int main(int argc, char **argv){
                 {
                     for (int k = 0; k < len_int; k++)
                     {
-                        hist_file << (int)interval_result.h_start[i] + k << " : " << (float)h_hist[index_h_hist] << " ,";
+                        hist_file << (int)interval_result.h_start[i] + k << " : " << h_hist[index_h_hist] << " ,";
                         index_h_hist += 1;
                     }
                     hist_file << std::endl;

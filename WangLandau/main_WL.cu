@@ -186,8 +186,10 @@ int main(int argc, char **argv){
        << "_overlap" << options.overlap_decimal
        << "_walkers" << options.walker_per_interval
        << "_alpha" << options.alpha
-       << "_beta" << options.beta
+       << "_beta"  << std::fixed << std::setprecision(10) << options.beta
        << ".txt";
+
+    std::cout << options.beta;
 
     f_log_density.open(result_path.str());
 

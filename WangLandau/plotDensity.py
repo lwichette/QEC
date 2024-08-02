@@ -1,7 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-
 def read_data_from_file(filename):
 
     walker_results = []
@@ -112,7 +111,7 @@ def find_lowest_inverse_temp_deviation(dictionaries):
         common_keys = set(dict1.keys()) & set(dict2.keys())
         
         if not common_keys:
-            continue  # Skip if there are no common keys
+            continue  # Skip if there are no common keys -> this must hold for all intervals such that result returns empty set
         
         # Initialize variables to find the minimum deviation
         min_deviation = float('inf')
@@ -133,22 +132,27 @@ def find_lowest_inverse_temp_deviation(dictionaries):
     return result
 
 def rescale_results_for_concatenation(results_x, results_y, minimum_deviation_energies):
-    for i, e_concat in enumerate(minimum_deviation_energies):
-        e_concat_index_in_preceeding_interval = np.where(results_x[i] == e_concat)
-        e_concat_index_in_following_interval = np.where(results_x[i+1] == e_concat)
-        
-        """resclaing for continous concat"""
-        results_y[i+1] *= results_y[i][e_concat_index_in_preceeding_interval]/results_y[i+1][e_concat_index_in_following_interval]
+    if(len(minimum_deviation_energies)!= 0):
+        for i, e_concat in enumerate(minimum_deviation_energies):
+            e_concat_index_in_preceeding_interval = np.where(results_x[i] == e_concat)
+            e_concat_index_in_following_interval = np.where(results_x[i+1] == e_concat)
 
-        """cutting the overlapping parts"""
-        results_y[i] = results_y[i][:e_concat_index_in_preceeding_interval[0][0]+1]
-        results_x[i] = results_x[i][:e_concat_index_in_preceeding_interval[0][0]+1]
-        results_y[i+1] = results_y[i+1][e_concat_index_in_following_interval[0][0]:]
-        results_x[i+1] = results_x[i+1][e_concat_index_in_following_interval[0][0]:]
+            """resclaing for continous concat"""
+            results_y[i+1] *= results_y[i][e_concat_index_in_preceeding_interval]/results_y[i+1][e_concat_index_in_following_interval]
+
+            """cutting the overlapping parts"""
+            results_y[i] = results_y[i][:e_concat_index_in_preceeding_interval[0][0]+1]
+            results_x[i] = results_x[i][:e_concat_index_in_preceeding_interval[0][0]+1]
+            results_y[i+1] = results_y[i+1][e_concat_index_in_following_interval[0][0]:]
+            results_x[i+1] = results_x[i+1][e_concat_index_in_following_interval[0][0]:]
+    else:
+        for i in range(len(results_x)-1):
+            """resclaing for continous concat"""
+            results_y[i+1] *= results_y[i][-1]/results_y[i+1][0]
     return
 
 def main():
-    filename =  'WangLandau/results/prob_0.000000/X_8_Y_8/seed_42/intervals1_iterations10000_overlap1.000000_walkers4_alpha0.600000_beta0.0000000010.txt' 
+    filename =  'WangLandau/results/prob_0.000000/X_8_Y_8/seed_42/intervals4_iterations10000_overlap1.000000_walkers4_alpha0.700000_beta0.0000000010.txt' 
     walker_results = read_data_from_file(filename) 
 
     """normalize the walker results to sum to 1 to compute averages afterwards"""

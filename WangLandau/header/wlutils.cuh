@@ -55,7 +55,7 @@ void write(signed char* array, const std::string& filename, long nx, long ny, in
 
 void create_directory(std::string path);
 
-void write_histograms(int *d_H, std::string path_histograms, int len_histogram, int seed, int E_min);
+void write_histograms(unsigned long long *d_H, std::string path_histograms, int len_histogram, int seed, int E_min);
 
 int read_histogram(const char *filename, std::vector<int> &h_expected_energy_spectrum, int *E_min, int *E_max);
 
@@ -75,16 +75,16 @@ __global__ void calc_energy(signed char *lattice, signed char *interactions, int
 
 __global__ void calc_energy_pre_run(signed char* lattice, signed char* interactions, int* d_energy, const int nx, const int ny, const int num_lattices);
 
-__global__ void wang_landau_pre_run(signed char *d_lattice, signed char *d_interactions, int *d_energy, int *d_H, int* d_iter, int *d_found_interval, signed char *d_store_lattice, const int E_min, const int E_max, const int num_iterations, const int nx, const int ny, const int seed, const int len_interval, const int found_interval);
+__global__ void wang_landau_pre_run(signed char *d_lattice, signed char *d_interactions, int *d_energy, unsigned long long *d_H, int* d_iter, int *d_found_interval, signed char *d_store_lattice, const int E_min, const int E_max, const int num_iterations, const int nx, const int ny, const int seed, const int len_interval, const int found_interval);
 
 __global__ void wang_landau(
     signed char *d_lattice, signed char *d_interactions, int *d_energy,
-    int *d_start, int *d_end, int *d_H, float *d_logG, int *d_offset_histogramm, int *d_offset_lattice, const int num_iterations,
+    int *d_start, int *d_end, unsigned long long *d_H, float *d_logG, int *d_offset_histogramm, int *d_offset_lattice, const int num_iterations,
     const int nx, const int ny, const int seed, double *factor, unsigned long long *d_offset_iter, int *d_expected_energy_spectrum, int *d_newEnergies, int *foundFlag, 
     const int num_lattices, const double beta
 );
 
-__global__ void check_histogram(int *d_H, int *d_offset_histogramm, int *d_end, int *d_start, double *d_factor, int nx, int ny, double alpha, int *d_expected_energy_spectrum, int len_energy_spectrum, int num_walker_total);
+__global__ void check_histogram(unsigned long long *d_H, int *d_offset_histogramm, int *d_end, int *d_start, double *d_factor, int nx, int ny, double alpha, int *d_expected_energy_spectrum, int len_energy_spectrum, int num_walker_total);
 
 __global__ void find_spin_config_in_energy_range(signed char *d_lattice, signed char *d_interactions, const int nx, const int ny, const int num_lattices, const int seed, int *d_start, int *d_end, int *d_energy, int *d_offset_lattice);
 

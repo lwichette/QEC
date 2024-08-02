@@ -47,7 +47,7 @@ int main(int argc, char **argv){
     CHECK_CUDA(cudaMemcpy(d_end, interval_result.h_end.data(), options.num_intervals * sizeof(*d_start), cudaMemcpyHostToDevice));
 
     // Histogramm and G array
-    int *d_H;
+    unsigned long long *d_H;
     CHECK_CUDA(cudaMalloc(&d_H, interval_result.len_histogram_over_all_walkers * sizeof(*d_H)));
     CHECK_CUDA(cudaMemset(d_H, 0, interval_result.len_histogram_over_all_walkers * sizeof(*d_H)));
 
@@ -173,7 +173,7 @@ int main(int argc, char **argv){
         finished_walkers_ratio = *d_finished_walkers_ratio_ptr;
         printf("ratio of finished walkers: %f\n", finished_walkers_ratio);
         if(finished_walkers_ratio >= 0.9){
-            std::vector<float> h_hist(interval_result.len_histogram_over_all_walkers);
+            std::vector<unsigned long long> h_hist(interval_result.len_histogram_over_all_walkers);
             CHECK_CUDA(cudaMemcpy(h_hist.data(), d_H, interval_result.len_histogram_over_all_walkers * sizeof(*d_H), cudaMemcpyDeviceToHost));
 
             std::ofstream hist_file("histogram_time_evolution.txt", std::ios::app);

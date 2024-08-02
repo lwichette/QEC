@@ -365,7 +365,7 @@ int main(int argc, char **argv){
 
     long long len_histogram = E_max - E_min + 1;
     
-    int *d_H; 
+    unsigned long long *d_H; 
     CHECK_CUDA(cudaMalloc(&d_H, len_histogram * sizeof(*d_H)));
     CHECK_CUDA(cudaMemset(d_H, 0, len_histogram*sizeof(*d_H)));
 

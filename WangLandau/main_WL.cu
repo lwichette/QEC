@@ -94,6 +94,9 @@ int main(int argc, char **argv){
     CHECK_CUDA(cudaMalloc(&d_newEnergies, num_walker_total * sizeof(*d_newEnergies)));
     CHECK_CUDA(cudaMalloc(&d_foundNewEnergyFlag, num_walker_total * sizeof(*d_foundNewEnergyFlag)));
 
+    double* d_finished_walkers_ratio;
+    CHECK_CUDA(cudaMalloc(&d_finished_walkers_ratio, 1 * sizeof(*d_finished_walkers_ratio)));
+
     /*
     ----------------------------------------------
     ------------ Actual WL Starts Now ------------
@@ -125,6 +128,7 @@ int main(int argc, char **argv){
 
     float max_factor = std::exp(1);
     int max_newEnergyFlag = 0;
+    float finished_walkers_ratio = 0;
     
     while (max_factor > std::exp(options.beta)){
         
@@ -161,9 +165,38 @@ int main(int argc, char **argv){
         replica_exchange<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, d_energy, d_start, d_end, d_indices, d_logG, d_offset_histogramm, true, seed + 3, d_offset_iter);
         replica_exchange<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, d_energy, d_start, d_end, d_indices, d_logG, d_offset_histogramm, false, seed + 3, d_offset_iter);
 
-        print_finished_walker_ratio<<<1, num_walker_total>>>(d_factor, num_walker_total, std::exp(options.beta));
-        //
-    };
+        print_finished_walker_ratio<<<1, num_walker_total>>>(d_factor, num_walker_total, std::exp(options.beta), d_finished_walkers_ratio);
+
+        // This block here is mainly for testing the non convergence
+        // get ratio of finished walkers to control dump of histogram
+        thrust::device_ptr<double> d_finished_walkers_ratio_ptr(d_finished_walkers_ratio);
+        finished_walkers_ratio = *d_finished_walkers_ratio_ptr;
+        printf("ratio of finished walkers: %f\n", finished_walkers_ratio);
+        if(finished_walkers_ratio >= 0.9){
+            std::vector<float> h_hist(interval_result.len_histogram_over_all_walkers);
+            CHECK_CUDA(cudaMemcpy(h_hist.data(), d_H, interval_result.len_histogram_over_all_walkers * sizeof(*d_H), cudaMemcpyDeviceToHost));
+
+            std::ofstream hist_file("histogram_time_evolution.txt", std::ios::app);
+            int index_h_hist = 0;
+            for (int i = 0; i < options.num_intervals; i++)
+            {
+                int start_energy = interval_result.h_start[i];
+                int end_energy = interval_result.h_end[i];
+                int len_int = interval_result.h_end[i] - interval_result.h_start[i] + 1;
+                for (int j = 0; j < options.walker_per_interval; j++)
+                {
+                    for (int k = 0; k < len_int; k++)
+                    {
+                        hist_file << (int)interval_result.h_start[i] + k << " : " << (float)h_hist[index_h_hist] << " ,";
+                        index_h_hist += 1;
+                    }
+                    hist_file << std::endl;
+                }
+            }
+            hist_file << std::endl;
+            hist_file.close();
+        }
+    }
 
     /*
     ---------------------------------------------

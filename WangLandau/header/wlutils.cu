@@ -762,7 +762,7 @@ __global__ void wang_landau(
     }
 }
 
-__global__ void print_finished_walker_ratio(double *d_factor, int num_walker_total, const double exp_beta){
+__global__ void print_finished_walker_ratio(double *d_factor, int num_walker_total, const double exp_beta, double *d_finished_walkers_ratio){
     extern __shared__ int shared_count[];
     int tid = threadIdx.x + blockIdx.x * blockDim.x;
     int threadId = threadIdx.x;
@@ -778,6 +778,7 @@ __global__ void print_finished_walker_ratio(double *d_factor, int num_walker_tot
     __syncthreads();
     if (threadId == 0) {
         double ratio_of_finished_walkers = (double)shared_count[0] / num_walker_total;
-        printf("ratio of finished walkers: %f\n", ratio_of_finished_walkers);
+        // printf("ratio of finished walkers: %f\n", ratio_of_finished_walkers);
+        d_finished_walkers_ratio[0] = ratio_of_finished_walkers;
     }
 }

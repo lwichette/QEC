@@ -148,15 +148,14 @@ def rescale_results_for_concatenation(results_x, results_y, minimum_deviation_en
     return
 
 def main():
-    filename =  'WangLandau/results/prob_0.000000/X_10_Y_10/seed_42/log_density_10_10_p0_i12_a07_b1e-6.txt' # 'WangLandau/results/prob_0.000000/X_10_Y_10/seed_42/log_density_10_10_p0_i8_a07_b1e-6.txt' #'WangLandau/results/prob_0.000000/X_10_Y_10/seed_42/log_density_10_10_p0_i4.txt' #
+    filename =  'WangLandau/results/prob_0.000000/X_8_Y_8/seed_42/intervals1_iterations10000_overlap1.000000_walkers4_alpha0.600000_beta0.0000000010.txt' 
     walker_results = read_data_from_file(filename) 
 
     """normalize the walker results to sum to 1 to compute averages afterwards"""
     walker_results = get_renormalized_log_g_values_as_dict_list(walker_results)
     
     """averages over walker results per intervals"""
-    average_over_intervals_results = average_matching_keys(walker_results)
-    walker_results = average_over_intervals_results
+    walker_results = average_matching_keys(walker_results)
 
     results_x = []
     results_y = []
@@ -177,6 +176,8 @@ def main():
     colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
     for i in range(len(results_x)):
         plot_data(results_x[i], results_y[i], color=colors[i % len(colors)])
+    plt.xlabel('E')
+    plt.ylabel('log(g)/Z')
     plt.show()
 
 

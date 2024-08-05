@@ -57,6 +57,12 @@ int main(int argc, char **argv){
     CHECK_CUDA(cudaMalloc(&d_logG, interval_result.len_histogram_over_all_walkers * sizeof(*d_logG)));
     CHECK_CUDA(cudaMemset(d_logG, 0, interval_result.len_histogram_over_all_walkers * sizeof(*d_logG)));
 
+    int size_shared_log_G = options.num_intervals*interval_result.len_interval + (interval_result.h_end[options.num_intervals-1] - interval_result.h_start[options.num_intervals-1] + 1);
+
+    double *d_shared_logG;
+    CHECK_CUDA(cudaMalloc(&d_shared_logG, size_shared_log_G*sizeof(*d_shared_logG)));
+    CHECK_CUDA(cudaMemset(d_shared_logG, 0, size_shared_log_G*sizeof(*d_shared_logG)));
+
     // Offset histograms, lattice, seed_iterator
     int *d_offset_histogramm, *d_offset_lattice;
     unsigned long long *d_offset_iter;
@@ -124,8 +130,9 @@ int main(int argc, char **argv){
     
     // Calculate energy and find right configurations
     calc_energy<<<options.num_intervals, options.walker_per_interval>>>(d_lattice, d_interactions, d_energy, d_offset_lattice, options.X, options.Y, num_walker_total);    
-    cudaDeviceSynchronize();
     check_energy_ranges<<<options.num_intervals, options.walker_per_interval>>>(d_energy, d_start, d_end);
+    cudaDeviceSynchronize();
+
 
     // Stop timing
     auto end = std::chrono::high_resolution_clock::now();
@@ -147,7 +154,7 @@ int main(int argc, char **argv){
         max_newEnergyFlag = *max_newEnergyFlag_ptr;
 
         // If flag shows new energies get the device arrays containing these to the host, update histogramm file and print error message.
-        if (max_newEnergyFlag != 0) 
+        if (max_newEnergyFlag != 0)
         {
             int h_newEnergies[num_walker_total];
             int h_newEnergyFlag[num_walker_total];
@@ -158,9 +165,9 @@ int main(int argc, char **argv){
             return 1;
         } 
         
-        check_histogram<<<options.num_intervals, options.walker_per_interval>>>(d_H, d_logG, d_offset_histogramm, d_end, d_start, d_factor, options.X, options.Y, options.alpha, options.beta, d_expected_energy_spectrum, len_energy_spectrum, num_walker_total, d_cond);
-
+        check_histogram<<<options.num_intervals, options.walker_per_interval>>>(d_H, d_logG, d_shared_logG, d_offset_histogramm, d_end, d_start, d_factor, options.X, options.Y, options.alpha, options.beta, d_expected_energy_spectrum, len_energy_spectrum, num_walker_total, d_cond);
         cudaDeviceSynchronize();
+
 
         printf("here\n");
         fflush(stdout);

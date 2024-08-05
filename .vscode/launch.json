@@ -9,7 +9,7 @@
             "type": "cuda-gdb",
             "request": "launch",
             "program": "${workspaceFolder}/WangLandau/wl",
-            "args": "-x 16 -y 16 -n 10 -p 0.0 -a 0.8 -b 0.000001 -i 8 -w 8 -o 0.25 -r 10000000"
+            "args": "-x 8 -y 8 -n 1000 -p 0.0 -a 0.8 -b 0.01 -i 4 -w 1 -o 0.25"
         },
         {
             "name": "prerun",

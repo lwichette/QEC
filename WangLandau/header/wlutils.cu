@@ -264,7 +264,7 @@ void handleNewEnergyError(int *new_energies, int *new_energies_flag, char *histo
 char *constructFilePath(float prob_interactions, int X, int Y, int seed, std::string type)
 {
     std::stringstream strstr;
-    strstr << "/home/dfki.uni-bremen.de/lpwichette/User/lpwichette/repos/qec/WangLandau/init/prob_" << std::fixed << std::setprecision(6) << prob_interactions;
+    strstr << "/home/dfki.uni-bremen.de/mbeuerle/User/mbeuerle/Code/qec/WangLandau/init/prob_" << std::fixed << std::setprecision(6) << prob_interactions;
     strstr << "/X_" << X << "_Y_" << Y;
     strstr << "/seed_" << seed << "/" << type << "/" << type << ".txt";
 
@@ -282,7 +282,7 @@ char *constructFilePath(float prob_interactions, int X, int Y, int seed, std::st
 std::vector<signed char> get_lattice_with_pre_run_result(float prob, int seed, int x, int y, std::vector<int> h_start, std::vector<int> h_end, int num_intervals, int num_walkers_total, int num_walkers_per_interval){
     namespace fs = std::filesystem;
     std::ostringstream oss;
-    oss << "./dfki.uni-bremen.de/lpwichette/User/lpwichette/repos/qec/WangLandau/init/init/prob_" << std::fixed << std::setprecision(6) << prob;
+    oss << "/home/dfki.uni-bremen.de/mbeuerle/User/mbeuerle/Code/qec/WangLandau/init/prob_" << std::fixed << std::setprecision(6) << prob;
     oss << "/X_" << x << "_Y_" << y;
     oss << "/seed_" << seed;
     oss << "/lattice";
@@ -649,32 +649,23 @@ __global__ void replica_exchange(
     d_offset_iter[tid] += 1;
 }
 
-__global__ void check_histogram(unsigned long long *d_H, double *d_log_G, int *d_offset_histogramm, int *d_end, int *d_start, double *d_factor, int nx, int ny, double alpha, double beta, int *d_expected_energy_spectrum, int len_energy_spectrum, int num_walker_total, signed char* d_cond){
+__global__ void check_histogram(unsigned long long *d_H, double *d_log_G, double *d_shared_logG, int *d_offset_histogramm, int *d_end, int *d_start, double *d_factor, int nx, int ny, double alpha, double beta, int *d_expected_energy_spectrum, int len_energy_spectrum, int num_walker_total, signed char* d_cond){
 
     long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
 
     int blockId = blockIdx.x;
 
     __shared__ int all_walkers_in_interval_are_flat;
+    __shared__ int offset_shared_logG; // Shared maybe
 
-    const int len_interval = 10 ; //d_end[blockId] - d_start[blockId] + 1;
+    const int len_interval = d_end[blockId] - d_start[blockId] + 1;
 
-    printf("len int %d \n", len_interval);
-
-    extern __shared__ double shared_averages_of_log_g[];
-
-    if (threadIdx.x==0){ // first walker thread per interval inits
-        for (int i = 0; i < len_interval; i++){
-            shared_averages_of_log_g[i] = 0.0;
-        }
-        printf("after loop shared avg %f \n", shared_averages_of_log_g[0]);
+    if (threadIdx.x==0){
         all_walkers_in_interval_are_flat = 0;
+        offset_shared_logG = blockId*(d_end[0] - d_start[0] + 1);
     }
 
     __syncthreads();
-    
-    printf("factor %f \n", d_factor[tid]);
-
 
     if (tid < num_walker_total){
         int min = INT_MAX;
@@ -689,7 +680,7 @@ __global__ void check_histogram(unsigned long long *d_H, double *d_log_G, int *d
                 }
                 average += d_H[d_offset_histogramm[tid] + i];
                 len_reduced_energy_spectrum += 1;
-                atomicAdd(&shared_averages_of_log_g[i], d_log_G[d_offset_histogramm[tid] + i]/blockDim.x); // compute averages over all walkers inside an interval
+                atomicAdd(&d_shared_logG[offset_shared_logG + i], d_log_G[d_offset_histogramm[tid] + i]/blockDim.x); // compute averages over all walkers inside an interval
             }
         }
 
@@ -713,8 +704,6 @@ __global__ void check_histogram(unsigned long long *d_H, double *d_log_G, int *d
             printf("Error histogram has no sufficient length to check for flatness on walker %lld. \n", tid);
         }
 
-        printf("factor later %f \n", d_factor[tid]);
-
         __syncthreads();
 
         if (all_walkers_in_interval_are_flat == blockDim.x){
@@ -723,17 +712,17 @@ __global__ void check_histogram(unsigned long long *d_H, double *d_log_G, int *d
                 d_cond[tid] = 0;
             }
             if(threadIdx.x == 0){
-                set_g_average(d_log_G, shared_averages_of_log_g, d_offset_histogramm, (d_end[blockId] - d_start[blockId] + 1), d_expected_energy_spectrum, d_start, tid);
+                set_g_average(d_log_G, d_shared_logG, d_offset_histogramm, (d_end[blockId] - d_start[blockId] + 1), d_expected_energy_spectrum, d_start, offset_shared_logG, tid);
             }
         }
     }
 }
 
-__device__ void set_g_average(double *d_log_g, double *avg, int *offset, int len_walker_hist, int *expected_energy_spectrum, int *d_start, long long tid){
+__device__ void set_g_average(double *d_log_g, double *avg, int *offset, int len_walker_hist, int *expected_energy_spectrum, int *d_start, int offset_shared_logG, long long tid){
     int IntervalId = blockIdx.x;
     for(int energy_idx = 0; energy_idx < len_walker_hist; energy_idx++){
         if (expected_energy_spectrum[d_start[IntervalId] + energy_idx - d_start[0]] == 1){
-            d_log_g[offset[tid]+energy_idx]=avg[energy_idx];
+            d_log_g[offset[tid]+energy_idx] = avg[offset_shared_logG +  energy_idx];
         }
     }
 }

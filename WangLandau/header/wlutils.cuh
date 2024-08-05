@@ -90,7 +90,7 @@ __global__ void wang_landau(
     const int num_lattices, const double beta, signed char *d_cond
 );
 
-__global__ void check_histogram(unsigned long long *d_H, double *d_log_G, int *d_offset_histogramm, int *d_end, int *d_start, double *d_factor, int nx, int ny, double alpha, double beta, int *d_expected_energy_spectrum, int len_energy_spectrum, int num_walker_total, signed char *d_cond);
+__global__ void check_histogram(unsigned long long *d_H, double *d_log_G, double *d_shared_logG, int *d_offset_histogramm, int *d_end, int *d_start, double *d_factor, int nx, int ny, double alpha, double beta, int *d_expected_energy_spectrum, int len_energy_spectrum, int num_walker_total, signed char *d_cond);
 
 __global__ void find_spin_config_in_energy_range(signed char *d_lattice, signed char *d_interactions, const int nx, const int ny, const int num_lattices, const int seed, int *d_start, int *d_end, int *d_energy, int *d_offset_lattice);
 
@@ -98,7 +98,7 @@ __global__ void check_energy_ranges(int *d_energy, int *d_start, int *d_end);
 
 __device__ void fisher_yates(int *d_shuffle, int seed, unsigned long long *d_offset_iter);
 
-__device__ void set_g_average(double *d_log_g, double *avg, int *offset, int len_walker_hist, int *expected_energy_spectrum, int *d_start, long long tid);
+__device__ void set_g_average(double *d_log_g, double *avg, int *offset, int len_walker_hist, int *expected_energy_spectrum, int *d_start, int offset_shared_logG, long long tid);
 
 __device__ void store_lattice(signed char *d_lattice, int *d_energy, int* d_found_interval, signed char* d_store_lattice, const int E_min, const int nx, const int ny, const long long tid, const int len_interval);
 

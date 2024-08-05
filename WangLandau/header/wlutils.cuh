@@ -45,6 +45,12 @@ typedef struct {
     float overlap_decimal;
 } Options;
 
+typedef struct{
+    int new_energy;
+    int i;
+    int j; 
+} RBIM;
+
 void parse_args(int argc, char *argv[], Options *options);
 
 IntervalResult generate_intervals(const int E_min, const int E_max, int num_intervals, int num_walker, float overlap_decimal);
@@ -79,12 +85,12 @@ __global__ void wang_landau_pre_run(signed char *d_lattice, signed char *d_inter
 
 __global__ void wang_landau(
     signed char *d_lattice, signed char *d_interactions, int *d_energy,
-    int *d_start, int *d_end, unsigned long long *d_H, float *d_logG, int *d_offset_histogramm, int *d_offset_lattice, const int num_iterations,
+    int *d_start, int *d_end, unsigned long long *d_H, double *d_logG, int *d_offset_histogramm, int *d_offset_lattice, const int num_iterations,
     const int nx, const int ny, const int seed, double *factor, unsigned long long *d_offset_iter, int *d_expected_energy_spectrum, int *d_newEnergies, int *foundFlag, 
-    const int num_lattices, const double beta
+    const int num_lattices, const double beta, signed char *d_cond
 );
 
-__global__ void check_histogram(unsigned long long *d_H, int *d_offset_histogramm, int *d_end, int *d_start, double *d_factor, int nx, int ny, double alpha, int *d_expected_energy_spectrum, int len_energy_spectrum, int num_walker_total);
+__global__ void check_histogram(unsigned long long *d_H, int *d_offset_histogramm, int *d_end, int *d_start, double *d_factor, int nx, int ny, double alpha, int *d_expected_energy_spectrum, int len_energy_spectrum, int num_walker_total, signed char *d_cond);
 
 __global__ void find_spin_config_in_energy_range(signed char *d_lattice, signed char *d_interactions, const int nx, const int ny, const int num_lattices, const int seed, int *d_start, int *d_end, int *d_energy, int *d_offset_lattice);
 
@@ -102,9 +108,13 @@ __global__ void init_offsets_lattice(int *d_offset_lattice, int nx, int ny);
 
 __global__ void replica_exchange(
     int *d_offset_lattice, int *d_energy, int *d_start, int *d_end, int *d_indices,
-    float *d_logG, int *d_offset_histogram, bool even, int seed, unsigned long long *d_offset_iter);
+    double *d_logG, int *d_offset_histogram, bool even, int seed, unsigned long long *d_offset_iter);
 
 __global__ void print_finished_walker_ratio(double *d_factor, int num_walker_total, const double exp_beta, double *d_finished_walkers_ratio);
 
+__device__ RBIM random_bond_ising(
+    signed char *d_lattice, signed char *d_interactions, int *d_energy, int *d_offset_lattice, unsigned long long *d_offset_iter, 
+    curandStatePhilox4_32_10_t *st, int tid, const int nx, const int ny
+    );
 
 #endif // UTILS_H

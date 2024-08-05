@@ -329,7 +329,7 @@ __global__ void init_lattice(signed char* lattice, const int nx, const int ny, c
     curandStatePhilox4_32_10_t st;
     curand_init(seed, tid, 0, &st); 
 
-    __shared__ float prob;
+    __shared__ double prob;
     
     if (threadIdx.x == 0){
         prob = curand_uniform(&st);
@@ -337,7 +337,7 @@ __global__ void init_lattice(signed char* lattice, const int nx, const int ny, c
     
     __syncthreads();
     
-    float randval = curand_uniform(&st);
+    double randval = curand_uniform(&st);
     signed char val = (randval < prob) ? -1 : 1;
 
     lattice[tid] = val;
@@ -352,7 +352,7 @@ __global__ void init_interactions(signed char* interactions, const int nx, const
 
     while (tid < nx*ny*2){
 
-        float randval = curand_uniform(&st);
+        double randval = curand_uniform(&st);
         signed char val = (randval < prob) ? -1 : 1;
         
         interactions[tid] = val;
@@ -459,7 +459,7 @@ __global__ void wang_landau_pre_run(
             
             int index_new = d_new_energy - E_min;
 
-            double prob = expf(static_cast<double>(d_H[index_old]) - static_cast<double>(d_H[index_new]));
+            double prob = exp(static_cast<double>(d_H[index_old]) - static_cast<double>(d_H[index_new]));
 
             if(curand_uniform(&st) < prob){
                 d_lattice[offset_lattice + i*ny +j] *= -1;
@@ -607,7 +607,7 @@ __global__ void init_offsets_lattice(int *d_offset_lattice, int nx, int ny)
 
 __global__ void replica_exchange(
     int *d_offset_lattice, int *d_energy, int *d_start, int *d_end, int *d_indices,
-    float *d_logG, int *d_offset_histogram, bool even, int seed, unsigned long long *d_offset_iter)
+    double *d_logG, int *d_offset_histogram, bool even, int seed, unsigned long long *d_offset_iter)
 {
 
     if (blockIdx.x == (gridDim.x - 1)) return;
@@ -649,7 +649,7 @@ __global__ void replica_exchange(
     d_offset_iter[tid] += 1;
 }
 
-__global__ void check_histogram(unsigned long long *d_H, int *d_offset_histogramm, int *d_end, int *d_start, double *d_factor, int nx, int ny, double alpha, int *d_expected_energy_spectrum, int len_energy_spectrum, int num_walker_total){
+__global__ void check_histogram(unsigned long long *d_H, int *d_offset_histogramm, int *d_end, int *d_start, double *d_factor, int nx, int ny, double alpha, int *d_expected_energy_spectrum, int len_energy_spectrum, int num_walker_total, signed char* d_cond){
 
     long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
 
@@ -671,44 +671,31 @@ __global__ void check_histogram(unsigned long long *d_H, int *d_offset_histogram
             }
         }
 
-        if (len_reduced_energy_spectrum > 0)
-        {
+        if (len_reduced_energy_spectrum > 0){
+        
             average = average / len_reduced_energy_spectrum;
 
-            if (min >= alpha * average)
-            {
+            if (min >= alpha * average){
+                
+                d_cond[tid] = 0;
+
                 d_factor[tid] = sqrt(d_factor[tid]);
-                for (int i = 0; i < (d_end[blockId] - d_start[blockId] + 1); i++)
-                {
+                for (int i = 0; i < (d_end[blockId] - d_start[blockId] + 1); i++){
                     d_H[d_offset_histogramm[tid] + i] = 0;
                 }
             }
         }
-        else
-        {
+        else{
             printf("Error histogram has no sufficient length to check for flatness on walker %lld. \n", tid);
         }
     }
 }
 
-__global__ void wang_landau(
-    signed char *d_lattice, signed char *d_interactions, int *d_energy,
-    int *d_start, int *d_end, unsigned long long *d_H, float *d_logG, int *d_offset_histogramm, int *d_offset_lattice, const int num_iterations,
-    const int nx, const int ny, const int seed, double *factor, unsigned long long *d_offset_iter, int *d_expected_energy_spectrum, int *d_newEnergies, int *foundFlag, 
-    const int num_lattices, const double beta
+__device__ RBIM random_bond_ising(
+    signed char *d_lattice, signed char *d_interactions, int *d_energy, int *d_offset_lattice, unsigned long long *d_offset_iter, 
+    curandStatePhilox4_32_10_t *st, int tid, const int nx, const int ny
     ){
-
-    long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
-
-    int blockId = blockIdx.x;
-
-    if (tid >= num_lattices || factor[tid] <= exp(beta)) return;
-
-    curandStatePhilox4_32_10_t st;
-    curand_init(seed, tid, d_offset_iter[tid], &st);
-
-    for (int it = 0; it < num_iterations; it++){
-        double randval = curand_uniform(&st);
+        double randval = curand_uniform(st);
         randval *= (nx * ny - 1 + 0.999999);
         int random_index = (int)trunc(randval);
 
@@ -726,37 +713,95 @@ __global__ void wang_landau(
 
         int d_new_energy = d_energy[tid] + energy_diff;
 
-        // If no new energy is found, set it to 0, else to tid + 1
-        foundFlag[tid] = (d_expected_energy_spectrum[d_new_energy - d_start[0]] == 1) ? 0 : tid + 1;
+        RBIM rbim;
+        rbim.new_energy = d_new_energy;
+        rbim.i = i;
+        rbim.j = j;
 
-        if (foundFlag[tid] != 0){
-            printf("new_energy %d index in spectrum %d \n", d_new_energy, d_new_energy - d_start[0]);
-            d_newEnergies[tid] = d_new_energy;
-            return;
-        }
+        return rbim;    
+}
 
-        int index_old = d_offset_histogramm[tid] + d_energy[tid] - d_start[blockId];
+__global__ void wang_landau(
+    signed char *d_lattice, signed char *d_interactions, int *d_energy, int *d_start, int *d_end, unsigned long long *d_H, 
+    double *d_logG, int *d_offset_histogramm, int *d_offset_lattice, const int num_iterations, const int nx, const int ny, 
+    const int seed, double *factor, unsigned long long *d_offset_iter, int *d_expected_energy_spectrum, int *d_newEnergies, int *foundFlag, 
+    const int num_lattices, const double beta, signed char* d_cond
+    ){
 
-        if (d_new_energy > d_end[blockId] || d_new_energy < d_start[blockId]){
-            d_H[index_old] += 1;
-            d_logG[index_old] += log(factor[tid]);
-        }
-        else{
+    long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
 
-            int index_new = d_offset_histogramm[tid] + d_new_energy - d_start[blockId];
+    int blockId = blockIdx.x;
 
-            float prob = min(1.0, exp(d_logG[index_old] - d_logG[index_new]));
+    if (tid >= num_lattices || factor[tid] <= exp(beta)) return;
 
-            if (curand_uniform(&st) < prob){
-                d_lattice[d_offset_lattice[tid] + i * ny + j] *= -1;
-                d_H[index_new] += 1;
-                d_logG[index_new] += log(factor[tid]);
-                d_energy[tid] = d_new_energy;
-                d_offset_iter[tid] += 1;
+    curandStatePhilox4_32_10_t st;
+    curand_init(seed, tid, d_offset_iter[tid], &st);
+
+    if (d_cond[tid] == 0){
+        for (int it = 0; it < num_iterations; it++){
+
+            RBIM result = random_bond_ising(d_lattice, d_interactions, d_energy, d_offset_lattice, d_offset_iter, &st, tid, nx, ny);
+
+            // If no new energy is found, set it to 0, else to tid + 1
+            foundFlag[tid] = (d_expected_energy_spectrum[result.new_energy - d_start[0]] == 1) ? 0 : tid + 1;
+
+            if (foundFlag[tid] != 0){
+                printf("new_energy %d index in spectrum %d \n", result.new_energy, result.new_energy - d_start[0]);
+                d_newEnergies[tid] = result.new_energy;
+                return;
             }
-            else{
+
+            int index_old = d_offset_histogramm[tid] + d_energy[tid] - d_start[blockId];
+
+            if (result.new_energy > d_end[blockId] || result.new_energy < d_start[blockId]){
                 d_H[index_old] += 1;
                 d_logG[index_old] += log(factor[tid]);
+            }
+            else{
+
+                int index_new = d_offset_histogramm[tid] + result.new_energy - d_start[blockId];
+
+                double prob = min(1.0, exp(d_logG[index_old] - d_logG[index_new]));
+
+                if (curand_uniform(&st) < prob){
+                    d_lattice[d_offset_lattice[tid] + result.i * ny + result.j] *= -1;
+                    d_H[index_new] += 1;
+                    d_logG[index_new] += log(factor[tid]);
+                    d_energy[tid] = result.new_energy;
+                    d_offset_iter[tid] += 1;
+                }
+                else{
+                    d_H[index_old] += 1;
+                    d_logG[index_old] += log(factor[tid]);
+                }
+            }
+        }
+    }
+    else{
+        for (int it = 0; it < num_iterations; it++){
+
+            RBIM result = random_bond_ising(d_lattice, d_interactions, d_energy, d_offset_lattice, d_offset_iter, &st, tid, nx, ny);
+
+            // If no new energy is found, set it to 0, else to tid + 1
+            foundFlag[tid] = (d_expected_energy_spectrum[result.new_energy - d_start[0]] == 1) ? 0 : tid + 1;
+
+            if (foundFlag[tid] != 0){
+                printf("new_energy %d index in spectrum %d \n", result.new_energy, result.new_energy - d_start[0]);
+                d_newEnergies[tid] = result.new_energy;
+                return;
+            }
+
+            if (result.new_energy <= d_end[blockId] || result.new_energy >= d_start[blockId]){
+                int index_old = d_offset_histogramm[tid] + d_energy[tid] - d_start[blockId];
+                int index_new = d_offset_histogramm[tid] + result.new_energy - d_start[blockId];
+
+                double prob = min(1.0, exp(d_logG[index_old] - d_logG[index_new]));
+                
+                if (curand_uniform(&st) < prob){
+                    d_lattice[d_offset_lattice[tid] + result.i * ny + result.j] *= -1;
+                    d_energy[tid] = result.new_energy;
+                    d_offset_iter[tid] += 1;
+                }
             }
         }
     }

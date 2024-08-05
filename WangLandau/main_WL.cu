@@ -52,7 +52,7 @@ int main(int argc, char **argv){
     CHECK_CUDA(cudaMalloc(&d_H, interval_result.len_histogram_over_all_walkers * sizeof(*d_H)));
     CHECK_CUDA(cudaMemset(d_H, 0, interval_result.len_histogram_over_all_walkers * sizeof(*d_H)));
 
-    float *d_logG;
+    double *d_logG;
     CHECK_CUDA(cudaMalloc(&d_logG, interval_result.len_histogram_over_all_walkers * sizeof(*d_logG)));
     CHECK_CUDA(cudaMemset(d_logG, 0, interval_result.len_histogram_over_all_walkers * sizeof(*d_logG)));
 
@@ -65,7 +65,7 @@ int main(int argc, char **argv){
     CHECK_CUDA(cudaMemset(d_offset_iter, 0, num_walker_total * sizeof(*d_offset_iter)));
     
     // f Factors for each walker
-    std::vector<double> h_factor(num_walker_total, std::exp(1));
+    std::vector<double> h_factor(num_walker_total, exp(1.0));
 
     double *d_factor;
     CHECK_CUDA(cudaMalloc(&d_factor, num_walker_total * sizeof(*d_factor)));
@@ -98,6 +98,10 @@ int main(int argc, char **argv){
     double* d_finished_walkers_ratio;
     CHECK_CUDA(cudaMalloc(&d_finished_walkers_ratio, 1 * sizeof(*d_finished_walkers_ratio)));
 
+    signed char* d_cond;
+    CHECK_CUDA(cudaMalloc(&d_cond, num_walker_total*sizeof(*d_cond)));
+    CHECK_CUDA(cudaMemset(d_cond, 0, num_walker_total*sizeof(*d_cond)));
+
     /*
     ----------------------------------------------
     ------------ Actual WL Starts Now ------------
@@ -127,15 +131,15 @@ int main(int argc, char **argv){
     std::chrono::duration<double> elapsed = end - start;
     std::cout << "Execution time before Wang Landau has started: " << elapsed.count() << " seconds" << std::endl;
 
-    float max_factor = std::exp(1);
+    double max_factor = exp(1.0);
     int max_newEnergyFlag = 0;
-    float finished_walkers_ratio = 0;
+    double finished_walkers_ratio = 0;
     
-    while (max_factor > std::exp(options.beta)){
+    while (max_factor > exp(options.beta)){
         
         // printf("Max factor %2f \n", max_factor);
 
-        wang_landau<<<options.num_intervals, options.walker_per_interval>>>(d_lattice, d_interactions, d_energy, d_start, d_end, d_H, d_logG, d_offset_histogramm, d_offset_lattice, options.num_iterations, options.X, options.Y, seed + 3, d_factor, d_offset_iter, d_expected_energy_spectrum, d_newEnergies, d_foundNewEnergyFlag, num_walker_total, options.beta);
+        wang_landau<<<options.num_intervals, options.walker_per_interval>>>(d_lattice, d_interactions, d_energy, d_start, d_end, d_H, d_logG, d_offset_histogramm, d_offset_lattice, options.num_iterations, options.X, options.Y, seed + 3, d_factor, d_offset_iter, d_expected_energy_spectrum, d_newEnergies, d_foundNewEnergyFlag, num_walker_total, options.beta, d_cond);
         cudaDeviceSynchronize();
 
         // get max of found new energy flag array to condition break and update the histogramm file with value in new energy array
@@ -155,7 +159,7 @@ int main(int argc, char **argv){
             return 1;
         }
         
-        check_histogram<<<options.num_intervals, options.walker_per_interval>>>(d_H, d_offset_histogramm, d_end, d_start, d_factor, options.X, options.Y, options.alpha, d_expected_energy_spectrum, len_energy_spectrum, num_walker_total);
+        check_histogram<<<options.num_intervals, options.walker_per_interval>>>(d_H, d_offset_histogramm, d_end, d_start, d_factor, options.X, options.Y, options.alpha, d_expected_energy_spectrum, len_energy_spectrum, num_walker_total, d_cond);
         cudaDeviceSynchronize();
 
         // get max factor over walkers for abort condition of while loop
@@ -166,7 +170,7 @@ int main(int argc, char **argv){
         replica_exchange<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, d_energy, d_start, d_end, d_indices, d_logG, d_offset_histogramm, true, seed + 3, d_offset_iter);
         replica_exchange<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, d_energy, d_start, d_end, d_indices, d_logG, d_offset_histogramm, false, seed + 3, d_offset_iter);
 
-        print_finished_walker_ratio<<<1, num_walker_total>>>(d_factor, num_walker_total, std::exp(options.beta), d_finished_walkers_ratio);
+        print_finished_walker_ratio<<<1, num_walker_total>>>(d_factor, num_walker_total, exp(options.beta), d_finished_walkers_ratio);
 
         // This block here is mainly for testing the non convergence
         // get ratio of finished walkers to control dump of histogram
@@ -205,7 +209,7 @@ int main(int argc, char **argv){
     ---------------------------------------------
     */
 
-    std::vector<float> h_log_density_per_walker(interval_result.len_histogram_over_all_walkers);
+    std::vector<double> h_log_density_per_walker(interval_result.len_histogram_over_all_walkers);
     CHECK_CUDA(cudaMemcpy(h_log_density_per_walker.data(), d_logG, interval_result.len_histogram_over_all_walkers * sizeof(*d_logG), cudaMemcpyDeviceToHost));
 
     std::ofstream f_log_density;
@@ -250,5 +254,4 @@ int main(int argc, char **argv){
 
     }
     f_log_density.close();
-    
 }

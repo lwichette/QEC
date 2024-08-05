@@ -14,11 +14,12 @@ To Do:
     - maybe implement runtime balanced subdivision as in https://www.osti.gov/servlets/purl/1567362
     - Get averages over all walkers per interval of log g after all are simultaneously flat 
     - update spin configs for totally finished walkers still but do not update hist and g anymore -> circumvents replica exchange problem
+    - Add sort to lattice read function
 */
 
 int main(int argc, char **argv){
 
-    auto start = std::chrono::high_resolution_clock::now();
+    auto start = std::chrono::high_resolution_clock::now(); 
 
     const int seed = 42;
 
@@ -136,11 +137,9 @@ int main(int argc, char **argv){
     double finished_walkers_ratio = 0;
     
     while (max_factor > exp(options.beta)){
-        
-        // printf("Max factor %2f \n", max_factor);
 
         wang_landau<<<options.num_intervals, options.walker_per_interval>>>(d_lattice, d_interactions, d_energy, d_start, d_end, d_H, d_logG, d_offset_histogramm, d_offset_lattice, options.num_iterations, options.X, options.Y, seed + 3, d_factor, d_offset_iter, d_expected_energy_spectrum, d_newEnergies, d_foundNewEnergyFlag, num_walker_total, options.beta, d_cond);
-        cudaDeviceSynchronize();
+        cudaDeviceSynchronize(); 
 
         // get max of found new energy flag array to condition break and update the histogramm file with value in new energy array
         thrust::device_ptr<int> d_newEnergyFlag_ptr(d_foundNewEnergyFlag);
@@ -148,59 +147,74 @@ int main(int argc, char **argv){
         max_newEnergyFlag = *max_newEnergyFlag_ptr;
 
         // If flag shows new energies get the device arrays containing these to the host, update histogramm file and print error message.
-        if (max_newEnergyFlag != 0)
+        if (max_newEnergyFlag != 0) 
         {
             int h_newEnergies[num_walker_total];
             int h_newEnergyFlag[num_walker_total];
             CHECK_CUDA(cudaMemcpy(h_newEnergies, d_newEnergies, num_walker_total * sizeof(int), cudaMemcpyDeviceToHost));
             CHECK_CUDA(cudaMemcpy(h_newEnergyFlag, d_foundNewEnergyFlag, num_walker_total * sizeof(int), cudaMemcpyDeviceToHost));
 
-            handleNewEnergyError(h_newEnergies, h_newEnergyFlag, histogram_file, num_walker_total);
+            handleNewEnergyError(h_newEnergies, h_newEnergyFlag, histogram_file, num_walker_total); 
             return 1;
-        }
+        } 
         
-        check_histogram<<<options.num_intervals, options.walker_per_interval>>>(d_H, d_offset_histogramm, d_end, d_start, d_factor, options.X, options.Y, options.alpha, d_expected_energy_spectrum, len_energy_spectrum, num_walker_total, d_cond);
+        check_histogram<<<options.num_intervals, options.walker_per_interval>>>(d_H, d_logG, d_offset_histogramm, d_end, d_start, d_factor, options.X, options.Y, options.alpha, options.beta, d_expected_energy_spectrum, len_energy_spectrum, num_walker_total, d_cond);
+
         cudaDeviceSynchronize();
 
-        // get max factor over walkers for abort condition of while loop
-        thrust::device_ptr<double> d_factor_ptr(d_factor);
+        printf("here\n");
+        fflush(stdout);
+ 
+        // get max factor over walkers for abort condition of while loop 
+        thrust::device_ptr<double> d_factor_ptr(d_factor); //
+
+
+        printf("between\n");
+        fflush(stdout);
+
         thrust::device_ptr<double> max_factor_ptr = thrust::max_element(d_factor_ptr, d_factor_ptr + num_walker_total);
         max_factor = *max_factor_ptr;
+
+        printf("before replica \n");
+        fflush(stdout);
         
         replica_exchange<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, d_energy, d_start, d_end, d_indices, d_logG, d_offset_histogramm, true, seed + 3, d_offset_iter);
         replica_exchange<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, d_energy, d_start, d_end, d_indices, d_logG, d_offset_histogramm, false, seed + 3, d_offset_iter);
 
-        print_finished_walker_ratio<<<1, num_walker_total>>>(d_factor, num_walker_total, exp(options.beta), d_finished_walkers_ratio);
+        printf("after replica \n");
+        fflush(stdout); 
 
-        // This block here is mainly for testing the non convergence
-        // get ratio of finished walkers to control dump of histogram
-        thrust::device_ptr<double> d_finished_walkers_ratio_ptr(d_finished_walkers_ratio);
-        finished_walkers_ratio = *d_finished_walkers_ratio_ptr;
-        printf("ratio of finished walkers: %f\n", finished_walkers_ratio);
-        if(finished_walkers_ratio >= 0.9){
-            std::vector<unsigned long long> h_hist(interval_result.len_histogram_over_all_walkers);
-            CHECK_CUDA(cudaMemcpy(h_hist.data(), d_H, interval_result.len_histogram_over_all_walkers * sizeof(*d_H), cudaMemcpyDeviceToHost));
+        // print_finished_walker_ratio<<<1, num_walker_total>>>(d_factor, num_walker_total, exp(options.beta), d_finished_walkers_ratio);
 
-            std::ofstream hist_file("histogram_time_evolution.txt", std::ios::app);
-            int index_h_hist = 0;
-            for (int i = 0; i < options.num_intervals; i++)
-            {
-                int start_energy = interval_result.h_start[i];
-                int end_energy = interval_result.h_end[i];
-                int len_int = interval_result.h_end[i] - interval_result.h_start[i] + 1;
-                for (int j = 0; j < options.walker_per_interval; j++)
-                {
-                    for (int k = 0; k < len_int; k++)
-                    {
-                        hist_file << (int)interval_result.h_start[i] + k << " : " << h_hist[index_h_hist] << " ,";
-                        index_h_hist += 1;
-                    }
-                    hist_file << std::endl;
-                }
-            }
-            hist_file << std::endl;
-            hist_file.close();
-        }
+        // // This block here is mainly for testing the non convergence
+        // // get ratio of finished walkers to control dump of histogram
+        // thrust::device_ptr<double> d_finished_walkers_ratio_ptr(d_finished_walkers_ratio);
+        // finished_walkers_ratio = *d_finished_walkers_ratio_ptr;
+        // printf("ratio of finished walkers: %f\n", finished_walkers_ratio);
+        // if(finished_walkers_ratio >= 0.9){
+        //     std::vector<unsigned long long> h_hist(interval_result.len_histogram_over_all_walkers);
+        //     CHECK_CUDA(cudaMemcpy(h_hist.data(), d_H, interval_result.len_histogram_over_all_walkers * sizeof(*d_H), cudaMemcpyDeviceToHost));
+
+        //     std::ofstream hist_file("histogram_time_evolution.txt", std::ios::app);
+        //     int index_h_hist = 0;
+        //     for (int i = 0; i < options.num_intervals; i++)
+        //     {
+        //         int start_energy = interval_result.h_start[i];
+        //         int end_energy = interval_result.h_end[i];
+        //         int len_int = interval_result.h_end[i] - interval_result.h_start[i] + 1;
+        //         for (int j = 0; j < options.walker_per_interval; j++)
+        //         {
+        //             for (int k = 0; k < len_int; k++)
+        //             {
+        //                 hist_file << (int)interval_result.h_start[i] + k << " : " << h_hist[index_h_hist] << " ,";
+        //                 index_h_hist += 1;
+        //             }
+        //             hist_file << std::endl;
+        //         }
+        //     }
+        //     hist_file << std::endl;
+        //     hist_file.close();
+        // }
     }
 
     /*

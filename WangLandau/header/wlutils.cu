@@ -558,7 +558,7 @@ __device__ void fisher_yates(int *d_shuffle, int seed, unsigned long long *d_off
 
 __device__ void store_lattice(
     signed char *d_lattice, int *d_energy, int* d_found_interval, signed char* d_store_lattice,
-    const int E_min, const int nx, const int ny, const int tid, const int len_interval
+    const int E_min, const int nx, const int ny, const long long tid, const int len_interval
     ){
     
     int interval_index = (d_energy[tid] - E_min)/(len_interval);
@@ -740,7 +740,7 @@ __device__ void set_g_average(double *d_log_g, double *avg, int *offset, int len
 
 __device__ RBIM random_bond_ising(
     signed char *d_lattice, signed char *d_interactions, int *d_energy, int *d_offset_lattice, unsigned long long *d_offset_iter, 
-    curandStatePhilox4_32_10_t *st, int tid, const int nx, const int ny
+    curandStatePhilox4_32_10_t *st, const long long tid, const int nx, const int ny
     ){
         double randval = curand_uniform(st);
         randval *= (nx * ny - 1 + 0.999999);

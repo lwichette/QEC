@@ -459,7 +459,7 @@ __global__ void wang_landau_pre_run(
             
             int index_new = d_new_energy - E_min;
 
-            float prob = expf(d_H[index_old] - d_H[index_new]);
+            double prob = expf(static_cast<double>(d_H[index_old]) - static_cast<double>(d_H[index_new]));
 
             if(curand_uniform(&st) < prob){
                 d_lattice[offset_lattice + i*ny +j] *= -1;

@@ -16,7 +16,7 @@
             "type": "cuda-gdb",
             "request": "launch",
             "program": "${workspaceFolder}/WangLandau/prerun",
-            "args": "-x 12 -y 12 -p 0.0 -n 1000 -l 10 -w 8 -s 42 -i 10"
+            "args": "-x 128 -y 128 -p 0.0 -n 1000 -l 100 -w 500 -s 42 -i 40"
         },
         {
             "name": "Optim new",

@@ -126,15 +126,18 @@ void write(
     int nx_w = (lattice) ? nx : 2 * nx;
     std::vector<signed char> array_host(nx_w * ny * num_lattices);
 
-    CHECK_CUDA(cudaMemcpy(array_host.data(), array, nx_w * ny * num_lattices * sizeof(signed char), cudaMemcpyDeviceToHost));
+    CHECK_CUDA(cudaMemcpy(array_host.data(), array, nx_w * ny * num_lattices * sizeof(*array), cudaMemcpyDeviceToHost));
 
     if (num_lattices == 1) {
         writeToFile(filename + ".txt", array_host.data(), nx_w, ny);
     } else {
         for (int l = 0; l < num_lattices; l++) {
             int offset = l * nx_w * ny;
-            if (energies[l] == 0 && array_host[offset] == 0) {
-                continue;
+            
+            if (energies.empty() == false){
+                if (energies[l] == 0 && array_host[offset] == 0) {
+                    continue;
+                }
             }
 
             std::string file_suffix = (energies.empty()) ? std::to_string(l) : std::to_string(energies[l]);
@@ -321,24 +324,27 @@ std::vector<signed char> get_lattice_with_pre_run_result(float prob, int seed, i
     return lattice_over_all_walkers;
 }
 
-__global__ void init_lattice(signed char* lattice, const int nx, const int ny, const int num_lattices, const int seed){
+__device__ float atomicCAS_f32(float *p, float cmp, float val) {
+	return __int_as_float(atomicCAS((int *) p, __float_as_int(cmp), __float_as_int(val)));
+}
 
-    
+__global__ void init_lattice(signed char* lattice, float *d_probs, const int nx, const int ny, const int num_lattices, const int seed){
+
     const long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
+
+    if (tid >= nx*ny*num_lattices) return;
+
+    long long lattice_id = tid / (nx*ny);
 
     curandStatePhilox4_32_10_t st;
     curand_init(seed, tid, 0, &st); 
-
-    __shared__ double prob;
-    
-    if (threadIdx.x == 0){
-        prob = curand_uniform(&st);
-    }
+ 
+    atomicCAS_f32(&d_probs[lattice_id], 0.0f, curand_uniform(&st));
     
     __syncthreads();
     
     double randval = curand_uniform(&st);
-    signed char val = (randval < prob) ? -1 : 1;
+    signed char val = (randval < d_probs[lattice_id]) ? -1 : 1;
 
     lattice[tid] = val;
 }
@@ -346,19 +352,16 @@ __global__ void init_lattice(signed char* lattice, const int nx, const int ny, c
 __global__ void init_interactions(signed char* interactions, const int nx, const int ny, const int num_lattices, const int seed, const double prob){
     
     long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
-    
+
+    if (tid >= nx*ny*2*num_lattices) return;
+
     curandStatePhilox4_32_10_t st;
     curand_init(seed, tid, 0, &st);
 
-    while (tid < nx*ny*2){
-
-        double randval = curand_uniform(&st);
-        signed char val = (randval < prob) ? -1 : 1;
-        
-        interactions[tid] = val;
-
-        tid += blockDim.x * gridDim.x;
-    }
+    double randval = curand_uniform(&st);
+    signed char val = (randval < prob) ? -1 : 1;
+    
+    interactions[tid] = val;
 }
 
 __global__ void calc_energy_pre_run(signed char* lattice, signed char* interactions, int* d_energy, const int nx, const int ny, const int num_lattices){
@@ -381,8 +384,6 @@ __global__ void calc_energy_pre_run(signed char* lattice, signed char* interacti
     }
 
     d_energy[tid] = energy;
-
-    tid += blockDim.x * gridDim.x;
 }
 
 __global__ void calc_energy(signed char *lattice, signed char *interactions, int *d_energy, int *d_offset_lattice, const int nx, const int ny, const int num_lattices)
@@ -408,7 +409,7 @@ __global__ void calc_energy(signed char *lattice, signed char *interactions, int
 }
 
 __global__ void wang_landau_pre_run(
-    signed char *d_lattice, signed char *d_interactions, int *d_energy, unsigned long long *d_H, int* d_iter, int *d_found_interval,
+    signed char *d_lattice, signed char *d_interactions, int *d_energy, unsigned long long *d_H, unsigned long long* d_iter, int *d_found_interval,
     signed char *d_store_lattice, const int E_min, const int E_max, const int num_iterations, const int nx, const int ny, 
     const int seed, const int len_interval, const int found_interval
     ){
@@ -651,6 +652,7 @@ __global__ void replica_exchange(
 
 __global__ void check_histogram(unsigned long long *d_H, double *d_log_G, double *d_shared_logG, int *d_offset_histogramm, int *d_end, int *d_start, double *d_factor, int nx, int ny, double alpha, double beta, int *d_expected_energy_spectrum, int len_energy_spectrum, int num_walker_total, signed char* d_cond){
 
+    
     long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
 
     int blockId = blockIdx.x;

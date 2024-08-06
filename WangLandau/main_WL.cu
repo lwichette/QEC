@@ -198,8 +198,7 @@ int main(int argc, char **argv){
         CHECK_CUDA(cudaMemcpy(d_logG, h_logG, interval_result.len_histogram_over_all_walkers * sizeof(*d_logG), cudaMemcpyHostToDevice));
 
         int block_count = (interval_result.len_histogram_over_all_walkers + max_threads_per_block - 1) / max_threads_per_block;
-        printf("block count %d max threads %d \n", block_count, max_threads_per_block);
-        
+        calc_average_log_g<<<block_count, max_threads_per_block>>>(options.num_intervals, interval_result.len_histogram_over_all_walkers, options.walker_per_interval, d_logG, d_shared_logG, d_end, d_start, d_expected_energy_spectrum, d_cond);
 
         // only for test 
         // CHECK_CUDA(cudaMemcpy(h_logG, d_logG, interval_result.len_histogram_over_all_walkers * sizeof(*d_logG), cudaMemcpyDeviceToHost));

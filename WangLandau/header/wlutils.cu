@@ -697,7 +697,7 @@ __global__ void check_histogram(unsigned long long *d_H, double *d_log_G, double
 }
 
 
-__global__ void calc_average_log_g(int num_intervals, long long len_histogram_over_all_walkers, int num_walker_per_interval,  double *d_log_G, double *d_shared_logG, int *d_offset_histogramm, int *d_end, int *d_start, int *d_expected_energy_spectrum, int *d_cond){
+__global__ void calc_average_log_g(int num_intervals, long long len_histogram_over_all_walkers, int num_walker_per_interval,  double *d_log_G, double *d_shared_logG, int *d_end, int *d_start, int *d_expected_energy_spectrum, int *d_cond){
 
     // 1 block and threads as many as len_histogram_over_all_walkers
     long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
@@ -713,7 +713,7 @@ __global__ void calc_average_log_g(int num_intervals, long long len_histogram_ov
         long long linearised_walker_idx = intervalId*num_walker_per_interval+walkerId;
 
         if (d_cond[intervalId] == 1 && d_expected_energy_spectrum[d_start[intervalId] + energyId - d_start[0]] == 1){        
-            atomicAdd(&d_shared_logG[intervalId*len_first_interval + energyId], d_log_G[d_offset_histogramm[linearised_walker_idx] + energyId]/num_walker_per_interval);   
+            atomicAdd(&d_shared_logG[intervalId*len_first_interval + energyId], d_log_G[tid]/num_walker_per_interval);   
         }  
     }
 }

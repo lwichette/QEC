@@ -100,7 +100,7 @@ __device__ void fisher_yates(int *d_shuffle, int seed, unsigned long long *d_off
 
 __global__ void redistribute_g_values(int num_intervals, long long len_histogram_over_all_walkers, int num_walker_per_interval,  double *d_log_G, double *d_shared_logG, int *d_end, int *d_start, double *d_factor, double beta, int *d_expected_energy_spectrum, int *d_cond);  
 
-__global__ void calc_average_log_g(int num_intervals, long long len_histogram_over_all_walkers, int num_walker_per_interval,  double *d_log_G, double *d_shared_logG, int *d_offset_histogramm, int *d_end, int *d_start, int *d_expected_energy_spectrum, int *d_cond);
+__global__ void calc_average_log_g(int num_intervals, long long len_histogram_over_all_walkers, int num_walker_per_interval,  double *d_log_G, double *d_shared_logG, int *d_end, int *d_start, int *d_expected_energy_spectrum, int *d_cond);
 
 __device__ void store_lattice(signed char *d_lattice, int *d_energy, int* d_found_interval, signed char* d_store_lattice, const int E_min, const int nx, const int ny, const long long tid, const int len_interval);
 

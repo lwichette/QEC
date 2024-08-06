@@ -657,6 +657,14 @@ __global__ void check_histogram(unsigned long long *d_H, double *d_log_G, double
 
     int blockId = blockIdx.x;
 
+    __shared__ int walkers_finished;
+
+    if (threadIdx.x == 0){
+        walkers_finished = 0;
+    }
+
+    __syncthreads();
+
     const int len_interval = d_end[blockId] - d_start[blockId] + 1;
 
     if (tid < num_walker_total){
@@ -683,15 +691,17 @@ __global__ void check_histogram(unsigned long long *d_H, double *d_log_G, double
             average = average / len_reduced_energy_spectrum;
 
             if (min >= alpha * average){
-                
-                d_cond[tid] = 1;
-                for (int i = 0; i < (d_end[blockId] - d_start[blockId] + 1); i++){
-                    d_H[d_offset_histogramm[tid] + i] = 0;
-                }
+                atomicAdd(&walkers_finished, 1);
             }
         }
         else{
             printf("Error histogram has no sufficient length to check for flatness on walker %lld. \n", tid);
+        }
+
+        __syncthreads();
+
+        if (walkers_finished == blockDim.x){
+            d_cond[blockId] = 1;
         }
     }
 }

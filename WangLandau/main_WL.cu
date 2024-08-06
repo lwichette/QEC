@@ -123,8 +123,8 @@ int main(int argc, char **argv){
     CHECK_CUDA(cudaMalloc(&d_finished_walkers_ratio, 1 * sizeof(*d_finished_walkers_ratio)));
 
     signed char* d_cond;
-    CHECK_CUDA(cudaMalloc(&d_cond, num_walker_total*sizeof(*d_cond)));
-    CHECK_CUDA(cudaMemset(d_cond, 0, num_walker_total*sizeof(*d_cond)));
+    CHECK_CUDA(cudaMalloc(&d_cond, options.num_intervals*sizeof(*d_cond)));
+    CHECK_CUDA(cudaMemset(d_cond, 0, options.num_intervals*sizeof(*d_cond)));
 
     /*
     ----------------------------------------------
@@ -149,7 +149,6 @@ int main(int argc, char **argv){
     calc_energy<<<options.num_intervals, options.walker_per_interval>>>(d_lattice, d_interactions, d_energy, d_offset_lattice, options.X, options.Y, num_walker_total);    
     check_energy_ranges<<<options.num_intervals, options.walker_per_interval>>>(d_energy, d_start, d_end);
     cudaDeviceSynchronize();
-
 
     // Stop timing
     auto end = std::chrono::high_resolution_clock::now();

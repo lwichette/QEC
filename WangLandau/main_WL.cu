@@ -185,26 +185,30 @@ int main(int argc, char **argv){
         cudaDeviceSynchronize();
 
         // only for test 
-        signed char* h_cond = (signed char*)malloc(num_walker_total * sizeof(*h_cond));
-        for (int i = 0; i < num_walker_total; ++i) {
+        signed char* h_cond = (signed char*)malloc(options.num_intervals *sizeof(*h_cond));
+        for (int i = 0; i < options.num_intervals; ++i) {
             h_cond[i] = 1;  
         }
-        CHECK_CUDA(cudaMemcpy(d_cond, h_cond, num_walker_total * sizeof(*d_cond), cudaMemcpyHostToDevice));
+        CHECK_CUDA(cudaMemcpy(d_cond, h_cond, options.num_intervals * sizeof(*d_cond), cudaMemcpyHostToDevice));
         double* h_logG = (double*)malloc(interval_result.len_histogram_over_all_walkers * sizeof(*h_logG));
         for (int i = 0; i < interval_result.len_histogram_over_all_walkers; ++i) {
             h_logG[i] = 1;
         }
         CHECK_CUDA(cudaMemcpy(d_logG, h_logG, interval_result.len_histogram_over_all_walkers * sizeof(*d_logG), cudaMemcpyHostToDevice));
+        for (int i = 0; i < interval_result.len_histogram_over_all_walkers; ++i) {
+            h_logG[i] = 0;
+        }
 
         int block_count = (interval_result.len_histogram_over_all_walkers + max_threads_per_block - 1) / max_threads_per_block;
         calc_average_log_g<<<block_count, max_threads_per_block>>>(options.num_intervals, interval_result.len_histogram_over_all_walkers, options.walker_per_interval, d_logG, d_shared_logG, d_end, d_start, d_expected_energy_spectrum, d_cond);
+        redistribute_g_values<<<block_count, max_threads_per_block>>>(options.num_intervals, interval_result.len_histogram_over_all_walkers, options.walker_per_interval, d_logG, d_shared_logG, d_end, d_start, d_factor, options.beta, d_expected_energy_spectrum, d_cond);
 
         // only for test 
-        // CHECK_CUDA(cudaMemcpy(h_logG, d_logG, interval_result.len_histogram_over_all_walkers * sizeof(*d_logG), cudaMemcpyDeviceToHost));
-        // for(int i = 0; i<interval_result.len_histogram_over_all_walkers; i++){
-        //     printf("h_logG[%d] = %f ", i, h_logG[i]);
-        // }
-        return 0; 
+        CHECK_CUDA(cudaMemcpy(h_logG, d_logG,  interval_result.len_histogram_over_all_walkers * sizeof(*d_logG), cudaMemcpyDeviceToHost));
+        for(int i = 0; i< interval_result.len_histogram_over_all_walkers; i++){
+            printf("h_logG[%d] = %f, ", i, h_logG[i]);
+        }
+        return 0; //
  
         // get max factor over walkers for abort condition of while loop 
         thrust::device_ptr<double> d_factor_ptr(d_factor);

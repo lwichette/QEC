@@ -19,6 +19,11 @@ To Do:
 
 int main(int argc, char **argv){
 
+    // Get the device properties
+    cudaDeviceProp prop;
+    cudaGetDeviceProperties(&prop, 0); // Assuming device 0
+    int max_threads_per_block = prop.maxThreadsPerBlock;
+
     auto start = std::chrono::high_resolution_clock::now(); 
 
     const int seed = 42;
@@ -41,8 +46,8 @@ int main(int argc, char **argv){
     // Get interval information
     IntervalResult interval_result = generate_intervals(options.E_min, options.E_max, options.num_intervals, options.walker_per_interval, options.overlap_decimal);
     
-    // Start end energies of the intervals
-    int *d_start, *d_end;
+    // Start end energies of the intervals 
+    int *d_start, *d_end; 
     CHECK_CUDA(cudaMalloc(&d_start, options.num_intervals * sizeof(*d_start))); 
     CHECK_CUDA(cudaMalloc(&d_end, options.num_intervals * sizeof(*d_end)));
     CHECK_CUDA(cudaMemcpy(d_start, interval_result.h_start.data(), options.num_intervals * sizeof(*d_start), cudaMemcpyHostToDevice));
@@ -57,11 +62,23 @@ int main(int argc, char **argv){
     CHECK_CUDA(cudaMalloc(&d_logG, interval_result.len_histogram_over_all_walkers * sizeof(*d_logG)));
     CHECK_CUDA(cudaMemset(d_logG, 0, interval_result.len_histogram_over_all_walkers * sizeof(*d_logG)));
 
-    int size_shared_log_G = options.num_intervals*interval_result.len_interval + (interval_result.h_end[options.num_intervals-1] - interval_result.h_start[options.num_intervals-1] + 1);
-
+    int size_shared_log_G = (options.num_intervals-1)*interval_result.len_interval + (interval_result.h_end[options.num_intervals-1] - interval_result.h_start[options.num_intervals-1] + 1);
+    
     double *d_shared_logG;
     CHECK_CUDA(cudaMalloc(&d_shared_logG, size_shared_log_G*sizeof(*d_shared_logG)));
     CHECK_CUDA(cudaMemset(d_shared_logG, 0, size_shared_log_G*sizeof(*d_shared_logG)));
+    
+    int *d_shared_all_walkers_in_interval_are_flat;
+    CHECK_CUDA(cudaMalloc(&d_shared_all_walkers_in_interval_are_flat, options.num_intervals*sizeof(*d_shared_all_walkers_in_interval_are_flat)));
+    CHECK_CUDA(cudaMemset(d_shared_all_walkers_in_interval_are_flat, 0, options.num_intervals*sizeof(*d_shared_all_walkers_in_interval_are_flat)));
+    
+    long long *d_offset_shared_logG;
+    CHECK_CUDA(cudaMalloc(&d_offset_shared_logG, options.num_intervals*sizeof(*d_offset_shared_logG)));
+    CHECK_CUDA(cudaMemset(d_offset_shared_logG, 0, options.num_intervals*sizeof(*d_offset_shared_logG)));
+
+    double *d_normalization_per_walker_logG;
+    CHECK_CUDA(cudaMalloc(&d_normalization_per_walker_logG, num_walker_total*sizeof(*d_normalization_per_walker_logG)));
+    CHECK_CUDA(cudaMemset(d_normalization_per_walker_logG, 0, num_walker_total*sizeof(*d_normalization_per_walker_logG)));
 
     // Offset histograms, lattice, seed_iterator
     int *d_offset_histogramm, *d_offset_lattice;
@@ -163,11 +180,34 @@ int main(int argc, char **argv){
 
             handleNewEnergyError(h_newEnergies, h_newEnergyFlag, histogram_file, num_walker_total); 
             return 1;
-        } 
-        
+        }
+
         check_histogram<<<options.num_intervals, options.walker_per_interval>>>(d_H, d_logG, d_shared_logG, d_offset_histogramm, d_end, d_start, d_factor, options.X, options.Y, options.alpha, options.beta, d_expected_energy_spectrum, len_energy_spectrum, num_walker_total, d_cond);
         cudaDeviceSynchronize();
 
+        // only for test 
+        signed char* h_cond = (signed char*)malloc(num_walker_total * sizeof(*h_cond));
+        for (int i = 0; i < num_walker_total; ++i) {
+            h_cond[i] = 1;  
+        }
+        CHECK_CUDA(cudaMemcpy(d_cond, h_cond, num_walker_total * sizeof(*d_cond), cudaMemcpyHostToDevice));
+        double* h_logG = (double*)malloc(interval_result.len_histogram_over_all_walkers * sizeof(*h_logG));
+        for (int i = 0; i < interval_result.len_histogram_over_all_walkers; ++i) {
+            h_logG[i] = 1;
+        }
+        CHECK_CUDA(cudaMemcpy(d_logG, h_logG, interval_result.len_histogram_over_all_walkers * sizeof(*d_logG), cudaMemcpyHostToDevice));
+
+        int block_count = (interval_result.len_histogram_over_all_walkers + max_threads_per_block - 1) / max_threads_per_block;
+        printf("block count %d max threads %d \n", block_count, max_threads_per_block);
+        
+
+        // only for test 
+        // CHECK_CUDA(cudaMemcpy(h_logG, d_logG, interval_result.len_histogram_over_all_walkers * sizeof(*d_logG), cudaMemcpyDeviceToHost));
+        // for(int i = 0; i<interval_result.len_histogram_over_all_walkers; i++){
+        //     printf("h_logG[%d] = %f ", i, h_logG[i]);
+        // }
+        return 0; 
+ 
         // get max factor over walkers for abort condition of while loop 
         thrust::device_ptr<double> d_factor_ptr(d_factor);
         thrust::device_ptr<double> max_factor_ptr = thrust::max_element(d_factor_ptr, d_factor_ptr + num_walker_total);

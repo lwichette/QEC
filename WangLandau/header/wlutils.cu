@@ -267,7 +267,7 @@ void handleNewEnergyError(int *new_energies, int *new_energies_flag, char *histo
 char *constructFilePath(float prob_interactions, int X, int Y, int seed, std::string type)
 {
     std::stringstream strstr;
-    strstr << "/home/dfki.uni-bremen.de/mbeuerle/User/mbeuerle/Code/qec/WangLandau/init/prob_" << std::fixed << std::setprecision(6) << prob_interactions;
+    strstr << "init/prob_" << std::fixed << std::setprecision(6) << prob_interactions;
     strstr << "/X_" << X << "_Y_" << Y;
     strstr << "/seed_" << seed << "/" << type << "/" << type << ".txt";
 
@@ -285,7 +285,7 @@ char *constructFilePath(float prob_interactions, int X, int Y, int seed, std::st
 std::vector<signed char> get_lattice_with_pre_run_result(float prob, int seed, int x, int y, std::vector<int> h_start, std::vector<int> h_end, int num_intervals, int num_walkers_total, int num_walkers_per_interval){
     namespace fs = std::filesystem;
     std::ostringstream oss;
-    oss << "/home/dfki.uni-bremen.de/mbeuerle/User/mbeuerle/Code/qec/WangLandau/init/prob_" << std::fixed << std::setprecision(6) << prob;
+    oss << "init/prob_" << std::fixed << std::setprecision(6) << prob;
     oss << "/X_" << x << "_Y_" << y;
     oss << "/seed_" << seed;
     oss << "/lattice";
@@ -657,17 +657,7 @@ __global__ void check_histogram(unsigned long long *d_H, double *d_log_G, double
 
     int blockId = blockIdx.x;
 
-    __shared__ int all_walkers_in_interval_are_flat;
-    __shared__ int offset_shared_logG; // Shared maybe
-
     const int len_interval = d_end[blockId] - d_start[blockId] + 1;
-
-    if (threadIdx.x==0){
-        all_walkers_in_interval_are_flat = 0;
-        offset_shared_logG = blockId*(d_end[0] - d_start[0] + 1);
-    }
-
-    __syncthreads();
 
     if (tid < num_walker_total){
         int min = INT_MAX;
@@ -682,7 +672,6 @@ __global__ void check_histogram(unsigned long long *d_H, double *d_log_G, double
                 }
                 average += d_H[d_offset_histogramm[tid] + i];
                 len_reduced_energy_spectrum += 1;
-                atomicAdd(&d_shared_logG[offset_shared_logG + i], d_log_G[d_offset_histogramm[tid] + i]/blockDim.x); // compute averages over all walkers inside an interval
             }
         }
 
@@ -696,7 +685,6 @@ __global__ void check_histogram(unsigned long long *d_H, double *d_log_G, double
             if (min >= alpha * average){
                 
                 d_cond[tid] = 1;
-                atomicAdd(&all_walkers_in_interval_are_flat, 1);
                 for (int i = 0; i < (d_end[blockId] - d_start[blockId] + 1); i++){
                     d_H[d_offset_histogramm[tid] + i] = 0;
                 }
@@ -705,27 +693,74 @@ __global__ void check_histogram(unsigned long long *d_H, double *d_log_G, double
         else{
             printf("Error histogram has no sufficient length to check for flatness on walker %lld. \n", tid);
         }
-
-        __syncthreads();
-
-        if (all_walkers_in_interval_are_flat == blockDim.x){
-            d_factor[tid] = sqrt(d_factor[tid]);
-            if(d_factor[tid]>exp(beta)){
-                d_cond[tid] = 0;
-            }
-            if(threadIdx.x == 0){
-                set_g_average(d_log_G, d_shared_logG, d_offset_histogramm, (d_end[blockId] - d_start[blockId] + 1), d_expected_energy_spectrum, d_start, offset_shared_logG, tid);
-            }
-        }
     }
 }
 
-__device__ void set_g_average(double *d_log_g, double *avg, int *offset, int len_walker_hist, int *expected_energy_spectrum, int *d_start, int offset_shared_logG, long long tid){
-    int IntervalId = blockIdx.x;
-    for(int energy_idx = 0; energy_idx < len_walker_hist; energy_idx++){
-        if (expected_energy_spectrum[d_start[IntervalId] + energy_idx - d_start[0]] == 1){
-            d_log_g[offset[tid]+energy_idx] = avg[offset_shared_logG +  energy_idx];
+
+__global__ void calc_average_log_g(int num_intervals, long long len_histogram_over_all_walkers, int num_walker_per_interval,  double *d_log_G, double *d_shared_logG, long long *d_offset_shared_logG, int *d_offset_histogramm, int *d_end, int *d_start, double *d_factor, double beta, int *d_expected_energy_spectrum, int *d_cond){
+
+    // 1 block and threads as many as len_histogram_over_all_walkers
+    long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
+
+    if (tid < len_histogram_over_all_walkers){ 
+        int len_first_interval = (d_end[0] - d_start[0] + 1);
+        long long intervalId = (tid/(len_first_interval*num_walker_per_interval) < num_intervals) ? tid/(len_first_interval*num_walker_per_interval) : num_intervals - 1;
+        int len_interval = d_end[intervalId] - d_start[intervalId] + 1;
+
+        long long walkerId = (tid%(len_interval*num_walker_per_interval))/len_interval;
+        long long energyId = (tid%(len_interval*num_walker_per_interval))%len_interval;    
+
+        long long linearised_walker_idx = intervalId*num_walker_per_interval+walkerId;
+
+        if (walkerId==0 && energyId==0){
+            d_offset_shared_logG[intervalId] = intervalId*len_first_interval;
         }
+
+        if (d_cond[intervalId] == num_walker_per_interval){
+            
+            if (d_expected_energy_spectrum[d_start[intervalId] + energyId - d_start[0]] == 1){
+                atomicAdd(&d_shared_logG[d_offset_shared_logG[intervalId] + energyId], d_log_G[d_offset_histogramm[linearised_walker_idx] + energyId]/num_walker_per_interval);   
+            }
+        }  
+    }
+}
+
+__global__ void redistribute_g_values(int num_intervals, double *d_normalization_per_walker_logG, long long len_histogram_over_all_walkers, int num_walker_per_interval,  double *d_log_G, double *d_shared_logG, int *d_shared_all_walkers_in_interval_are_flat, long long *d_offset_shared_logG, int *d_offset_histogramm, int *d_end, int *d_start, double *d_factor, double beta, int *d_expected_energy_spectrum){
+
+    // 1 block and threads as many as len_histogram_over_all_walkers
+    long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
+
+    if (tid < len_histogram_over_all_walkers){ 
+
+
+        int len_first_interval = (d_end[0] - d_start[0] + 1);
+        long long intervalId = (tid/(len_first_interval*num_walker_per_interval) < num_intervals) ? tid/(len_first_interval*num_walker_per_interval) : num_intervals - 1;
+        int len_interval = d_end[intervalId] - d_start[intervalId] + 1;
+
+        long long walkerId = (tid%(len_interval*num_walker_per_interval))/len_interval;
+        long long energyId = (tid%(len_interval*num_walker_per_interval))%len_interval;    
+
+        long long linearised_walker_idx = intervalId*num_walker_per_interval+walkerId;
+
+        if (walkerId==0 && energyId==0){
+            d_offset_shared_logG[intervalId] = intervalId*len_first_interval;
+        }
+
+        if (d_shared_all_walkers_in_interval_are_flat[intervalId] == num_walker_per_interval){
+            
+
+            if(energyId == 0){ // for each walker in finished interval a single thread sets the new factor and resets the condition array to update histogram again
+                if(d_factor[linearised_walker_idx]>exp(beta)){ // if not already in last factor iteration reset the cond array to update in next round log g and hist 
+                    d_cond[linearised_walker_idx] = 0;
+                }
+                d_factor[linearised_walker_idx] = sqrt(d_factor[linearised_walker_idx]);
+            }
+            // printf("interval id %lld walker id %lld energy id %lld -- index in big array %lld \n", intervalId, walkerId, energyId, d_offset_histogramm[linearised_walker_idx]);
+            if (d_expected_energy_spectrum[d_start[intervalId] + energyId - d_start[0]] == 1){
+                // printf("len hist over all walkers %lld tid %lld walker %lld has line walker id %lld index in log g %lld\n", len_histogram_over_all_walkers, tid, walkerId, linearised_walker_idx, d_offset_histogramm[linearised_walker_idx] + energyId);
+                d_log_G[tid] = d_shared_logG[d_offset_shared_logG[intervalId] + energyId];
+            }
+        }  
     }
 }
 

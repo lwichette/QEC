@@ -68,17 +68,9 @@ int main(int argc, char **argv){
     CHECK_CUDA(cudaMalloc(&d_shared_logG, size_shared_log_G*sizeof(*d_shared_logG)));
     CHECK_CUDA(cudaMemset(d_shared_logG, 0, size_shared_log_G*sizeof(*d_shared_logG)));
     
-    int *d_shared_all_walkers_in_interval_are_flat;
-    CHECK_CUDA(cudaMalloc(&d_shared_all_walkers_in_interval_are_flat, options.num_intervals*sizeof(*d_shared_all_walkers_in_interval_are_flat)));
-    CHECK_CUDA(cudaMemset(d_shared_all_walkers_in_interval_are_flat, 0, options.num_intervals*sizeof(*d_shared_all_walkers_in_interval_are_flat)));
-    
     long long *d_offset_shared_logG;
     CHECK_CUDA(cudaMalloc(&d_offset_shared_logG, options.num_intervals*sizeof(*d_offset_shared_logG)));
     CHECK_CUDA(cudaMemset(d_offset_shared_logG, 0, options.num_intervals*sizeof(*d_offset_shared_logG)));
-
-    double *d_normalization_per_walker_logG;
-    CHECK_CUDA(cudaMalloc(&d_normalization_per_walker_logG, num_walker_total*sizeof(*d_normalization_per_walker_logG)));
-    CHECK_CUDA(cudaMemset(d_normalization_per_walker_logG, 0, num_walker_total*sizeof(*d_normalization_per_walker_logG)));
 
     // Offset histograms, lattice, seed_iterator
     int *d_offset_histogramm, *d_offset_lattice;
@@ -132,6 +124,7 @@ int main(int argc, char **argv){
     ----------------------------------------------
     */
 
+
     // Initialization of lattices, interactions, offsets and indices
     init_offsets_lattice<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, options.X, options.Y);
     init_offsets_histogramm<<<options.num_intervals, options.walker_per_interval>>>(d_offset_histogramm, d_start, d_end);
@@ -158,7 +151,7 @@ int main(int argc, char **argv){
     double max_factor = exp(1.0);
     int max_newEnergyFlag = 0;
     double finished_walkers_ratio = 0;
-    
+
     while (max_factor > exp(options.beta)){
 
         wang_landau<<<options.num_intervals, options.walker_per_interval>>>(d_lattice, d_interactions, d_energy, d_start, d_end, d_H, d_logG, d_offset_histogramm, d_offset_lattice, options.num_iterations, options.X, options.Y, seed + 3, d_factor, d_offset_iter, d_expected_energy_spectrum, d_newEnergies, d_foundNewEnergyFlag, num_walker_total, options.beta, d_cond);
@@ -190,11 +183,16 @@ int main(int argc, char **argv){
             h_cond[i] = 1;  
         }
         CHECK_CUDA(cudaMemcpy(d_cond, h_cond, options.num_intervals * sizeof(*d_cond), cudaMemcpyHostToDevice));
+        
         double* h_logG = (double*)malloc(interval_result.len_histogram_over_all_walkers * sizeof(*h_logG));
+        
         for (int i = 0; i < interval_result.len_histogram_over_all_walkers; ++i) {
             h_logG[i] = 1;
         }
+        
+
         CHECK_CUDA(cudaMemcpy(d_logG, h_logG, interval_result.len_histogram_over_all_walkers * sizeof(*d_logG), cudaMemcpyHostToDevice));
+        
         for (int i = 0; i < interval_result.len_histogram_over_all_walkers; ++i) {
             h_logG[i] = 0;
         }
@@ -205,9 +203,11 @@ int main(int argc, char **argv){
 
         // only for test 
         CHECK_CUDA(cudaMemcpy(h_logG, d_logG,  interval_result.len_histogram_over_all_walkers * sizeof(*d_logG), cudaMemcpyDeviceToHost));
+        
         for(int i = 0; i< interval_result.len_histogram_over_all_walkers; i++){
             printf("h_logG[%d] = %f, ", i, h_logG[i]);
         }
+        
         return 0; //
  
         // get max factor over walkers for abort condition of while loop 

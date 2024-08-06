@@ -267,7 +267,7 @@ void handleNewEnergyError(int *new_energies, int *new_energies_flag, char *histo
 char *constructFilePath(float prob_interactions, int X, int Y, int seed, std::string type)
 {
     std::stringstream strstr;
-    strstr << "init/prob_" << std::fixed << std::setprecision(6) << prob_interactions;
+    strstr << "/init/prob_" << std::fixed << std::setprecision(6) << prob_interactions;
     strstr << "/X_" << X << "_Y_" << Y;
     strstr << "/seed_" << seed << "/" << type << "/" << type << ".txt";
 
@@ -285,7 +285,7 @@ char *constructFilePath(float prob_interactions, int X, int Y, int seed, std::st
 std::vector<signed char> get_lattice_with_pre_run_result(float prob, int seed, int x, int y, std::vector<int> h_start, std::vector<int> h_end, int num_intervals, int num_walkers_total, int num_walkers_per_interval){
     namespace fs = std::filesystem;
     std::ostringstream oss;
-    oss << "init/prob_" << std::fixed << std::setprecision(6) << prob;
+    oss << "/init/prob_" << std::fixed << std::setprecision(6) << prob;
     oss << "/X_" << x << "_Y_" << y;
     oss << "/seed_" << seed;
     oss << "/lattice";
@@ -665,8 +665,6 @@ __global__ void check_histogram(unsigned long long *d_H, double *d_log_G, double
 
     __syncthreads();
 
-    const int len_interval = d_end[blockId] - d_start[blockId] + 1;
-
     if (tid < num_walker_total){
         int min = INT_MAX;
         double average = 0;
@@ -721,7 +719,6 @@ __global__ void calc_average_log_g(int num_intervals, long long len_histogram_ov
         int len_interval = d_end[intervalId] - d_start[intervalId] + 1;
         long long walkerId = (tid%(len_interval*num_walker_per_interval))/len_interval;
         long long energyId = (tid%(len_interval*num_walker_per_interval))%len_interval;    
-        long long linearised_walker_idx = intervalId*num_walker_per_interval+walkerId;
         if (d_expected_energy_spectrum[d_start[intervalId] + energyId - d_start[0]] == 1){        
             atomicAdd(&d_shared_logG[intervalId*len_first_interval + energyId], d_log_G[tid]/num_walker_per_interval);   
         }  

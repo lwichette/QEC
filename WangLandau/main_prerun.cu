@@ -1,289 +1,10 @@
 #include "./header/cudamacro.h"
 #include "./header/wlutils.cuh"
 
+int THREADS = 128;
+
 using namespace std;
 
-// void writeToFile(const std::string& filename, const signed char* data, int nx_w, int ny) {
-//     std::ofstream file(filename);
-//     if (file.is_open()) {
-//         for (int i = 0; i < nx_w; i++) {
-//             for (int j = 0; j < ny; j++) {
-//                 file << static_cast<int>(data[i * ny + j]) << " ";
-//             }
-//             file << std::endl;
-//         }
-//     } else {
-//         std::cerr << "Error opening file: " << filename << std::endl;
-//     }
-//     file.close();
-// }
-
-// void write(
-//     signed char* array, const std::string& filename, long nx, long ny, 
-//     int num_lattices, bool lattice, const std::vector<int>& energies = std::vector<int>()
-// ) {
-//     std::cout << "Writing to " << filename << " ..." << std::endl;
-
-//     int nx_w = (lattice) ? nx : 2 * nx;
-//     std::vector<signed char> array_host(nx_w * ny * num_lattices);
-
-//     CHECK_CUDA(cudaMemcpy(array_host.data(), array, nx_w * ny * num_lattices * sizeof(signed char), cudaMemcpyDeviceToHost));
-
-//     if (num_lattices == 1) {
-//         writeToFile(filename + ".txt", array_host.data(), nx_w, ny);
-//     } else {
-//         for (int l = 0; l < num_lattices; l++) {
-//             int offset = l * nx_w * ny;
-//             if (energies[l] == 0 && array_host[offset] == 0) {
-//                 continue;
-//             }
-
-//             std::string file_suffix = (energies.empty()) ? std::to_string(l) : std::to_string(energies[l]);
-//             writeToFile(filename + "_" + file_suffix + ".txt", array_host.data() + offset, nx_w, ny);
-//         }
-//     }
-// }
-
-// __global__ void init_lattice(signed char* lattice, const int nx, const int ny, const int num_lattices, const int seed){
-    
-//     const long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
-
-//     curandStatePhilox4_32_10_t st;
-//     curand_init(seed, tid, 0, &st); 
-
-//     __shared__ float prob;
-    
-//     if (threadIdx.x == 0){
-//         prob = curand_uniform(&st);
-//     }
-    
-//     __syncthreads();
-    
-//     float randval = curand_uniform(&st);
-//     signed char val = (randval < prob) ? -1 : 1;
-
-//     lattice[tid] = val;
-// }
-
-// __global__ void init_interactions(signed char* interactions, const int nx, const int ny, const int num_lattices, const int seed, const double prob){
-    
-//     long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
-    
-//     curandStatePhilox4_32_10_t st;
-//     curand_init(seed, tid, 0, &st);
-
-//     while (tid < nx*ny*2){
-
-//         float randval = curand_uniform(&st);
-//         signed char val = (randval < prob) ? -1 : 1;
-        
-//         interactions[tid] = val;
-
-//         tid += blockDim.x * gridDim.x;
-//     }
-// }
-
-// __global__ void calc_energy(signed char* lattice, signed char* interactions, int* d_energy, const int nx, const int ny, const int num_lattices){
-
-//     long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
-
-//     int energy = 0; 
-
-//     int offset_lattice = tid*nx*ny;
-
-//     for (int l = 0; l < nx*ny; l++){
-        
-//         int i = l/ny;
-//         int j = l%ny;
-
-//         int inn = (i - 1 >= 0) ? i - 1 : nx - 1;
-//         int jnn = (j - 1 >= 0) ? j - 1 : ny - 1;  
-
-//         energy += lattice[offset_lattice + i*ny +j]*(lattice[offset_lattice + inn*ny + j]*interactions[nx*ny + inn*ny + j] + lattice[offset_lattice + i*ny + jnn]*interactions[i*ny + jnn]);
-//     }
-
-//     d_energy[tid] = energy;
-
-//     tid += blockDim.x * gridDim.x;
-// }
-
-// __device__ void store_lattice(
-//     signed char *d_lattice, int *d_energy, int* d_found_interval, signed char* d_store_lattice,
-//     const int E_min, const int nx, const int ny, const int tid, const int len_interval
-//     ){
-    
-//     int interval_index = (d_energy[tid] - E_min)/(len_interval);
-
-//     if (atomicCAS(&d_found_interval[interval_index], 0, 1) != 0) return;
-
-//     for (int i=0; i < nx; i++){
-//         for (int j=0; j < ny; j++){
-//             d_store_lattice[interval_index*nx*ny + i*ny + j] = d_lattice[tid*nx*ny + i*ny +j];
-//         }
-//     }
-
-//     return;
-// }
-
-// __global__ void wang_landau_pre_run(
-//     signed char *d_lattice, signed char *d_interactions, int *d_energy, int *d_H, int* d_iter, int *d_found_interval,
-//     signed char *d_store_lattice, const int E_min, const int E_max, const int num_iterations, const int nx, const int ny, 
-//     const int seed, const int len_interval, const int found_interval
-//     ){
-    
-//     long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
-
-//     const int offset_lattice = tid*nx*ny;
-
-//     curandStatePhilox4_32_10_t st;
-//     curand_init(seed, tid, d_iter[tid], &st);
-    
-//     for (int it = 0; it < num_iterations; it++){
-
-//         // Generate random int --> is that actually uniformly?
-//         double randval = curand_uniform(&st);
-//         randval *= (nx*ny - 1 + 0.999999);
-//         int random_index = (int)trunc(randval);
-
-//         d_iter[tid] += 1;
-
-//         int i = random_index/ny;
-//         int j = random_index % ny;
-
-//         // Set up periodic boundary conditions
-//         int ipp = (i + 1 < nx) ? i + 1 : 0;
-//         int inn = (i - 1 >= 0) ? i - 1: nx - 1;
-//         int jpp = (j + 1 < ny) ? j + 1 : 0;
-//         int jnn = (j - 1 >= 0) ? j - 1: ny - 1; 
-
-//         // Nochmal checken
-//         signed char energy_diff = -2 * d_lattice[offset_lattice + i*ny +j]*(d_lattice[offset_lattice + inn*ny + j]*d_interactions[nx*ny + inn*ny + j] + d_lattice[offset_lattice + i*ny + jnn]*d_interactions[i*ny + jnn]
-//                                                                     + d_lattice[offset_lattice + ipp*ny + j]*d_interactions[nx*ny + i*ny + j] + d_lattice[offset_lattice + i*ny + jpp]*d_interactions[i*ny + j]);
-
-//         int d_new_energy = d_energy[tid] + energy_diff; 
-
-//         int index_old = d_energy[tid] - E_min;
-        
-//         if (d_new_energy > E_max || d_new_energy < E_min){
-//             printf("Iterator %d \n", it);
-//             printf("Thread Id %lld \n", tid);
-//             printf("Randval %f \n", randval);
-//             printf("Energy out of range %d \n", d_new_energy);
-//             printf("Old energy %d \n", d_energy[tid]);
-//             assert(0);
-//             return;
-//         }
-//         else{
-            
-//             int index_new = d_new_energy - E_min;
-
-//             float prob = expf(d_H[index_old] - d_H[index_new]);
-
-//             if(curand_uniform(&st) < prob){
-//                 d_lattice[offset_lattice + i*ny +j] *= -1;
-//                 d_energy[tid] = d_new_energy;
-//                 d_iter[tid] += 1;
-
-//                 atomicAdd(&d_H[index_new], 1);
-
-//                 if (found_interval == 0){
-//                     store_lattice(d_lattice, d_energy, d_found_interval, d_store_lattice, E_min, nx, ny, tid, len_interval);
-//                 }
-//             }
-//             else{
-//                 atomicAdd(&d_H[index_old], 1);
-//             }
-//         }
-//     }
-// }
-
-// void create_directory(std::string path){
-//     if (!std::filesystem::exists(path)) {
-//         // Create directory
-//         if (std::filesystem::create_directories(path)) {
-//             std::cout << "Successfully created directory: " << path << std::endl; 
-//         } else {
-//             std::cerr << "Failed to create directory: " << path << std::endl;
-//         }
-//     } else {
-//         std::cout << "Directory already exists: " << path << std::endl;
-//     }
-// }
-
-// void write_histograms(int *d_H, std::string path_histograms, int len_histogram, int seed, int E_min){
-    
-//     printf("Writing to %s ...\n", path_histograms.c_str());
-
-//     std::vector<int> h_histogram(len_histogram);
-
-//     CHECK_CUDA(cudaMemcpy(h_histogram.data(), d_H, len_histogram*sizeof(*d_H), cudaMemcpyDeviceToHost));
-
-//     std::ofstream f;
-//     f.open(std::string(path_histograms + "/histogram.txt"));
-    
-//     if (f.is_open()) {
-//         for (int i=0; i < len_histogram; i++){     
-//             int energy = E_min + i;
-//             if (h_histogram[i] > 0){
-//                 f << energy << " " << 1 << std::endl;   
-//             }
-//             else{
-//                 f << energy << " " << 0 << std::endl;
-//             }
-//         }
-//     }
-// }
-
-// typedef struct
-// {
-//     std::vector<int> h_start;
-//     std::vector<int> h_end;
-//     long long len_histogram_over_all_walkers;
-//     int len_interval;
-// } IntervalResult;
-
-
-
-// IntervalResult generate_intervals(const int E_min, const int E_max, int num_intervals, int num_walker, float overlap_decimal)
-// {
-//     IntervalResult interval_result;
-
-//     std::vector<int> h_start(num_intervals);
-//     std::vector<int> h_end(num_intervals);
-
-//     const int E_range = E_max - E_min + 1;
-//     const int len_interval = E_range / (1.0f + overlap_decimal * (num_intervals - 1)); // Len_interval computation stems from condition: len_interval + overlap * len_interval * (num_intervals - 1) = E_range
-//     const int step_size = overlap_decimal * len_interval;
-
-//     int start_interval = E_min;
-
-//     long long len_histogram_over_all_walkers = 0;
-
-//     for (int i = 0; i < num_intervals; i++)
-//     {
-
-//         h_start[i] = start_interval;
-
-//         if (i < num_intervals - 1)
-//         {
-//             h_end[i] = start_interval + len_interval - 1;
-//             len_histogram_over_all_walkers += num_walker * len_interval;
-//         }
-//         else
-//         {
-//             h_end[i] = E_max;
-//             len_histogram_over_all_walkers += num_walker * (E_max - h_start[i] + 1);
-//         }
-
-//         start_interval += step_size;
-//     }
-//     interval_result.h_start = h_start;
-//     interval_result.h_end = h_end;
-//     interval_result.len_histogram_over_all_walkers = len_histogram_over_all_walkers;
-//     interval_result.len_interval = len_interval;
-
-//     return interval_result;
-// }
 
 int main(int argc, char **argv){
     
@@ -369,13 +90,17 @@ int main(int argc, char **argv){
     CHECK_CUDA(cudaMalloc(&d_H, len_histogram * sizeof(*d_H)));
     CHECK_CUDA(cudaMemset(d_H, 0, len_histogram*sizeof(*d_H)));
 
-    int *d_iter;
+    unsigned long long *d_iter;
     CHECK_CUDA(cudaMalloc(&d_iter, num_walker*sizeof(*d_iter)));
     CHECK_CUDA(cudaMemset(d_iter, 0, num_walker*sizeof(*d_iter)));
 
     // lattice & interactions and energies
     signed char *d_lattice;
     CHECK_CUDA(cudaMalloc(&d_lattice, num_walker * X * Y * sizeof(*d_lattice)));
+
+    float *d_probs;
+    CHECK_CUDA(cudaMalloc(&d_probs, num_intervals * sizeof(*d_probs)));
+    CHECK_CUDA(cudaMemset(d_probs, 0, num_intervals*sizeof(*d_probs)));
     
     signed char* d_interactions;
     CHECK_CUDA(cudaMalloc(&d_interactions, X * Y * 2 * sizeof(*d_interactions)));
@@ -394,18 +119,22 @@ int main(int argc, char **argv){
     CHECK_CUDA(cudaMalloc(&d_interval_energies, num_intervals*sizeof(*d_interval_energies)));
     CHECK_CUDA(cudaMemset(d_interval_energies, 0, num_intervals*sizeof(*d_interval_energies)));
 
-    init_lattice<<<num_walker, X*Y>>>(d_lattice, X, Y, num_walker, seed);
+    int BLOCKS_INIT = (num_walker*X*Y*2 + THREADS - 1)/THREADS;
+    int BLOCKS_ENERGY = (num_walker + THREADS - 1)/THREADS;
+    int BLOCKS_INTERVAL = (num_intervals + THREADS - 1)/THREADS;
 
-    init_interactions<<<1, 2*X*Y>>>(d_interactions, X, Y, num_walker, seed + 1, prob_interactions); //use different seed
+    init_lattice<<<BLOCKS_INIT, THREADS>>>(d_lattice, d_probs, X, Y, num_walker, seed);
 
-    calc_energy_pre_run<<<1, num_walker>>>(d_lattice, d_interactions, d_energy, X, Y, num_walker);    
-
+    init_interactions<<<BLOCKS_INIT, THREADS>>>(d_interactions, X, Y, 1, seed + 1, prob_interactions);
+    
+    calc_energy_pre_run<<<BLOCKS_ENERGY, THREADS>>>(d_lattice, d_interactions, d_energy, X, Y, num_walker);    
+    
     int found_interval = 0;
 
     for (int i=0; i < num_wl_loops; i++){
         if (i % 100 == 0) printf("Num wl loop: %d \n", i);
         
-        wang_landau_pre_run<<<1, num_walker>>>(d_lattice, d_interactions, d_energy, d_H, d_iter, d_found_interval, d_store_lattice, E_min, E_max, num_iterations, X, Y, seed + 2, interval_result.len_interval, found_interval);
+        wang_landau_pre_run<<<BLOCKS_ENERGY, THREADS>>>(d_lattice, d_interactions, d_energy, d_H, d_iter, d_found_interval, d_store_lattice, E_min, E_max, num_iterations, X, Y, seed + 2, interval_result.len_interval, found_interval);
         cudaDeviceSynchronize();
         
         if (found_interval == 0){
@@ -415,7 +144,7 @@ int main(int argc, char **argv){
         }
     }
 
-    calc_energy_pre_run<<<1,num_intervals>>>(d_store_lattice, d_interactions, d_interval_energies, X, Y, num_intervals);
+    calc_energy_pre_run<<<BLOCKS_INTERVAL, THREADS>>>(d_store_lattice, d_interactions, d_interval_energies, X, Y, num_intervals);
     
     std::vector<int> h_interval_energies(num_intervals);
     CHECK_CUDA(cudaMemcpy(h_interval_energies.data(), d_interval_energies, num_intervals*sizeof(*d_interval_energies), cudaMemcpyDeviceToHost));

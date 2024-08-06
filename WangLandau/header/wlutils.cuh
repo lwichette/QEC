@@ -73,7 +73,7 @@ char *constructFilePath(float prob_interactions, int X, int Y, int seed, std::st
 
 std::vector<signed char> get_lattice_with_pre_run_result(float prob, int seed, int x, int y, std::vector<int> h_start, std::vector<int> h_end, int num_intervals, int num_walkers_total, int num_walkers_per_interval);
 
-__global__ void init_lattice(signed char* lattice, const int nx, const int ny, const int num_lattices, const int seed);
+__global__ void init_lattice(signed char* lattice, float* d_probs, const int nx, const int ny, const int num_lattices, const int seed);
 
 __global__ void init_interactions(signed char* interactions, const int nx, const int ny, const int num_lattices, const int seed, const double prob);
 
@@ -81,7 +81,7 @@ __global__ void calc_energy(signed char *lattice, signed char *interactions, int
 
 __global__ void calc_energy_pre_run(signed char* lattice, signed char* interactions, int* d_energy, const int nx, const int ny, const int num_lattices);
 
-__global__ void wang_landau_pre_run(signed char *d_lattice, signed char *d_interactions, int *d_energy, unsigned long long *d_H, int* d_iter, int *d_found_interval, signed char *d_store_lattice, const int E_min, const int E_max, const int num_iterations, const int nx, const int ny, const int seed, const int len_interval, const int found_interval);
+__global__ void wang_landau_pre_run(signed char *d_lattice, signed char *d_interactions, int *d_energy, unsigned long long *d_H, unsigned long long* d_iter, int *d_found_interval, signed char *d_store_lattice, const int E_min, const int E_max, const int num_iterations, const int nx, const int ny, const int seed, const int len_interval, const int found_interval);
 
 __global__ void wang_landau(
     signed char *d_lattice, signed char *d_interactions, int *d_energy,

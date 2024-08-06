@@ -28,6 +28,7 @@ def plot_data(x, y, color):
     plt.title('Plot of Data from File')
     plt.grid(True)
 
+
 def get_renormalized_g_values(results: dict):
     exponential_results_x = []
     exponential_results_y = []

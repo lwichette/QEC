@@ -168,28 +168,13 @@ int main(int argc, char **argv){
         check_histogram<<<options.num_intervals, options.walker_per_interval>>>(d_H, d_logG, d_shared_logG, d_offset_histogramm, d_end, d_start, d_factor, options.X, options.Y, options.alpha, options.beta, d_expected_energy_spectrum, len_energy_spectrum, num_walker_total, d_cond);
         cudaDeviceSynchronize();
 
-
-        printf("here\n");
-        fflush(stdout);
- 
         // get max factor over walkers for abort condition of while loop 
-        thrust::device_ptr<double> d_factor_ptr(d_factor); //
-
-
-        printf("between\n");
-        fflush(stdout);
-
+        thrust::device_ptr<double> d_factor_ptr(d_factor);
         thrust::device_ptr<double> max_factor_ptr = thrust::max_element(d_factor_ptr, d_factor_ptr + num_walker_total);
         max_factor = *max_factor_ptr;
-
-        printf("before replica \n");
-        fflush(stdout);
         
         replica_exchange<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, d_energy, d_start, d_end, d_indices, d_logG, d_offset_histogramm, true, seed + 3, d_offset_iter);
         replica_exchange<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, d_energy, d_start, d_end, d_indices, d_logG, d_offset_histogramm, false, seed + 3, d_offset_iter);
-
-        printf("after replica \n");
-        fflush(stdout); 
 
         // print_finished_walker_ratio<<<1, num_walker_total>>>(d_factor, num_walker_total, exp(options.beta), d_finished_walkers_ratio);
 

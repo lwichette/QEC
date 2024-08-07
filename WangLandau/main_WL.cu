@@ -15,6 +15,7 @@ To Do:
     - Get averages over all walkers per interval of log g after all are simultaneously flat 
     - update spin configs for totally finished walkers still but do not update hist and g anymore -> circumvents replica exchange problem
     - Add sort to lattice read function
+    - how to parse double precission input args
 */
 
 int main(int argc, char **argv){

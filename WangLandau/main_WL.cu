@@ -154,7 +154,9 @@ int main(int argc, char **argv){
 
     int block_count = (interval_result.len_histogram_over_all_walkers + max_threads_per_block - 1) / max_threads_per_block;
 
+    int counter = 0;
     while (max_factor > exp(options.beta)){
+    // for(int idx = 0; idx < 20; idx++){
         
         printf("Max Factor %2f \n", max_factor);
 
@@ -178,12 +180,11 @@ int main(int argc, char **argv){
             return 1;
         }
 
-
         check_histogram<<<options.num_intervals, options.walker_per_interval>>>(d_H, d_logG, d_shared_logG, d_offset_histogramm, d_end, d_start, d_factor, options.X, options.Y, options.alpha, options.beta, d_expected_energy_spectrum, len_energy_spectrum, num_walker_total, d_cond);
         cudaDeviceSynchronize();
-    
-        calc_average_log_g<<<block_count, max_threads_per_block>>>(options.num_intervals, interval_result.len_histogram_over_all_walkers, options.walker_per_interval, d_logG, d_shared_logG, d_end, d_start, d_expected_energy_spectrum, d_cond);
-        redistribute_g_values<<<block_count, max_threads_per_block>>>(options.num_intervals, interval_result.len_histogram_over_all_walkers, options.walker_per_interval, d_logG, d_shared_logG, d_end, d_start, d_factor, options.beta, d_expected_energy_spectrum, d_cond);
+        calc_average_log_g<<<block_count, max_threads_per_block>>>(d_offset_histogramm, options.num_intervals, interval_result.len_histogram_over_all_walkers, options.walker_per_interval, d_logG, d_shared_logG, d_end, d_start, d_expected_energy_spectrum, d_cond);
+        cudaDeviceSynchronize();
+        redistribute_g_values<<<block_count, max_threads_per_block>>>(d_offset_histogramm, options.num_intervals, interval_result.len_histogram_over_all_walkers, options.walker_per_interval,  d_logG, d_shared_logG, d_end, d_start, d_factor, options.beta, d_expected_energy_spectrum, d_cond);
         cudaDeviceSynchronize();
 
         CHECK_CUDA(cudaMemset(d_shared_logG, 0, size_shared_log_G*sizeof(*d_shared_logG)));
@@ -193,8 +194,8 @@ int main(int argc, char **argv){
         thrust::device_ptr<double> max_factor_ptr = thrust::max_element(d_factor_ptr, d_factor_ptr + num_walker_total);
         max_factor = *max_factor_ptr;
         
-        //replica_exchange<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, d_energy, d_start, d_end, d_indices, d_logG, d_offset_histogramm, true, seed + 3, d_offset_iter);
-        //replica_exchange<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, d_energy, d_start, d_end, d_indices, d_logG, d_offset_histogramm, false, seed + 3, d_offset_iter);
+        replica_exchange<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, d_energy, d_start, d_end, d_indices, d_logG, d_offset_histogramm, true, seed + 3, d_offset_iter);
+        replica_exchange<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, d_energy, d_start, d_end, d_indices, d_logG, d_offset_histogramm, false, seed + 3, d_offset_iter);
 
         print_finished_walker_ratio<<<1, num_walker_total>>>(d_factor, num_walker_total, exp(options.beta), d_finished_walkers_ratio);
 
@@ -227,6 +228,7 @@ int main(int argc, char **argv){
         //     hist_file << std::endl;
         //     hist_file.close();
         // }
+        counter++;
     }
 
     /*

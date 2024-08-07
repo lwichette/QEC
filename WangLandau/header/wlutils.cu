@@ -267,7 +267,7 @@ void handleNewEnergyError(int *new_energies, int *new_energies_flag, char *histo
 char *constructFilePath(float prob_interactions, int X, int Y, int seed, std::string type)
 {
     std::stringstream strstr;
-    strstr << "/init/prob_" << std::fixed << std::setprecision(6) << prob_interactions;
+    strstr << "/home/dfki.uni-bremen.de/mbeuerle/User/mbeuerle/Code/qec/WangLandau/init/prob_" << std::fixed << std::setprecision(6) << prob_interactions;
     strstr << "/X_" << X << "_Y_" << Y;
     strstr << "/seed_" << seed << "/" << type << "/" << type << ".txt";
 
@@ -285,7 +285,7 @@ char *constructFilePath(float prob_interactions, int X, int Y, int seed, std::st
 std::vector<signed char> get_lattice_with_pre_run_result(float prob, int seed, int x, int y, std::vector<int> h_start, std::vector<int> h_end, int num_intervals, int num_walkers_total, int num_walkers_per_interval){
     namespace fs = std::filesystem;
     std::ostringstream oss;
-    oss << "/init/prob_" << std::fixed << std::setprecision(6) << prob;
+    oss << "/home/dfki.uni-bremen.de/mbeuerle/User/mbeuerle/Code/qec/WangLandau/init/prob_" << std::fixed << std::setprecision(6) << prob;
     oss << "/X_" << x << "_Y_" << y;
     oss << "/seed_" << seed;
     oss << "/lattice";
@@ -682,12 +682,11 @@ __global__ void check_histogram(unsigned long long *d_H, double *d_log_G, double
         }
 
         __syncthreads();
-        
 
         if (len_reduced_energy_spectrum > 0){
         
             average = average / len_reduced_energy_spectrum;
-
+            printf("Min %2f alpha*average %2f \n", min, alpha*average );
             if (min >= alpha * average){
                 atomicAdd(&walkers_finished, 1);
             }
@@ -699,10 +698,14 @@ __global__ void check_histogram(unsigned long long *d_H, double *d_log_G, double
         __syncthreads();
 
         if (walkers_finished == blockDim.x){
+            printf("ALL WALKERS FINISHED IN WALKER \n");
+            
             d_cond[blockId] = 1;
+            
             for (int i = 0; i < (d_end[blockId] - d_start[blockId] + 1); i++){                    
                 d_H[d_offset_histogramm[tid] + i] = 0;                
             }
+            
             d_factor[tid] = sqrt(d_factor[tid]);
         }
     }
@@ -715,6 +718,7 @@ __global__ void calc_average_log_g(int num_intervals, long long len_histogram_ov
     long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
     int len_first_interval = (d_end[0] - d_start[0] + 1);
     long long intervalId = (tid/(len_first_interval*num_walker_per_interval) < num_intervals) ? tid/(len_first_interval*num_walker_per_interval) : num_intervals - 1;
+    
     if (d_cond[intervalId] == 1 && tid < len_histogram_over_all_walkers){ 
         int len_interval = d_end[intervalId] - d_start[intervalId] + 1;
         long long walkerId = (tid%(len_interval*num_walker_per_interval))/len_interval;
@@ -798,7 +802,7 @@ __global__ void wang_landau(
     curandStatePhilox4_32_10_t st;
     curand_init(seed, tid, d_offset_iter[tid], &st);
 
-    if (d_cond[tid] == 0){
+    if (d_cond[blockId] == 0){
         for (int it = 0; it < num_iterations; it++){
 
             RBIM result = random_bond_ising(d_lattice, d_interactions, d_energy, d_offset_lattice, d_offset_iter, &st, tid, nx, ny);
@@ -811,7 +815,7 @@ __global__ void wang_landau(
                 d_newEnergies[tid] = result.new_energy;
                 return;
             }
-
+            
             int index_old = d_offset_histogramm[tid] + d_energy[tid] - d_start[blockId];
 
             if (result.new_energy > d_end[blockId] || result.new_energy < d_start[blockId]){
@@ -819,9 +823,9 @@ __global__ void wang_landau(
                 d_logG[index_old] += log(factor[tid]);
             }
             else{
-
+                
                 int index_new = d_offset_histogramm[tid] + result.new_energy - d_start[blockId];
-
+                
                 double prob = min(1.0, exp(d_logG[index_old] - d_logG[index_new]));
 
                 if (curand_uniform(&st) < prob){
@@ -884,7 +888,7 @@ __global__ void print_finished_walker_ratio(double *d_factor, int num_walker_tot
     __syncthreads();
     if (threadId == 0) {
         double ratio_of_finished_walkers = (double)shared_count[0] / num_walker_total;
-        // printf("ratio of finished walkers: %f\n", ratio_of_finished_walkers);
+        printf("ratio of finished walkers: %f\n", ratio_of_finished_walkers);
         d_finished_walkers_ratio[0] = ratio_of_finished_walkers;
     }
 }

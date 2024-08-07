@@ -53,6 +53,7 @@ int main(int argc, char **argv){
     CHECK_CUDA(cudaMemcpy(d_start, interval_result.h_start.data(), options.num_intervals * sizeof(*d_start), cudaMemcpyHostToDevice));
     CHECK_CUDA(cudaMemcpy(d_end, interval_result.h_end.data(), options.num_intervals * sizeof(*d_start), cudaMemcpyHostToDevice));
 
+
     // Histogramm and G array
     unsigned long long *d_H;
     CHECK_CUDA(cudaMalloc(&d_H, interval_result.len_histogram_over_all_walkers * sizeof(*d_H)));
@@ -124,7 +125,6 @@ int main(int argc, char **argv){
     ----------------------------------------------
     */
 
-
     // Initialization of lattices, interactions, offsets and indices
     init_offsets_lattice<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, options.X, options.Y);
     init_offsets_histogramm<<<options.num_intervals, options.walker_per_interval>>>(d_offset_histogramm, d_start, d_end);
@@ -152,6 +152,8 @@ int main(int argc, char **argv){
     int max_newEnergyFlag = 0;
     double finished_walkers_ratio = 0;
 
+    int block_count = (interval_result.len_histogram_over_all_walkers + max_threads_per_block - 1) / max_threads_per_block;
+
     while (max_factor > exp(options.beta)){
 
         wang_landau<<<options.num_intervals, options.walker_per_interval>>>(d_lattice, d_interactions, d_energy, d_start, d_end, d_H, d_logG, d_offset_histogramm, d_offset_lattice, options.num_iterations, options.X, options.Y, seed + 3, d_factor, d_offset_iter, d_expected_energy_spectrum, d_newEnergies, d_foundNewEnergyFlag, num_walker_total, options.beta, d_cond);
@@ -174,51 +176,26 @@ int main(int argc, char **argv){
             return 1;
         }
 
+
         check_histogram<<<options.num_intervals, options.walker_per_interval>>>(d_H, d_logG, d_shared_logG, d_offset_histogramm, d_end, d_start, d_factor, options.X, options.Y, options.alpha, options.beta, d_expected_energy_spectrum, len_energy_spectrum, num_walker_total, d_cond);
         cudaDeviceSynchronize();
-
-        // only for test 
-        signed char* h_cond = (signed char*)malloc(options.num_intervals *sizeof(*h_cond));
-        for (int i = 0; i < options.num_intervals; ++i) {
-            h_cond[i] = 1;  
-        }
-        CHECK_CUDA(cudaMemcpy(d_cond, h_cond, options.num_intervals * sizeof(*d_cond), cudaMemcpyHostToDevice));
-        
-        double* h_logG = (double*)malloc(interval_result.len_histogram_over_all_walkers * sizeof(*h_logG));
-        
-        for (int i = 0; i < interval_result.len_histogram_over_all_walkers; ++i) {
-            h_logG[i] = 1;
-        }
-        
-
-        CHECK_CUDA(cudaMemcpy(d_logG, h_logG, interval_result.len_histogram_over_all_walkers * sizeof(*d_logG), cudaMemcpyHostToDevice));
-        
-        for (int i = 0; i < interval_result.len_histogram_over_all_walkers; ++i) {
-            h_logG[i] = 0;
-        }
-
-        int block_count = (interval_result.len_histogram_over_all_walkers + max_threads_per_block - 1) / max_threads_per_block;
+    
         calc_average_log_g<<<block_count, max_threads_per_block>>>(options.num_intervals, interval_result.len_histogram_over_all_walkers, options.walker_per_interval, d_logG, d_shared_logG, d_end, d_start, d_expected_energy_spectrum, d_cond);
         redistribute_g_values<<<block_count, max_threads_per_block>>>(options.num_intervals, interval_result.len_histogram_over_all_walkers, options.walker_per_interval, d_logG, d_shared_logG, d_end, d_start, d_factor, options.beta, d_expected_energy_spectrum, d_cond);
+        cudaDeviceSynchronize();
 
-        // only for test 
-        CHECK_CUDA(cudaMemcpy(h_logG, d_logG,  interval_result.len_histogram_over_all_walkers * sizeof(*d_logG), cudaMemcpyDeviceToHost));
-        
-        for(int i = 0; i< interval_result.len_histogram_over_all_walkers; i++){
-            printf("h_logG[%d] = %f, ", i, h_logG[i]);
-        }
-        
-        return 0; //
- 
+        CHECK_CUDA(cudaMemset(d_shared_logG, 0, size_shared_log_G*sizeof(*d_shared_logG)));
+
         // get max factor over walkers for abort condition of while loop 
         thrust::device_ptr<double> d_factor_ptr(d_factor);
         thrust::device_ptr<double> max_factor_ptr = thrust::max_element(d_factor_ptr, d_factor_ptr + num_walker_total);
         max_factor = *max_factor_ptr;
         
-        replica_exchange<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, d_energy, d_start, d_end, d_indices, d_logG, d_offset_histogramm, true, seed + 3, d_offset_iter);
-        replica_exchange<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, d_energy, d_start, d_end, d_indices, d_logG, d_offset_histogramm, false, seed + 3, d_offset_iter);
+        //replica_exchange<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, d_energy, d_start, d_end, d_indices, d_logG, d_offset_histogramm, true, seed + 3, d_offset_iter);
+        //replica_exchange<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, d_energy, d_start, d_end, d_indices, d_logG, d_offset_histogramm, false, seed + 3, d_offset_iter);
 
-        // print_finished_walker_ratio<<<1, num_walker_total>>>(d_factor, num_walker_total, exp(options.beta), d_finished_walkers_ratio);
+        print_finished_walker_ratio<<<1, num_walker_total>>>(d_factor, num_walker_total, exp(options.beta), d_finished_walkers_ratio);
+
 
         // // This block here is mainly for testing the non convergence
         // // get ratio of finished walkers to control dump of histogram

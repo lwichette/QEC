@@ -829,9 +829,9 @@ __global__ void wang_landau(
                 double randval = curand_uniform(&st);
 
                 if (blockIdx.x == 2 && threadIdx.x == 0 && factor[tid] < 1.0003){
-                    printf("i %d and j %d with energy %d and start %d and end %d and randval %2f\n", result.i, result.j, result.new_energy, d_start[blockId], d_end[blockId], randval);
+                    printf("i %d and j %d with energy %d and start %d and end %d and randval %2f with prob %2f \n", result.i, result.j, result.new_energy, d_start[blockId], d_end[blockId], randval, prob);
                 }
-                
+
                 if (randval < prob){
                     d_lattice[d_offset_lattice[tid] + result.i * ny + result.j] *= -1;
                     d_H[index_new] += 1;

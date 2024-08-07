@@ -178,6 +178,7 @@ int main(int argc, char **argv){
             return 1;
         }
 
+
         check_histogram<<<options.num_intervals, options.walker_per_interval>>>(d_H, d_logG, d_shared_logG, d_offset_histogramm, d_end, d_start, d_factor, options.X, options.Y, options.alpha, options.beta, d_expected_energy_spectrum, len_energy_spectrum, num_walker_total, d_cond);
         cudaDeviceSynchronize();
     
@@ -196,7 +197,6 @@ int main(int argc, char **argv){
         //replica_exchange<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, d_energy, d_start, d_end, d_indices, d_logG, d_offset_histogramm, false, seed + 3, d_offset_iter);
 
         print_finished_walker_ratio<<<1, num_walker_total>>>(d_factor, num_walker_total, exp(options.beta), d_finished_walkers_ratio);
-
 
         // // This block here is mainly for testing the non convergence
         // // get ratio of finished walkers to control dump of histogram

@@ -686,7 +686,7 @@ __global__ void check_histogram(unsigned long long *d_H, double *d_log_G, double
         if (len_reduced_energy_spectrum > 0){
         
             average = average / len_reduced_energy_spectrum;
-            printf("Min %2f alpha*average %2f \n", min, alpha*average );
+            printf("Walker %d in interval %d with min %d alpha*average %2f and factor %2f\n", threadIdx.x, blockIdx.x, min, alpha*average, d_factor[tid]);
             if (min >= alpha * average){
                 atomicAdd(&walkers_finished, 1);
             }
@@ -698,8 +698,6 @@ __global__ void check_histogram(unsigned long long *d_H, double *d_log_G, double
         __syncthreads();
 
         if (walkers_finished == blockDim.x){
-            printf("ALL WALKERS FINISHED IN WALKER \n");
-            
             d_cond[blockId] = 1;
             
             for (int i = 0; i < (d_end[blockId] - d_start[blockId] + 1); i++){                    
@@ -745,7 +743,7 @@ __global__ void redistribute_g_values(int num_intervals, long long len_histogram
         if (d_cond[intervalId] == 1){
             if(energyId == 0){ // for each walker in finished interval a single thread sets the new factor and resets the condition array to update histogram again
                 if(d_factor[linearised_walker_idx]>exp(beta)){ // if not already in last factor iteration reset the cond array to update in next round log g and hist 
-                    d_cond[linearised_walker_idx] = 0;
+                    d_cond[intervalId] = 0;
                 }
             }
             if (d_expected_energy_spectrum[d_start[intervalId] + energyId - d_start[0]] == 1){
@@ -797,7 +795,7 @@ __global__ void wang_landau(
 
     int blockId = blockIdx.x;
 
-    if (tid >= num_lattices || factor[tid] <= exp(beta)) return;
+    if (tid >= num_lattices) return;
 
     curandStatePhilox4_32_10_t st;
     curand_init(seed, tid, d_offset_iter[tid], &st);
@@ -828,17 +826,25 @@ __global__ void wang_landau(
                 
                 double prob = min(1.0, exp(d_logG[index_old] - d_logG[index_new]));
 
-                if (curand_uniform(&st) < prob){
+                double randval = curand_uniform(&st);
+
+                if (blockIdx.x == 2 && threadIdx.x == 0 && factor[tid] < 1.0003){
+                    printf("i %d and j %d with energy %d and start %d and end %d and randval %2f\n", result.i, result.j, result.new_energy, d_start[blockId], d_end[blockId], randval);
+                }
+                
+                if (randval < prob){
                     d_lattice[d_offset_lattice[tid] + result.i * ny + result.j] *= -1;
                     d_H[index_new] += 1;
                     d_logG[index_new] += log(factor[tid]);
                     d_energy[tid] = result.new_energy;
-                    d_offset_iter[tid] += 1;
                 }
+
                 else{
                     d_H[index_old] += 1;
                     d_logG[index_old] += log(factor[tid]);
                 }
+                
+                d_offset_iter[tid] += 1;
             }
         }
     }

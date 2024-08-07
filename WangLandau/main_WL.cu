@@ -155,6 +155,8 @@ int main(int argc, char **argv){
     int block_count = (interval_result.len_histogram_over_all_walkers + max_threads_per_block - 1) / max_threads_per_block;
 
     while (max_factor > exp(options.beta)){
+        
+        printf("Max Factor %2f \n", max_factor);
 
         wang_landau<<<options.num_intervals, options.walker_per_interval>>>(d_lattice, d_interactions, d_energy, d_start, d_end, d_H, d_logG, d_offset_histogramm, d_offset_lattice, options.num_iterations, options.X, options.Y, seed + 3, d_factor, d_offset_iter, d_expected_energy_spectrum, d_newEnergies, d_foundNewEnergyFlag, num_walker_total, options.beta, d_cond);
         cudaDeviceSynchronize(); 
@@ -176,7 +178,6 @@ int main(int argc, char **argv){
             return 1;
         }
 
-
         check_histogram<<<options.num_intervals, options.walker_per_interval>>>(d_H, d_logG, d_shared_logG, d_offset_histogramm, d_end, d_start, d_factor, options.X, options.Y, options.alpha, options.beta, d_expected_energy_spectrum, len_energy_spectrum, num_walker_total, d_cond);
         cudaDeviceSynchronize();
     
@@ -195,7 +196,6 @@ int main(int argc, char **argv){
         //replica_exchange<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, d_energy, d_start, d_end, d_indices, d_logG, d_offset_histogramm, false, seed + 3, d_offset_iter);
 
         print_finished_walker_ratio<<<1, num_walker_total>>>(d_factor, num_walker_total, exp(options.beta), d_finished_walkers_ratio);
-
 
         // // This block here is mainly for testing the non convergence
         // // get ratio of finished walkers to control dump of histogram
@@ -244,12 +244,12 @@ int main(int argc, char **argv){
        << "/X_" << options.X
        << "_Y_" << options.Y
        << "/seed_" << seed
-       << "/intervals" << options.num_intervals
-       << "_iterations" << options.num_iterations
-       << "_overlap" << options.overlap_decimal
-       << "_walkers" << options.walker_per_interval
-       << "_alpha" << options.alpha
-       << "_beta"  << std::fixed << std::setprecision(10) << options.beta
+       << "/intervals_" << options.num_intervals
+       << "_iterations_" << options.num_iterations
+       << "_overlap_" << options.overlap_decimal
+       << "_walkers_" << options.walker_per_interval
+       << "_alpha_" << options.alpha
+       << "_beta_"  << std::fixed << std::setprecision(10) << options.beta
        << ".txt";
 
     std::cout << options.beta;

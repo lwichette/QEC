@@ -267,7 +267,7 @@ void handleNewEnergyError(int *new_energies, int *new_energies_flag, char *histo
 char *constructFilePath(float prob_interactions, int X, int Y, int seed, std::string type)
 {
     std::stringstream strstr;
-    strstr << "/home/dfki.uni-bremen.de/mbeuerle/User/mbeuerle/Code/qec/WangLandau/init/prob_" << std::fixed << std::setprecision(6) << prob_interactions;
+    strstr << "init/prob_" << std::fixed << std::setprecision(6) << prob_interactions;
     strstr << "/X_" << X << "_Y_" << Y;
     strstr << "/seed_" << seed << "/" << type << "/" << type << ".txt";
 
@@ -285,7 +285,7 @@ char *constructFilePath(float prob_interactions, int X, int Y, int seed, std::st
 std::vector<signed char> get_lattice_with_pre_run_result(float prob, int seed, int x, int y, std::vector<int> h_start, std::vector<int> h_end, int num_intervals, int num_walkers_total, int num_walkers_per_interval){
     namespace fs = std::filesystem;
     std::ostringstream oss;
-    oss << "/home/dfki.uni-bremen.de/mbeuerle/User/mbeuerle/Code/qec/WangLandau/init/prob_" << std::fixed << std::setprecision(6) << prob;
+    oss << "init/prob_" << std::fixed << std::setprecision(6) << prob;
     oss << "/X_" << x << "_Y_" << y;
     oss << "/seed_" << seed;
     oss << "/lattice";
@@ -666,7 +666,7 @@ __global__ void check_histogram(unsigned long long *d_H, double *d_log_G, double
     __syncthreads();
 
     if (tid < num_walker_total){
-        int min = INT_MAX;
+        unsigned long long min = INT_MAX;
         double average = 0;
         int len_reduced_energy_spectrum = 0;
 

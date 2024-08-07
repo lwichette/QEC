@@ -197,6 +197,7 @@ int main(int argc, char **argv){
 
         print_finished_walker_ratio<<<1, num_walker_total>>>(d_factor, num_walker_total, exp(options.beta), d_finished_walkers_ratio);
 
+
         // // This block here is mainly for testing the non convergence
         // // get ratio of finished walkers to control dump of histogram
         // thrust::device_ptr<double> d_finished_walkers_ratio_ptr(d_finished_walkers_ratio);

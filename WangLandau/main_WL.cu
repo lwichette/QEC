@@ -151,7 +151,7 @@ int main(int argc, char **argv){
 
     double max_factor = exp(1.0);
     int max_newEnergyFlag = 0;
-    // double finished_walkers_ratio = 0;
+    // double finish+ed_walkers_ratio = 0;
 
     int block_count = (interval_result.len_histogram_over_all_walkers + max_threads_per_block - 1) / max_threads_per_block;
 
@@ -159,7 +159,7 @@ int main(int argc, char **argv){
     while (max_factor > exp(options.beta)){
     // for(int idx = 0; idx < 20; idx++){
         
-        printf("Max Factor %2f \n", max_factor);
+        printf("Max Factor %f \n", max_factor);
 
         wang_landau<<<options.num_intervals, options.walker_per_interval>>>(d_lattice, d_interactions, d_energy, d_start, d_end, d_H, d_logG, d_offset_histogramm, d_offset_lattice, options.num_iterations, options.X, options.Y, seed + 3, d_factor, d_offset_iter, d_expected_energy_spectrum, d_newEnergies, d_foundNewEnergyFlag, num_walker_total, options.beta, d_cond);
         cudaDeviceSynchronize(); 
@@ -243,12 +243,15 @@ int main(int argc, char **argv){
 
     std::ofstream f_log_density;
 
-    std::stringstream result_path;
-    result_path << "results/prob_" << std::fixed << std::setprecision(6) << options.prob_interactions
+    std::stringstream result_directory;
+    result_directory << "results/prob_" << std::fixed << std::setprecision(6) << options.prob_interactions
        << "/X_" << options.X
        << "_Y_" << options.Y
-       << "/seed_" << seed
-       << "/intervals_" << options.num_intervals
+       << "/seed_" << seed;
+
+    create_directory(result_directory.str());
+
+    result_directory << "/intervals_" << options.num_intervals
        << "_iterations_" << options.num_iterations
        << "_overlap_" << options.overlap_decimal
        << "_walkers_" << options.walker_per_interval
@@ -258,7 +261,7 @@ int main(int argc, char **argv){
 
     std::cout << options.beta;
 
-    f_log_density.open(result_path.str());
+    f_log_density.open(result_directory.str());
 
     int index_h_log_g = 0;
     if (f_log_density.is_open())

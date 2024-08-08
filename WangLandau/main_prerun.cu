@@ -128,13 +128,13 @@ int main(int argc, char **argv){
     init_interactions<<<BLOCKS_INIT, THREADS>>>(d_interactions, X, Y, 1, seed + 1, prob_interactions);
     
     calc_energy_pre_run<<<BLOCKS_ENERGY, THREADS>>>(d_lattice, d_interactions, d_energy, X, Y, num_walker);    
-    
+
     int found_interval = 0;
 
     for (int i=0; i < num_wl_loops; i++){
         if (i % 100 == 0) printf("Num wl loop: %d \n", i);
         
-        wang_landau_pre_run<<<BLOCKS_ENERGY, THREADS>>>(d_lattice, d_interactions, d_energy, d_H, d_iter, d_found_interval, d_store_lattice, E_min, E_max, num_iterations, X, Y, seed + 2, interval_result.len_interval, found_interval);
+        wang_landau_pre_run<<<BLOCKS_ENERGY, THREADS>>>(d_lattice, d_interactions, d_energy, d_H, d_iter, d_found_interval, d_store_lattice, E_min, E_max, num_iterations, X, Y, seed + 2, interval_result.len_interval, found_interval, num_walker);
         cudaDeviceSynchronize();
         
         if (found_interval == 0){

@@ -690,7 +690,9 @@ __global__ void check_histogram(unsigned long long *d_H, double *d_log_G, double
         if (len_reduced_energy_spectrum > 0){
         
             average = average / len_reduced_energy_spectrum;
+            
             printf("Walker %d in interval %d with min %d alpha*average %2f and factor %2f\n", threadIdx.x, blockIdx.x, min, alpha*average, d_factor[tid]);
+            
             if (min >= alpha * average){
                 atomicAdd(&walkers_finished, 1);
             }
@@ -721,15 +723,19 @@ __global__ void calc_average_log_g(int num_intervals, long long len_histogram_ov
 
     int len_first_interval = (d_end[0] - d_start[0] + 1);
     int intervalId = (tid/(len_first_interval*num_walker_per_interval) < num_intervals) ? tid/(len_first_interval*num_walker_per_interval) : num_intervals - 1;
+    
     if (d_cond[intervalId] == 1 && tid < len_histogram_over_all_walkers){ 
+        
         int len_interval = d_end[intervalId] - d_start[intervalId] + 1; 
         int energyId;
+        
         if (intervalId != 0){
             energyId = (tid%(len_first_interval*num_walker_per_interval*intervalId))%len_interval;
         } 
         else{
             energyId = tid%len_interval;
         }  
+        
         if (d_expected_energy_spectrum[d_start[intervalId] + energyId - d_start[0]] == 1){        
             atomicAdd(&d_shared_logG[intervalId*len_first_interval + energyId], d_log_G[tid]/num_walker_per_interval);   
         }  
@@ -737,14 +743,19 @@ __global__ void calc_average_log_g(int num_intervals, long long len_histogram_ov
 }
 
 __global__ void redistribute_g_values(int num_intervals, long long len_histogram_over_all_walkers, int num_walker_per_interval,  double *d_log_G, double *d_shared_logG, int *d_end, int *d_start, double *d_factor, double beta, int *d_expected_energy_spectrum, signed char *d_cond){
+    
     long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
+    
     if (tid < len_histogram_over_all_walkers){ 
+        
         int len_first_interval = (d_end[0] - d_start[0] + 1);
         int intervalId = (tid/(len_first_interval*num_walker_per_interval) < num_intervals) ? tid/(len_first_interval*num_walker_per_interval) : num_intervals - 1;
+        
         if (d_cond[intervalId] == 1){
             int len_interval = d_end[intervalId] - d_start[intervalId] + 1;
             int walkerId;   
             int energyId;
+            
             if (intervalId != 0){
                 walkerId = (tid%(len_first_interval*num_walker_per_interval*intervalId))/len_interval;
                 energyId = (tid%(len_first_interval*num_walker_per_interval*intervalId))%len_interval;
@@ -753,12 +764,15 @@ __global__ void redistribute_g_values(int num_intervals, long long len_histogram
                 walkerId = tid/len_interval;
                 energyId = tid%len_interval;
             }   
+            
             int linearised_walker_idx = intervalId*num_walker_per_interval+walkerId; 
+            
             if(energyId == 0){ // for each walker in finished interval a single thread sets the new factor and resets the condition array to update histogram again
                 if(d_factor[linearised_walker_idx]>exp(beta)){ // if not already in last factor iteration reset the cond array to update in next round log g and hist 
                     d_cond[intervalId] = 0;
                 }
             }
+            
             d_log_G[tid] = d_shared_logG[intervalId*len_first_interval + energyId];
         }  
     }
@@ -885,19 +899,25 @@ __global__ void wang_landau(
 }
 
 __global__ void print_finished_walker_ratio(double *d_factor, int num_walker_total, const double exp_beta, double *d_finished_walkers_ratio){
+    
     extern __shared__ int shared_count[];
     int tid = threadIdx.x + blockIdx.x * blockDim.x;
     int threadId = threadIdx.x;
+    
     if (threadId == 0) {
         shared_count[0] = 0;
     }
+    
     __syncthreads();
+    
     if (tid < num_walker_total) {
         if (d_factor[tid] <= exp_beta) {
             atomicAdd(&shared_count[0], 1);
         }
     }
+
     __syncthreads();
+    
     if (threadId == 0) {
         double ratio_of_finished_walkers = (double)shared_count[0] / num_walker_total;
         printf("ratio of finished walkers: %f\n", ratio_of_finished_walkers);

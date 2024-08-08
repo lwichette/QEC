@@ -579,8 +579,6 @@ __device__ void store_lattice(
         }
     }
     
-
-
     return;
 }
 

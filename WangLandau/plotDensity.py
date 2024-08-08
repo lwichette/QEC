@@ -29,27 +29,13 @@ def plot_data(x, y, color):
     plt.grid(True)
 
 
-def get_renormalized_g_values(results: dict):
-    exponential_results_x = []
-    exponential_results_y = []
-    for result in results:
-        x_values = np.array(list(result.keys()))
-        y_values = np.array(list(result.values()))
-        max_y = np.max(y_values)
-        adjusted_y_values = y_values - max_y
-        exp_values = np.exp(adjusted_y_values)
-        normalized_values = exp_values / np.sum(exp_values)
-        exponential_results_y.append(normalized_values)
-        exponential_results_x.append(x_values)
-    return exponential_results_x, exponential_results_y
-
 def get_renormalized_log_g_values(results: dict):
     results_x = []
     results_y = []
     for result in results:
         x_values = np.array(list(result.keys()))
         y_values = np.array(list(result.values()))
-        normalized_values = y_values / np.sum(y_values)
+        normalized_values = y_values - np.min(y_values)
         results_y.append(normalized_values)
         results_x.append(x_values)
     return results_x, results_y
@@ -60,7 +46,7 @@ def get_renormalized_log_g_values_as_dict_list(results):
     for result in results:
         x_values = np.array(list(result.keys()))
         y_values = np.array(list(result.values()))
-        normalized_values = y_values / np.sum(y_values)
+        normalized_values = y_values - np.min(y_values)
         normalized_results.append(dict(zip(x_values, normalized_values)))
     return normalized_results
 
@@ -135,28 +121,40 @@ def find_lowest_inverse_temp_deviation(dictionaries):
 def rescale_results_for_concatenation(results_x, results_y, minimum_deviation_energies):
     if(len(minimum_deviation_energies)!= 0):
         for i, e_concat in enumerate(minimum_deviation_energies):
-            e_concat_index_in_preceeding_interval = np.where(results_x[i] == e_concat)
-            e_concat_index_in_following_interval = np.where(results_x[i+1] == e_concat)
+            if i == 3:
+                print(results_x[i])
+
+            e_concat_index_in_preceeding_interval = np.where(results_x[i] == e_concat)[0]
+            e_concat_index_in_following_interval = np.where(results_x[i+1] == e_concat)[0]
+
+            if e_concat_index_in_preceeding_interval.size == 0 or e_concat_index_in_following_interval.size == 0:
+                raise ValueError(f"e_concat {e_concat} not found in one of the intervals.")
+
+            e_concat_index_in_preceeding_interval = e_concat_index_in_preceeding_interval[0]
+            e_concat_index_in_following_interval = e_concat_index_in_following_interval[0]
+
+            shift_val = (results_y[i][e_concat_index_in_preceeding_interval] - results_y[i+1][e_concat_index_in_following_interval])
 
             """resclaing for continous concat"""
-            results_y[i+1] *= results_y[i][e_concat_index_in_preceeding_interval]/results_y[i+1][e_concat_index_in_following_interval]
+            results_y[i+1] += shift_val
 
-            """cutting the overlapping parts"""
-            results_y[i] = results_y[i][:e_concat_index_in_preceeding_interval[0][0]+1]
-            results_x[i] = results_x[i][:e_concat_index_in_preceeding_interval[0][0]+1]
-            results_y[i+1] = results_y[i+1][e_concat_index_in_following_interval[0][0]:]
-            results_x[i+1] = results_x[i+1][e_concat_index_in_following_interval[0][0]:]
+            # """cutting the overlapping parts"""
+            # results_y[i] = results_y[i][:e_concat_index_in_preceeding_interval+1]
+            # results_x[i] = results_x[i][:e_concat_index_in_preceeding_interval+1]
+            # results_y[i+1] = results_y[i+1][e_concat_index_in_following_interval:]
+            # results_x[i+1] = results_x[i+1][e_concat_index_in_following_interval:]
     else:
         for i in range(len(results_x)-1):
-            """resclaing for continous concat"""
-            results_y[i+1] *= results_y[i][-1]/results_y[i+1][0]
+            shift_val = (results_y[i][-1] - results_y[i+1][0])
+            """resclaing for   concat"""
+            results_y[i+1] += shift_val
     return
 
 def main():
-    filename =  'WangLandau/results/prob_0.000000/X_8_Y_8/seed_42/intervals4_iterations10000_overlap1.000000_walkers4_alpha0.700000_beta0.0000000010.txt' 
+    filename =  'WangLandau/results/prob_0.000000/X_8_Y_8/seed_42/intervals_5_iterations_10000_overlap_0.250000_walkers_3_alpha_0.800000_beta_0.0000000100.txt' 
     walker_results = read_data_from_file(filename) 
 
-    """normalize the walker results to sum to 1 to compute averages afterwards"""
+    """normalize the walker results by min value for log results"""
     walker_results = get_renormalized_log_g_values_as_dict_list(walker_results)
     
     """averages over walker results per intervals"""

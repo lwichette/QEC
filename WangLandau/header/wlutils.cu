@@ -714,10 +714,14 @@ __global__ void calc_average_log_g(int num_intervals, long long len_histogram_ov
 
     // 1 block and threads as many as len_histogram_over_all_walkers
     long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
+
     int len_first_interval = (d_end[0] - d_start[0] + 1);
+
+    if (tid > len_histogram_over_all_walkers) return;
+    
     long long intervalId = (tid/(len_first_interval*num_walker_per_interval) < num_intervals) ? tid/(len_first_interval*num_walker_per_interval) : num_intervals - 1;
     
-    if (d_cond[intervalId] == 1 && tid < len_histogram_over_all_walkers){ 
+    if (d_cond[intervalId] == 1){ 
         int len_interval = d_end[intervalId] - d_start[intervalId] + 1;
         long long walkerId = (tid%(len_interval*num_walker_per_interval))/len_interval;
         long long energyId = (tid%(len_interval*num_walker_per_interval))%len_interval;    
@@ -797,6 +801,8 @@ __global__ void wang_landau(
 
     if (tid >= num_lattices) return;
 
+    //if (blockId != 2) return;
+
     curandStatePhilox4_32_10_t st;
     curand_init(seed, tid, d_offset_iter[tid], &st);
 
@@ -828,7 +834,7 @@ __global__ void wang_landau(
 
                 double randval = curand_uniform(&st);
 
-                if (blockIdx.x == 2 && threadIdx.x == 0 && factor[tid] < 1.0003){
+                if (blockIdx.x == 2 && threadIdx.x == 0 && factor[tid] < 1.0003 && d_offset_iter[tid] > 25000000){
                     printf("i %d and j %d with energy %d and start %d and end %d and randval %2f with prob %2f \n", result.i, result.j, result.new_energy, d_start[blockId], d_end[blockId], randval, prob);
                 }
 

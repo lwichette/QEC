@@ -43,6 +43,7 @@ typedef struct {
     int num_intervals;
     int walker_per_interval;
     float overlap_decimal;
+    int seed;
 } Options;
 
 typedef struct{

@@ -3,19 +3,13 @@
 
 /*
 To Do:
-    - Paths in construct histogram path, and interaction path
     - blockID to blockIdx.x to save storage?
     - d_indices array not needed, could in theory use shared memory in each fisher yates call
-    - still the read and write of interactions such that we initialize each WL run with a specific histogram and interaction data
-    - Store results and normalize
     - init flag for found new energy with seperate kernel and only update in wang landau inverted to current setting
     - New energies smarter way to update histogram
     - print metric finished walker count / total walker count -> may use for finish condition
     - maybe implement runtime balanced subdivision as in https://www.osti.gov/servlets/purl/1567362
-    - Get averages over all walkers per interval of log g after all are simultaneously flat 
-    - update spin configs for totally finished walkers still but do not update hist and g anymore -> circumvents replica exchange problem
     - Add sort to lattice read function
-    - how to parse double precission input args
 */
 
 int main(int argc, char **argv){
@@ -27,14 +21,12 @@ int main(int argc, char **argv){
 
     auto start = std::chrono::high_resolution_clock::now(); 
 
-    const int seed = 42;
-
     Options options;
     parse_args(argc, argv, &options);
-    
+
     const int num_walker_total = options.num_intervals * options.walker_per_interval;
 
-    char *histogram_file = constructFilePath(options.prob_interactions, options.X, options.Y, seed, "histogram");
+    char *histogram_file = constructFilePath(options.prob_interactions, options.X, options.Y, options.seed, "histogram");
 
     // Energy spectrum from pre_run
     std::vector<int> h_expected_energy_spectrum;
@@ -131,12 +123,12 @@ int main(int argc, char **argv){
     init_offsets_histogramm<<<options.num_intervals, options.walker_per_interval>>>(d_offset_histogramm, d_start, d_end);
     init_indices<<<options.num_intervals, options.walker_per_interval>>>(d_indices);
     
-    char *interaction_file = constructFilePath(options.prob_interactions, options.X, options.Y, seed, "interactions");
+    char *interaction_file = constructFilePath(options.prob_interactions, options.X, options.Y, options.seed, "interactions");
     std::vector<signed char> h_interactions;
     read(h_interactions, interaction_file);
     CHECK_CUDA(cudaMemcpy(d_interactions, h_interactions.data(), options.X * options.Y * 2 * sizeof(*d_interactions), cudaMemcpyHostToDevice));
     
-    std::vector<signed char> h_lattice = get_lattice_with_pre_run_result(options.prob_interactions, seed, options.X, options.Y, interval_result.h_start, interval_result.h_end, options.num_intervals, num_walker_total, options.walker_per_interval);
+    std::vector<signed char> h_lattice = get_lattice_with_pre_run_result(options.prob_interactions, options.seed, options.X, options.Y, interval_result.h_start, interval_result.h_end, options.num_intervals, num_walker_total, options.walker_per_interval);
     CHECK_CUDA(cudaMemcpy(d_lattice, h_lattice.data(), num_walker_total * options.X * options.Y * sizeof(*d_lattice), cudaMemcpyHostToDevice));
     
     // Calculate energy and find right configurations
@@ -159,7 +151,7 @@ int main(int argc, char **argv){
         
         printf("Max Factor %f \n", max_factor);
 
-        wang_landau<<<options.num_intervals, options.walker_per_interval>>>(d_lattice, d_interactions, d_energy, d_start, d_end, d_H, d_logG, d_offset_histogramm, d_offset_lattice, options.num_iterations, options.X, options.Y, seed + 3, d_factor, d_offset_iter, d_expected_energy_spectrum, d_newEnergies, d_foundNewEnergyFlag, num_walker_total, options.beta, d_cond);
+        wang_landau<<<options.num_intervals, options.walker_per_interval>>>(d_lattice, d_interactions, d_energy, d_start, d_end, d_H, d_logG, d_offset_histogramm, d_offset_lattice, options.num_iterations, options.X, options.Y, options.seed, d_factor, d_offset_iter, d_expected_energy_spectrum, d_newEnergies, d_foundNewEnergyFlag, num_walker_total, options.beta, d_cond);
         cudaDeviceSynchronize(); 
 
         // get max of found new energy flag array to condition break and update the histogramm file with value in new energy array
@@ -194,8 +186,8 @@ int main(int argc, char **argv){
         thrust::device_ptr<double> max_factor_ptr = thrust::max_element(d_factor_ptr, d_factor_ptr + num_walker_total);
         max_factor = *max_factor_ptr;
 
-        replica_exchange<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, d_energy, d_start, d_end, d_indices, d_logG, d_offset_histogramm, true, seed + 3, d_offset_iter);
-        replica_exchange<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, d_energy, d_start, d_end, d_indices, d_logG, d_offset_histogramm, false, seed + 3, d_offset_iter);
+        replica_exchange<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, d_energy, d_start, d_end, d_indices, d_logG, d_offset_histogramm, true, options.seed, d_offset_iter);
+        replica_exchange<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, d_energy, d_start, d_end, d_indices, d_logG, d_offset_histogramm, false, options.seed, d_offset_iter);
 
         // print_finished_walker_ratio<<<1, num_walker_total>>>(d_factor, num_walker_total, exp(options.beta), d_finished_walkers_ratio);
 
@@ -245,7 +237,7 @@ int main(int argc, char **argv){
     result_directory << "results/prob_" << std::fixed << std::setprecision(6) << options.prob_interactions
        << "/X_" << options.X
        << "_Y_" << options.Y
-       << "/seed_" << seed;
+       << "/seed_" << options.seed;
 
     create_directory(result_directory.str());
 
@@ -256,8 +248,6 @@ int main(int argc, char **argv){
        << "_alpha_" << options.alpha
        << "_beta_"  << std::fixed << std::setprecision(10) << options.beta
        << ".txt";
-
-    std::cout << options.beta;
 
     f_log_density.open(result_directory.str());
 

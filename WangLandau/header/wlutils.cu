@@ -19,9 +19,10 @@ void parse_args(int argc, char *argv[], Options *options)
             {"num_intervals", 1, 0, 'i'},
             {"walker_per_interval", 1, 0, 'w'},
             {"overlap_decimal", 1, 0, 'o'},
+            {"seed", 1, 0, 's'},
             {0, 0, 0, 0}};
         
-        opt = getopt_long(argc, argv, "x:y:n:p:a:b:i:w:o:", long_options, &option_index);
+        opt = getopt_long(argc, argv, "x:y:n:p:a:b:i:w:o:s:", long_options, &option_index);
         
         if (opt == -1)
             break;
@@ -53,6 +54,9 @@ void parse_args(int argc, char *argv[], Options *options)
             break;
         case 'o':
             options->overlap_decimal = std::atof(optarg);
+            break;
+        case 's':
+            options->seed = std::atoi(optarg);
             break;
         default:
             fprintf(stderr, "Usage: %s [-i num_intervals] [-m E_min] [-M E_max] [-w walker_per_interval] [-o overlap_decimal] [-r num_iterations]\n", argv[0]);
@@ -267,7 +271,7 @@ void handleNewEnergyError(int *new_energies, int *new_energies_flag, char *histo
 char *constructFilePath(float prob_interactions, int X, int Y, int seed, std::string type)
 {
     std::stringstream strstr;
-    strstr << "/home/dfki.uni-bremen.de/lpwichette/User/lpwichette/repos/qec/WangLandau/init/prob_" << std::fixed << std::setprecision(6) << prob_interactions;
+    strstr << "init/prob_" << std::fixed << std::setprecision(6) << prob_interactions;
     strstr << "/X_" << X << "_Y_" << Y;
     strstr << "/seed_" << seed << "/" << type << "/" << type << ".txt";
 
@@ -285,7 +289,7 @@ char *constructFilePath(float prob_interactions, int X, int Y, int seed, std::st
 std::vector<signed char> get_lattice_with_pre_run_result(float prob, int seed, int x, int y, std::vector<int> h_start, std::vector<int> h_end, int num_intervals, int num_walkers_total, int num_walkers_per_interval){
     namespace fs = std::filesystem;
     std::ostringstream oss;
-    oss << "/home/dfki.uni-bremen.de/lpwichette/User/lpwichette/repos/qec/WangLandau/init/prob_" << std::fixed << std::setprecision(6) << prob;
+    oss << "init/prob_" << std::fixed << std::setprecision(6) << prob;
     oss << "/X_" << x << "_Y_" << y;
     oss << "/seed_" << seed;
     oss << "/lattice";

@@ -118,6 +118,9 @@ int main(int argc, char **argv){
     ----------------------------------------------
     */
 
+    for (int i=0; i < options.num_intervals; i++){
+        std::cout << interval_result.h_end[i] << " " << interval_result.h_start[i] << std::endl;
+    }
     // Initialization of lattices, interactions, offsets and indices
     init_offsets_lattice<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, options.X, options.Y);
     init_offsets_histogramm<<<options.num_intervals, options.walker_per_interval>>>(d_offset_histogramm, d_start, d_end);
@@ -149,7 +152,7 @@ int main(int argc, char **argv){
 
     while (max_factor > exp(options.beta)){
         
-        printf("Max Factor %f \n", max_factor);
+        printf("Max Factor %8f \n", max_factor);
 
         wang_landau<<<options.num_intervals, options.walker_per_interval>>>(d_lattice, d_interactions, d_energy, d_start, d_end, d_H, d_logG, d_offset_histogramm, d_offset_lattice, options.num_iterations, options.X, options.Y, options.seed, d_factor, d_offset_iter, d_expected_energy_spectrum, d_newEnergies, d_foundNewEnergyFlag, num_walker_total, options.beta, d_cond);
         cudaDeviceSynchronize(); 

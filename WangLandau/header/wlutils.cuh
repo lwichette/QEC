@@ -44,6 +44,7 @@ typedef struct {
     int walker_per_interval;
     float overlap_decimal;
     int seed;
+    char logical_error_type;
 } Options;
 
 typedef struct{
@@ -70,19 +71,19 @@ void read(std::vector<signed char> &lattice, std::string filename);
 
 void handleNewEnergyError(int *new_energies, int *new_energies_flag, char *histogram_file, int num_walkers_total);
 
-char *constructFilePath(float prob_interactions, int X, int Y, int seed, std::string type);
+char *constructFilePath(float prob_interactions, int X, int Y, int seed, std::string type, char error_class);
 
-std::vector<signed char> get_lattice_with_pre_run_result(float prob, int seed, int x, int y, std::vector<int> h_start, std::vector<int> h_end, int num_intervals, int num_walkers_total, int num_walkers_per_interval);
+std::vector<signed char> get_lattice_with_pre_run_result(float prob, int seed, int x, int y, std::vector<int> h_start, std::vector<int> h_end, int num_intervals, int num_walkers_total, int num_walkers_per_interval, char error_class);
 
 __global__ void init_lattice(signed char* lattice, float* d_probs, const int nx, const int ny, const int num_lattices, const int seed);
 
-__global__ void init_interactions(signed char* interactions, const int nx, const int ny, const int num_lattices, const int seed, const double prob);
+__global__ void init_interactions(signed char* interactions, const int nx, const int ny, const int num_lattices, const int seed, const double, const char problogical_error_type = 'I');
 
 __global__ void calc_energy(signed char *lattice, signed char *interactions, int *d_energy, int *d_offset_lattice, const int nx, const int ny, const int num_lattices);
 
 __global__ void calc_energy_pre_run(signed char* lattice, signed char* interactions, int* d_energy, const int nx, const int ny, const int num_lattices);
 
-__global__ void wang_landau_pre_run(signed char *d_lattice, signed char *d_interactions, int *d_energy, unsigned long long *d_H, unsigned long long* d_iter, int *d_found_interval, signed char *d_store_lattice, const int E_min, const int E_max, const int num_iterations, const int nx, const int ny, const int seed, const int len_interval, const int found_interval, int num_walker);
+__global__ void wang_landau_pre_run(signed char *d_lattice, signed char *d_interactions, int *d_energy, unsigned long long *d_H, unsigned long long* d_iter, int *d_found_interval, signed char *d_store_lattice, const int E_min, const int E_max, const int num_iterations, const int nx, const int ny, const int seed, const int len_interval, const int found_interval, int num_walker, const int num_intervals);
 
 __global__ void wang_landau(
     signed char *d_lattice, signed char *d_interactions, int *d_energy,
@@ -103,7 +104,7 @@ __global__ void redistribute_g_values(int num_intervals, long long len_histogram
 
 __global__ void calc_average_log_g(int num_intervals, long long len_histogram_over_all_walkers, int num_walker_per_interval,  double *d_log_G, double *d_shared_logG, int *d_end, int *d_start, int *d_expected_energy_spectrum, signed char *d_cond);
 
-__device__ void store_lattice(signed char *d_lattice, int *d_energy, int* d_found_interval, signed char* d_store_lattice, const int E_min, const int nx, const int ny, const long long tid, const int len_interval);
+__device__ void store_lattice(signed char *d_lattice, int *d_energy, int* d_found_interval, signed char* d_store_lattice, const int E_min, const int nx, const int ny, const long long tid, const int len_interval, const int num_intervals);
 
 __global__ void init_indices(int *d_indices);
 

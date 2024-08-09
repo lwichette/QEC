@@ -27,7 +27,7 @@ int main(int argc, char **argv){
 
     const int num_walker_total = options.num_intervals * options.walker_per_interval;
 
-    char *histogram_file = constructFilePath(options.prob_interactions, options.X, options.Y, options.seed, "histogram");
+    char *histogram_file = constructFilePath(options.prob_interactions, options.X, options.Y, options.seed, "histogram", options.logical_error_type);
 
     // Energy spectrum from pre_run
     std::vector<int> h_expected_energy_spectrum;
@@ -119,19 +119,22 @@ int main(int argc, char **argv){
     ----------------------------------------------
     */
 
+    for (int i=0; i < options.num_intervals; i++){
+        std::cout << interval_result.h_end[i] << " " << interval_result.h_start[i] << std::endl;
+    }
     // Initialization of lattices, interactions, offsets and indices
     init_offsets_lattice<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, options.X, options.Y);
     init_offsets_histogramm<<<options.num_intervals, options.walker_per_interval>>>(d_offset_histogramm, d_start, d_end);
     init_indices<<<options.num_intervals, options.walker_per_interval>>>(d_indices);
     
-    char *interaction_file = constructFilePath(options.prob_interactions, options.X, options.Y, options.seed, "interactions");
+    char *interaction_file = constructFilePath(options.prob_interactions, options.X, options.Y, options.seed, "interactions", options.logical_error_type);
     std::vector<signed char> h_interactions;
     read(h_interactions, interaction_file);
     CHECK_CUDA(cudaMemcpy(d_interactions, h_interactions.data(), options.X * options.Y * 2 * sizeof(*d_interactions), cudaMemcpyHostToDevice));
     
-    std::vector<signed char> h_lattice = get_lattice_with_pre_run_result(options.prob_interactions, options.seed, options.X, options.Y, interval_result.h_start, interval_result.h_end, options.num_intervals, num_walker_total, options.walker_per_interval);
+    std::vector<signed char> h_lattice = get_lattice_with_pre_run_result(options.prob_interactions, options.seed, options.X, options.Y, interval_result.h_start, interval_result.h_end, options.num_intervals, num_walker_total, options.walker_per_interval, options.logical_error_type);
     CHECK_CUDA(cudaMemcpy(d_lattice, h_lattice.data(), num_walker_total * options.X * options.Y * sizeof(*d_lattice), cudaMemcpyHostToDevice));
-    
+
     // Calculate energy and find right configurations
     calc_energy<<<options.num_intervals, options.walker_per_interval>>>(d_lattice, d_interactions, d_energy, d_offset_lattice, options.X, options.Y, num_walker_total);    
     check_energy_ranges<<<options.num_intervals, options.walker_per_interval>>>(d_energy, d_start, d_end);
@@ -144,13 +147,12 @@ int main(int argc, char **argv){
 
     double max_factor = exp(1.0);
     int max_newEnergyFlag = 0;
-    // double finish+ed_walkers_ratio = 0;
 
     int block_count = (interval_result.len_histogram_over_all_walkers + max_threads_per_block - 1) / max_threads_per_block;
 
     while (max_factor > exp(options.beta)){
         
-        printf("Max Factor %f \n", max_factor);
+        printf("Max Factor %8f \n", max_factor);
 
         wang_landau<<<options.num_intervals, options.walker_per_interval>>>(d_lattice, d_interactions, d_energy, d_start, d_end, d_H, d_logG, d_offset_histogramm, d_offset_lattice, options.num_iterations, options.X, options.Y, options.seed, d_factor, d_offset_iter, d_expected_energy_spectrum, d_newEnergies, d_foundNewEnergyFlag, num_walker_total, options.beta, d_cond);
         cudaDeviceSynchronize(); 
@@ -188,8 +190,9 @@ int main(int argc, char **argv){
         max_factor = *max_factor_ptr;
 
         replica_exchange<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, d_energy, d_start, d_end, d_indices, d_logG, d_offset_histogramm, true, options.seed, d_offset_iter);
+        cudaDeviceSynchronize();
         replica_exchange<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, d_energy, d_start, d_end, d_indices, d_logG, d_offset_histogramm, false, options.seed, d_offset_iter);
-
+        cudaDeviceSynchronize();
         // print_finished_walker_ratio<<<1, num_walker_total>>>(d_factor, num_walker_total, exp(options.beta), d_finished_walkers_ratio);
 
         // // This block here is mainly for testing the non convergence
@@ -238,7 +241,8 @@ int main(int argc, char **argv){
     result_directory << "results/prob_" << std::fixed << std::setprecision(6) << options.prob_interactions
        << "/X_" << options.X
        << "_Y_" << options.Y
-       << "/seed_" << options.seed;
+       << "/seed_" << options.seed
+        << "/error_class_" << options.logical_error_type;
 
     create_directory(result_directory.str());
 

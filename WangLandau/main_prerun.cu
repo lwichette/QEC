@@ -19,7 +19,10 @@ int main(int argc, char **argv){
 
     int num_intervals;
     
+    char logical_error_type = 'I';
+
     int och;
+
     while (1) {
         int option_index = 0;
         static struct option long_options[] = {
@@ -31,10 +34,11 @@ int main(int argc, char **argv){
             {"nw", required_argument, 0, 'w'},
             {"seed", required_argument, 0, 's'},
             {"num_intervals", required_argument, 0, 'i'},
+            {"logical_error", required_argument, 0, 'e'},
             {0, 0, 0, 0}
         };
 
-        och = getopt_long(argc, argv, "x:y:p:n:l:w:s:i:", long_options, &option_index);
+        och = getopt_long(argc, argv, "x:y:p:n:l:w:s:i:e:", long_options, &option_index);
         
         if (och == -1)
             break;
@@ -65,6 +69,9 @@ int main(int argc, char **argv){
             case 'i':
 			    num_intervals = atoi(optarg);
 			    break;
+            case 'e':
+                logical_error_type = *optarg;
+                break;
 			case '?':
 				exit(EXIT_FAILURE);
 
@@ -126,16 +133,19 @@ int main(int argc, char **argv){
 
     init_lattice<<<BLOCKS_INIT, THREADS>>>(d_lattice, d_probs, X, Y, num_walker, seed);
 
-    init_interactions<<<BLOCKS_INIT, THREADS>>>(d_interactions, X, Y, 1, seed + 1, prob_interactions);
+    init_interactions<<<BLOCKS_INIT, THREADS>>>(d_interactions, X, Y, 1, seed + 1, prob_interactions, logical_error_type);
     
+    cudaDeviceSynchronize();
+
     calc_energy_pre_run<<<BLOCKS_ENERGY, THREADS>>>(d_lattice, d_interactions, d_energy, X, Y, num_walker);    
 
     int found_interval = 0;
 
     for (int i=0; i < num_wl_loops; i++){
-        if (i % 100 == 0) printf("Num wl loop: %d \n", i);
         
-        wang_landau_pre_run<<<BLOCKS_ENERGY, THREADS>>>(d_lattice, d_interactions, d_energy, d_H, d_iter, d_found_interval, d_store_lattice, E_min, E_max, num_iterations, X, Y, seed + 2, interval_result.len_interval, found_interval, num_walker);
+        if (i % 100 == 0) printf("Num wl loop: %d \n", i);
+
+        wang_landau_pre_run<<<BLOCKS_ENERGY, THREADS>>>(d_lattice, d_interactions, d_energy, d_H, d_iter, d_found_interval, d_store_lattice, E_min, E_max, num_iterations, X, Y, seed + 2, interval_result.len_interval, found_interval, num_walker, num_intervals);
         cudaDeviceSynchronize();
         
         if (found_interval == 0){
@@ -145,12 +155,18 @@ int main(int argc, char **argv){
         }
     }
 
+
     calc_energy_pre_run<<<BLOCKS_INTERVAL, THREADS>>>(d_store_lattice, d_interactions, d_interval_energies, X, Y, num_intervals);
     
     std::vector<int> h_interval_energies(num_intervals);
     CHECK_CUDA(cudaMemcpy(h_interval_energies.data(), d_interval_energies, num_intervals*sizeof(*d_interval_energies), cudaMemcpyDeviceToHost));
 
-    std::string path = "init/prob_" + std::to_string(prob_interactions) + "/X_" + std::to_string(X) + "_Y_" + std::to_string(Y) + "/seed_" + std::to_string(seed);
+    for (int i=0; i < num_intervals; i++){
+        std::cout << h_interval_energies[i] << std::endl;
+    }
+
+
+    std::string path = "init/prob_" + std::to_string(prob_interactions) + "/X_" + std::to_string(X) + "_Y_" + std::to_string(Y) + "/seed_" + std::to_string(seed) + "/error_class_" + logical_error_type;
 
     create_directory(path + "/interactions");
     create_directory(path + "/lattice");

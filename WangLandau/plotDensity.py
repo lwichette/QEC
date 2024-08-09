@@ -151,7 +151,7 @@ def rescale_results_for_concatenation(results_x, results_y, minimum_deviation_en
     return
 
 def main():
-    filename =  'WangLandau/results/prob_0.000000/X_8_Y_8/seed_42/intervals_5_iterations_10000_overlap_0.250000_walkers_3_alpha_0.800000_beta_0.0000000100.txt' 
+    filename =  'results/prob_0.100000/X_8_Y_8/seed_42/intervals_10_iterations_10000_overlap_0.250000_walkers_3_alpha_0.800000_beta_0.0000000100.txt'
     walker_results = read_data_from_file(filename) 
 
     """normalize the walker results by min value for log results"""
@@ -181,7 +181,8 @@ def main():
         plot_data(results_x[i], results_y[i], color=colors[i % len(colors)])
     plt.xlabel('E')
     plt.ylabel('log(g)/Z')
-    plt.show()
+    #plt.show()
+    plt.savefig("BLIBLABLUB.png")
 
 
 if __name__ == '__main__':

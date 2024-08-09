@@ -1,5 +1,6 @@
 #include "./header/cudamacro.h"
 #include "./header/wlutils.cuh"
+#include <thrust/extrema.h> //addition needed for my (Linnea's) version of thrust -- comment out if this causes issues
 
 /*
 To Do:

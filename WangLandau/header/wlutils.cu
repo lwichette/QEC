@@ -7,6 +7,8 @@ void parse_args(int argc, char *argv[], Options *options)
 
     int opt;
 
+    options->logical_error_type = 'I';
+
     while (1){
         int option_index = 0;
         static struct option long_options[] = {
@@ -20,9 +22,10 @@ void parse_args(int argc, char *argv[], Options *options)
             {"walker_per_interval", 1, 0, 'w'},
             {"overlap_decimal", 1, 0, 'o'},
             {"seed", 1, 0, 's'},
+            {"logical_error", 1, 0, 'e'},
             {0, 0, 0, 0}};
         
-        opt = getopt_long(argc, argv, "x:y:n:p:a:b:i:w:o:s:", long_options, &option_index);
+        opt = getopt_long(argc, argv, "x:y:n:p:a:b:i:w:o:s:e:", long_options, &option_index);
         
         if (opt == -1)
             break;
@@ -57,6 +60,9 @@ void parse_args(int argc, char *argv[], Options *options)
             break;
         case 's':
             options->seed = std::atoi(optarg);
+            break;
+        case 'e':
+            options->logical_error_type = *optarg;
             break;
         default:
             fprintf(stderr, "Usage: %s [-i num_intervals] [-m E_min] [-M E_max] [-w walker_per_interval] [-o overlap_decimal] [-r num_iterations]\n", argv[0]);
@@ -267,12 +273,14 @@ void handleNewEnergyError(int *new_energies, int *new_energies_flag, char *histo
     outfile.close();
 }
 
-char *constructFilePath(float prob_interactions, int X, int Y, int seed, std::string type)
+char *constructFilePath(float prob_interactions, int X, int Y, int seed, std::string type, char error_class)
 {
     std::stringstream strstr;
     strstr << "init/prob_" << std::fixed << std::setprecision(6) << prob_interactions;
     strstr << "/X_" << X << "_Y_" << Y;
-    strstr << "/seed_" << seed << "/" << type << "/" << type << ".txt";
+    strstr << "/seed_" << seed;
+    strstr << "/error_class_" << error_class;
+    strstr << "/" << type << "/" << type << ".txt";
 
 
     // Convert the stringstream to a string
@@ -285,12 +293,13 @@ char *constructFilePath(float prob_interactions, int X, int Y, int seed, std::st
     return filePathCStr;
 }
 
-std::vector<signed char> get_lattice_with_pre_run_result(float prob, int seed, int x, int y, std::vector<int> h_start, std::vector<int> h_end, int num_intervals, int num_walkers_total, int num_walkers_per_interval){
+std::vector<signed char> get_lattice_with_pre_run_result(float prob, int seed, int x, int y, std::vector<int> h_start, std::vector<int> h_end, int num_intervals, int num_walkers_total, int num_walkers_per_interval, char error_class){
     namespace fs = std::filesystem;
     std::ostringstream oss;
     oss << "init/prob_" << std::fixed << std::setprecision(6) << prob;
     oss << "/X_" << x << "_Y_" << y;
     oss << "/seed_" << seed;
+    oss << "/error_class_" << error_class;
     oss << "/lattice";
 
     std::string lattice_path = oss.str();
@@ -352,7 +361,7 @@ __global__ void init_lattice(signed char* lattice, float *d_probs, const int nx,
     lattice[tid] = val;
 }
 
-__global__ void init_interactions(signed char* interactions, const int nx, const int ny, const int num_lattices, const int seed, const double prob){
+__global__ void init_interactions(signed char* interactions, const int nx, const int ny, const int num_lattices, const int seed, const double prob, const char logical_error_type){
     
     long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
 
@@ -365,6 +374,41 @@ __global__ void init_interactions(signed char* interactions, const int nx, const
     signed char val = (randval < prob) ? -1 : 1;
     
     interactions[tid] = val;
+
+    int lin_interaction_idx = tid % (nx*ny*2); // only needed for non trivial num lattices
+    int i = lin_interaction_idx/ny; // row index
+    int j = lin_interaction_idx%ny; // column index
+
+    if(logical_error_type == 'I' && tid == 0){
+        printf("Id error class.\n");
+    }
+    else if(logical_error_type == 'X'){
+        if(tid == 0){ 
+            printf("X error class.\n");
+        }
+        if (i==0){ // flip all left interactions stored in first row
+            interactions[tid] *= -1;
+        } 
+    }
+    else if(logical_error_type == 'Z'){
+        if(tid == 0){ 
+            printf("Z error class.\n");
+        }
+        if (j==0 && i >= nx){ // flip all up interactions stored in first column from row nx*ny onwards
+            interactions[tid] *= -1;
+        } 
+    }
+    else if(logical_error_type == 'Y'){
+        if(tid == 0){ 
+            printf("Y error class.\n");
+        }
+        if (i==0){ // flip all left interactions stored in first row
+            interactions[tid] *= -1;
+        } 
+        if (j==0 && i >= nx){ // flip all up interactions stored in first column from row nx onwards in interaction matrix
+            interactions[tid] *= -1;
+        } 
+    }
 }
 
 __global__ void calc_energy_pre_run(signed char* lattice, signed char* interactions, int* d_energy, const int nx, const int ny, const int num_lattices){
@@ -377,7 +421,7 @@ __global__ void calc_energy_pre_run(signed char* lattice, signed char* interacti
 
     int offset_lattice = tid*nx*ny;
 
-    for (int l = 0; l < nx*ny; l++){
+    for (int l = 0; l < nx*ny; l++){ // latiice with nx rows and ny columns such that i row index and j column index
         
         int i = l/ny;
         int j = l%ny;

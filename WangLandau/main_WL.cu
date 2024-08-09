@@ -125,7 +125,8 @@ int main(int argc, char **argv){
     init_offsets_lattice<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, options.X, options.Y);
     init_offsets_histogramm<<<options.num_intervals, options.walker_per_interval>>>(d_offset_histogramm, d_start, d_end);
     init_indices<<<options.num_intervals, options.walker_per_interval>>>(d_indices);
-    
+    cudaDeviceSynchronize();
+
     char *interaction_file = constructFilePath(options.prob_interactions, options.X, options.Y, options.seed, "interactions");
     std::vector<signed char> h_interactions;
     read(h_interactions, interaction_file);
@@ -136,6 +137,8 @@ int main(int argc, char **argv){
     
     // Calculate energy and find right configurations
     calc_energy<<<options.num_intervals, options.walker_per_interval>>>(d_lattice, d_interactions, d_energy, d_offset_lattice, options.X, options.Y, num_walker_total);    
+    cudaDeviceSynchronize();
+    
     check_energy_ranges<<<options.num_intervals, options.walker_per_interval>>>(d_energy, d_start, d_end);
     cudaDeviceSynchronize();
 
@@ -190,6 +193,7 @@ int main(int argc, char **argv){
 
         replica_exchange<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, d_energy, d_start, d_end, d_indices, d_logG, d_offset_histogramm, true, options.seed, d_offset_iter);
         cudaDeviceSynchronize();
+        
         replica_exchange<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, d_energy, d_start, d_end, d_indices, d_logG, d_offset_histogramm, false, options.seed, d_offset_iter);
         cudaDeviceSynchronize();
         // print_finished_walker_ratio<<<1, num_walker_total>>>(d_factor, num_walker_total, exp(options.beta), d_finished_walkers_ratio);

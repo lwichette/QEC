@@ -367,7 +367,7 @@ __global__ void init_interactions(signed char* interactions, const int nx, const
     interactions[tid] = val;
 }
 
-__global__ void calc_energy_pre_run(signed char* lattice, signed char* interactions, int* d_energy, const int nx, const int ny, const int num_lattices){
+__global__ void calc_energy_pre_run(signed char* lattice, signed char* interactions, int* d_energy, const int nx, const int ny, const int num_lattices, bool periodic){
 
     long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
 
@@ -391,16 +391,13 @@ __global__ void calc_energy_pre_run(signed char* lattice, signed char* interacti
     d_energy[tid] = energy;
 }
 
-__global__ void calc_energy(signed char *lattice, signed char *interactions, int *d_energy, int *d_offset_lattice, const int nx, const int ny, const int num_lattices)
-{
+__global__ void calc_energy(signed char *lattice, signed char *interactions, int *d_energy, int *d_offset_lattice, const int nx, const int ny, const int num_lattices){
 
     long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
 
     int energy = 0;
 
-    for (int l = 0; l < nx * ny; l++)
-    {
-
+    for (int l = 0; l < nx * ny; l++){
         int i = l / ny;
         int j = l % ny;
 
@@ -799,6 +796,45 @@ __device__ RBIM random_bond_ising(
         int jnn = (j - 1 >= 0) ? j - 1 : ny - 1;
 
         signed char energy_diff = -2 * d_lattice[d_offset_lattice[tid] + i * ny + j] * (d_lattice[d_offset_lattice[tid] + inn * ny + j] * d_interactions[nx * ny + inn * ny + j] + d_lattice[d_offset_lattice[tid] + i * ny + jnn] * d_interactions[i * ny + jnn] + d_lattice[d_offset_lattice[tid] + ipp * ny + j] * d_interactions[nx * ny + i * ny + j] + d_lattice[d_offset_lattice[tid] + i * ny + jpp] * d_interactions[i * ny + j]);
+
+        int d_new_energy = d_energy[tid] + energy_diff;
+
+        RBIM rbim;
+        rbim.new_energy = d_new_energy;
+        rbim.i = i;
+        rbim.j = j;
+
+        return rbim;    
+}
+
+__device__ RBIM open_boundary_random_bond_ising(
+    signed char *d_lattice, signed char *d_interactions, int *d_energy, int *d_offset_lattice, unsigned long long *d_offset_iter, 
+    curandStatePhilox4_32_10_t *st, const long long tid, const int nx, const int ny
+    ){
+        double randval = curand_uniform(st);
+        randval *= (nx * ny - 1 + 0.999999);
+        int random_index = (int)trunc(randval);
+
+        d_offset_iter[tid] += 1;
+
+        int i = random_index / ny;
+        int j = random_index % ny;
+
+        int ipp = (i + 1 < nx) ? i + 1 : 0;
+        int inn = (i - 1 >= 0) ? i - 1 : nx - 1;
+        int jpp = (j + 1 < ny) ? j + 1 : 0;
+        int jnn = (j - 1 >= 0) ? j - 1 : ny - 1;
+
+        int c_up = 1 - inn/(nx-1);
+        int c_down = 1 - (i+1)/nx;
+        int c_right = (j == (ny-1)) ? 0 : 1;
+        int c_left = (j == 0) ? 0 : 1;
+        
+        signed char energy_diff = -2 * d_lattice[d_offset_lattice[tid] + i * ny + j] * (
+            c_up * d_lattice[d_offset_lattice[tid] + inn * ny + j] * d_interactions[nx * ny + inn * ny + j] + 
+            c_left * d_lattice[d_offset_lattice[tid] + i * ny + jnn] * d_interactions[i * ny + jnn] + 
+            c_down * d_lattice[d_offset_lattice[tid] + ipp * ny + j] * d_interactions[nx * ny + i * ny + j] + 
+            c_right * d_lattice[d_offset_lattice[tid] + i * ny + jpp] * d_interactions[i * ny + j]);
 
         int d_new_energy = d_energy[tid] + energy_diff;
 

@@ -18,6 +18,7 @@
 #include <thread>
 #include <thrust/reduce.h>
 #include <thrust/device_ptr.h>
+#include <thrust/extrema.h>
 #include <tuple>
 #include <cmath>
 #include <algorithm>
@@ -44,6 +45,7 @@ typedef struct {
     int walker_per_interval;
     float overlap_decimal;
     int seed;
+    char logical_error_type;
 } Options;
 
 typedef struct{
@@ -70,13 +72,13 @@ void read(std::vector<signed char> &lattice, std::string filename);
 
 void handleNewEnergyError(int *new_energies, int *new_energies_flag, char *histogram_file, int num_walkers_total);
 
-char *constructFilePath(float prob_interactions, int X, int Y, int seed, std::string type);
+char *constructFilePath(float prob_interactions, int X, int Y, int seed, std::string type, char error_class);
 
-std::vector<signed char> get_lattice_with_pre_run_result(float prob, int seed, int x, int y, std::vector<int> h_start, std::vector<int> h_end, int num_intervals, int num_walkers_total, int num_walkers_per_interval);
+std::vector<signed char> get_lattice_with_pre_run_result(float prob, int seed, int x, int y, std::vector<int> h_start, std::vector<int> h_end, int num_intervals, int num_walkers_total, int num_walkers_per_interval, char error_class);
 
 __global__ void init_lattice(signed char* lattice, float* d_probs, const int nx, const int ny, const int num_lattices, const int seed);
 
-__global__ void init_interactions(signed char* interactions, const int nx, const int ny, const int num_lattices, const int seed, const double prob);
+__global__ void init_interactions(signed char* interactions, const int nx, const int ny, const int num_lattices, const int seed, const double, const char problogical_error_type = 'I');
 
 __global__ void calc_energy(signed char *lattice, signed char *interactions, int *d_energy, int *d_offset_lattice, const int nx, const int ny, const int num_lattices);
 

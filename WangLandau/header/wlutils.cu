@@ -551,8 +551,7 @@ __device__ void fisher_yates(int *d_shuffle, int seed, unsigned long long *d_off
     curandStatePhilox4_32_10_t st;
     curand_init(seed, tid, d_offset_iter[tid], &st);
 
-    for (int i = blockDim.x - 1; i > 0; i--)
-    {
+    for (int i = blockDim.x - 1; i > 0; i--){
         double randval = curand_uniform(&st);
         randval *= (i + 0.999999);
         int random_index = (int)trunc(randval);
@@ -617,9 +616,10 @@ __global__ void replica_exchange(
     int *d_offset_lattice, int *d_energy, int *d_start, int *d_end, int *d_indices,
     double *d_logG, int *d_offset_histogram, bool even, int seed, unsigned long long *d_offset_iter)
 {
-
+    // if last block return
     if (blockIdx.x == (gridDim.x - 1)) return;
     
+    // if even only even blocks if odd only odd blocks
     if ((even && (blockIdx.x % 2 != 0)) || (!even && (blockIdx.x % 2 == 0))) return;
 
     long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
@@ -634,8 +634,8 @@ __global__ void replica_exchange(
     cid += d_indices[tid];
 
     if (d_energy[tid] > d_end[blockIdx.x + 1] || d_energy[tid] < d_start[blockIdx.x + 1]) return;
-    if (d_energy[cid] > d_end[blockIdx.x] || d_energy[tid] < d_start[blockIdx.x]) return;
-
+    if (d_energy[cid] > d_end[blockIdx.x] || d_energy[cid] < d_start[blockIdx.x]) return;
+    
     double prob = min(1.0, exp(d_logG[d_offset_histogram[tid] + d_energy[tid] - d_start[blockIdx.x]] - d_logG[d_offset_histogram[tid] + d_energy[cid] - d_start[blockIdx.x]]) * exp(d_logG[d_offset_histogram[cid] + d_energy[cid] - d_start[blockIdx.x+1]] - d_logG[d_offset_histogram[cid] + d_energy[tid] - d_start[blockIdx.x+1]]));
 
     curandStatePhilox4_32_10_t st;
@@ -660,6 +660,8 @@ __global__ void check_histogram(unsigned long long *d_H, double *d_log_G, double
 
     long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
 
+    if (tid >= num_walker_total) return;
+
     int blockId = blockIdx.x;
 
     __shared__ int walkers_finished;
@@ -670,49 +672,48 @@ __global__ void check_histogram(unsigned long long *d_H, double *d_log_G, double
 
     __syncthreads();
 
-    if (tid < num_walker_total){
-        unsigned long long min = INT_MAX;
-        double average = 0;
-        int len_reduced_energy_spectrum = 0;
+    unsigned long long min = INT_MAX;
+    double average = 0;
+    int len_reduced_energy_spectrum = 0;
 
-        // Here is average and min calculation over all bins in histogram which correspond to values in expected energy spectrum
-        for (int i = 0; i < (d_end[blockId] - d_start[blockId] + 1); i++){
-            if (d_expected_energy_spectrum[d_start[blockId] + i - d_start[0]] == 1){
-                if (d_H[d_offset_histogramm[tid] + i] < min){
-                    min = d_H[d_offset_histogramm[tid] + i];
-                }
-                average += d_H[d_offset_histogramm[tid] + i];
-                len_reduced_energy_spectrum += 1;
+    // Here is average and min calculation over all bins in histogram which correspond to values in expected energy spectrum
+    for (int i = 0; i < (d_end[blockId] - d_start[blockId] + 1); i++){
+        if (d_expected_energy_spectrum[d_start[blockId] + i - d_start[0]] == 1){
+            if (d_H[d_offset_histogramm[tid] + i] < min){
+                min = d_H[d_offset_histogramm[tid] + i];
             }
+            
+            average += d_H[d_offset_histogramm[tid] + i];
+            len_reduced_energy_spectrum += 1;
         }
+    }
 
-        __syncthreads();
+    __syncthreads();
 
-        if (len_reduced_energy_spectrum > 0){
+    if (len_reduced_energy_spectrum > 0){
+    
+        average = average / len_reduced_energy_spectrum;
         
-            average = average / len_reduced_energy_spectrum;
-            
-            printf("Walker %d in interval %d with min %d alpha*average %2f and factor %2f\n", threadIdx.x, blockIdx.x, min, alpha*average, d_factor[tid]);
-            
-            if (min >= alpha * average){
-                atomicAdd(&walkers_finished, 1);
-            }
-        }
-        else{
-            printf("Error histogram has no sufficient length to check for flatness on walker %lld. \n", tid);
-        }
+        //printf("Walker %d in interval %d with min %lld alpha*average %2f and factor %.10f and d_cond %d \n", threadIdx.x, blockIdx.x, min, alpha*average, d_factor[tid], d_cond[blockId]);
 
-        __syncthreads();
-
-        if (walkers_finished == blockDim.x){
-            d_cond[blockId] = 1;
-            
-            for (int i = 0; i < (d_end[blockId] - d_start[blockId] + 1); i++){                    
-                d_H[d_offset_histogramm[tid] + i] = 0;                
-            }
-            
-            d_factor[tid] = sqrt(d_factor[tid]);
+        if (min >= alpha * average){
+            atomicAdd(&walkers_finished, 1);
         }
+    }
+    else{
+        printf("Error histogram has no sufficient length to check for flatness on walker %lld. \n", tid);
+    }
+
+    __syncthreads();
+
+    if (walkers_finished == blockDim.x){
+        d_cond[blockId] = 1;
+        
+        for (int i = 0; i < (d_end[blockId] - d_start[blockId] + 1); i++){                    
+            d_H[d_offset_histogramm[tid] + i] = 0;                
+        }
+        
+        d_factor[tid] = sqrt(d_factor[tid]);
     }
 }
 
@@ -824,8 +825,9 @@ __global__ void wang_landau(
 
     curandStatePhilox4_32_10_t st;
     curand_init(seed, tid, d_offset_iter[tid], &st);
-
+    
     if (d_cond[blockId] == 0){
+
         for (int it = 0; it < num_iterations; it++){
 
             RBIM result = random_bond_ising(d_lattice, d_interactions, d_energy, d_offset_lattice, d_offset_iter, &st, tid, nx, ny);

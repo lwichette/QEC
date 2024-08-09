@@ -146,7 +146,6 @@ int main(int argc, char **argv){
 
     double max_factor = exp(1.0);
     int max_newEnergyFlag = 0;
-    // double finish+ed_walkers_ratio = 0;
 
     int block_count = (interval_result.len_histogram_over_all_walkers + max_threads_per_block - 1) / max_threads_per_block;
 
@@ -190,8 +189,9 @@ int main(int argc, char **argv){
         max_factor = *max_factor_ptr;
 
         replica_exchange<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, d_energy, d_start, d_end, d_indices, d_logG, d_offset_histogramm, true, options.seed, d_offset_iter);
+        cudaDeviceSynchronize();
         replica_exchange<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, d_energy, d_start, d_end, d_indices, d_logG, d_offset_histogramm, false, options.seed, d_offset_iter);
-
+        cudaDeviceSynchronize();
         // print_finished_walker_ratio<<<1, num_walker_total>>>(d_factor, num_walker_total, exp(options.beta), d_finished_walkers_ratio);
 
         // // This block here is mainly for testing the non convergence

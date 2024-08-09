@@ -21,11 +21,12 @@ void parse_args(int argc, char *argv[], Options *options)
             {"num_intervals", 1, 0, 'i'},
             {"walker_per_interval", 1, 0, 'w'},
             {"overlap_decimal", 1, 0, 'o'},
-            {"seed", 1, 0, 's'},
+            {"seed_histogram", 1, 0, 'h'},
+            {"seed_run", 1, 0, 's'},
             {"logical_error", 1, 0, 'e'},
             {0, 0, 0, 0}};
         
-        opt = getopt_long(argc, argv, "x:y:n:p:a:b:i:w:o:s:e:", long_options, &option_index);
+        opt = getopt_long(argc, argv, "x:y:n:p:a:b:i:w:o:h:s:e:", long_options, &option_index);
         
         if (opt == -1)
             break;
@@ -58,8 +59,11 @@ void parse_args(int argc, char *argv[], Options *options)
         case 'o':
             options->overlap_decimal = std::atof(optarg);
             break;
+        case 'h':
+            options->seed_histogram = std::atoi(optarg);
+            break;
         case 's':
-            options->seed = std::atoi(optarg);
+            options->seed_run = std::atoi(optarg);
             break;
         case 'e':
             options->logical_error_type = *optarg;
@@ -411,7 +415,7 @@ __global__ void init_interactions(signed char* interactions, const int nx, const
     }
 }
 
-__global__ void calc_energy_pre_run(signed char* lattice, signed char* interactions, int* d_energy, const int nx, const int ny, const int num_lattices, bool periodic){
+__global__ void calc_energy_pre_run(signed char* lattice, signed char* interactions, int* d_energy, const int nx, const int ny, const int num_lattices){
 
     long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
 

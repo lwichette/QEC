@@ -44,7 +44,8 @@ typedef struct {
     int num_intervals;
     int walker_per_interval;
     float overlap_decimal;
-    int seed;
+    int seed_histogram;
+    int seed_run;
     char logical_error_type;
 } Options;
 

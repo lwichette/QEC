@@ -154,7 +154,6 @@ int main(int argc, char **argv){
         }
     }
 
-
     calc_energy_pre_run<<<BLOCKS_INTERVAL, THREADS>>>(d_store_lattice, d_interactions, d_interval_energies, X, Y, num_intervals);
     
     std::vector<int> h_interval_energies(num_intervals);
@@ -163,7 +162,6 @@ int main(int argc, char **argv){
     for (int i=0; i < num_intervals; i++){
         std::cout << h_interval_energies[i] << std::endl;
     }
-
 
     std::string path = "init/prob_" + std::to_string(prob_interactions) + "/X_" + std::to_string(X) + "_Y_" + std::to_string(Y) + "/seed_" + std::to_string(seed) + "/error_class_" + logical_error_type;
 

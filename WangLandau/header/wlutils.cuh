@@ -18,6 +18,7 @@
 #include <thread>
 #include <thrust/reduce.h>
 #include <thrust/device_ptr.h>
+#include <thrust/extrema.h>
 #include <tuple>
 #include <cmath>
 #include <algorithm>

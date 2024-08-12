@@ -415,13 +415,11 @@ __global__ void init_interactions(signed char* interactions, const int nx, const
     }
 }
 
-__global__ void calc_energy(signed char *lattice, signed char *interactions, int *d_energy, int *d_offset_lattice, const int nx, const int ny, const int num_lattices){
+__global__ void calc_energy_periodic_boundary(signed char *lattice, signed char *interactions, int *d_energy, int *d_offset_lattice, const int nx, const int ny, const int num_lattices){
 
     long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
 
     if (tid>=num_lattices) return;
-
-    printf("tid %lld offset %d \n", tid, d_offset_lattice[tid]);
 
     int energy = 0;
 
@@ -437,6 +435,44 @@ __global__ void calc_energy(signed char *lattice, signed char *interactions, int
 
     d_energy[tid] = energy;
 }
+
+__global__ void calc_energy_open_boundary(signed char *lattice, signed char *interactions, int *d_energy, int *d_offset_lattice, const int nx, const int ny, const int num_lattices){
+
+    long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
+
+    if (tid>=num_lattices) return;
+
+    int energy = 0;
+    int offset = d_offset_lattice[tid];
+
+    for (int i = 0; i < nx; i++) {
+        for (int j = 0; j < ny; j++) {
+            signed char s_ij = lattice[offset + i * ny + j];
+            signed char s_up = (i > 0) ? lattice[offset + (i - 1) * ny + j] : 0;
+            signed char s_left = (j > 0) ? lattice[offset + i * ny + (j - 1)] : 0;
+            
+            // to avoid accessing interactions out of range for boundary terms the indices are arbitrarily set to 0 
+            int inn = (i > 0) ? nx * ny + (i - 1) * ny + j : 0;
+            int jnn = (j > 0) ? i * ny + (j - 1) : 0;
+
+             energy += s_ij * (s_up * interactions[inn] + s_left * interactions[jnn]);
+        }
+    }
+    if(tid==0)
+        {
+            printf("E=%d\n", energy);
+        }
+    d_energy[tid] = energy;
+}
+
+// void h_calc_energy_open_boundary(int blcks, int thrds, signed char *lattice, signed char *interactions, int *d_energy, int *d_offset_lattice, const int nx, const int ny, const int num_lattices){
+//     calc_energy_open_boundary<<<blcks, thrds>>>(lattice, interactions, d_energy, d_offset_lattice, nx, ny, num_lattices);    
+// }
+
+// void h_calc_energy_periodic_boundary(int blcks, int thrds, signed char *lattice, signed char *interactions, int *d_energy, int *d_offset_lattice, const int nx, const int ny, const int num_lattices){
+//     calc_energy_open_boundary<<<blcks, thrds>>>(lattice, interactions, d_energy, d_offset_lattice, nx, ny, num_lattices);    
+// }
+
 
 __global__ void wang_landau_pre_run(
     signed char *d_lattice, signed char *d_interactions, int *d_energy, unsigned long long *d_H, unsigned long long* d_iter, int *d_found_interval,
@@ -807,7 +843,7 @@ __global__ void redistribute_g_values(int num_intervals, long long len_histogram
     }
 }
 
-__device__ RBIM random_bond_ising(
+__device__ RBIM periodic_boundary_random_bond_ising(
     signed char *d_lattice, signed char *d_interactions, int *d_energy, int *d_offset_lattice, unsigned long long *d_offset_iter, 
     curandStatePhilox4_32_10_t *st, const long long tid, const int nx, const int ny
     ){
@@ -896,7 +932,7 @@ __global__ void wang_landau(
 
         for (int it = 0; it < num_iterations; it++){
 
-            RBIM result = random_bond_ising(d_lattice, d_interactions, d_energy, d_offset_lattice, d_offset_iter, &st, tid, nx, ny);
+            RBIM result = periodic_boundary_random_bond_ising(d_lattice, d_interactions, d_energy, d_offset_lattice, d_offset_iter, &st, tid, nx, ny);
 
             // If no new energy is found, set it to 0, else to tid + 1
             foundFlag[tid] = (d_expected_energy_spectrum[result.new_energy - d_start[0]] == 1) ? 0 : tid + 1;
@@ -938,7 +974,7 @@ __global__ void wang_landau(
     else{
         for (int it = 0; it < num_iterations; it++){
 
-            RBIM result = random_bond_ising(d_lattice, d_interactions, d_energy, d_offset_lattice, d_offset_iter, &st, tid, nx, ny);
+            RBIM result = periodic_boundary_random_bond_ising(d_lattice, d_interactions, d_energy, d_offset_lattice, d_offset_iter, &st, tid, nx, ny);
 
             // If no new energy is found, set it to 0, else to tid + 1
             foundFlag[tid] = (d_expected_energy_spectrum[result.new_energy - d_start[0]] == 1) ? 0 : tid + 1;

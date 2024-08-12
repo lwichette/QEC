@@ -22,6 +22,8 @@ int main(int argc, char **argv){
     
     char logical_error_type = 'I';
 
+    char boundary_type = 'p';
+
     int och;
 
     while (1) {
@@ -36,10 +38,11 @@ int main(int argc, char **argv){
             {"seed", required_argument, 0, 's'},
             {"num_intervals", required_argument, 0, 'i'},
             {"logical_error", required_argument, 0, 'e'},
+            {"boundary", required_argument, 0, 'b'},
             {0, 0, 0, 0}
         };
 
-        och = getopt_long(argc, argv, "x:y:p:n:l:w:s:i:e:", long_options, &option_index);
+        och = getopt_long(argc, argv, "x:y:p:n:l:w:s:i:e:b:", long_options, &option_index);
         
         if (och == -1)
             break;
@@ -73,6 +76,9 @@ int main(int argc, char **argv){
             case 'e':
                 logical_error_type = *optarg;
                 break;
+            case 'b':
+                boundary_type = *optarg;
+                break;
 			case '?':
 				exit(EXIT_FAILURE);
 
@@ -81,6 +87,11 @@ int main(int argc, char **argv){
 				exit(EXIT_FAILURE);
         }
     }
+
+    // // function map works only on host function - hence have to wrap wang landau kernels inside host function
+    // std::map<char, std::function<void(signed char*, signed char*, int*, int*, const int, const int, const int)>> updateMap;
+    // updateMap['o'] = &calc_energy_open_boundary;
+    // updateMap['p'] = &calc_energy_periodic_boundary;
 
     double factor = std::exp(1);
 
@@ -145,7 +156,24 @@ int main(int argc, char **argv){
     
     cudaDeviceSynchronize();
 
-    calc_energy<<<BLOCKS_ENERGY, THREADS>>>(d_lattice, d_interactions, d_energy, d_offset_lattice_per_walker, X, Y, num_walker);    
+    write(d_lattice, "Test.txt", X, Y, num_walker, true);
+
+    switch (boundary_type) {
+        case 'o': // Open boundary
+            calc_energy_open_boundary<<<BLOCKS_ENERGY, THREADS>>>(d_lattice, d_interactions, d_energy, d_offset_lattice_per_walker, X, Y, num_walker);
+            break;
+
+        case 'p': // Periodic boundary
+            calc_energy_periodic_boundary<<<BLOCKS_ENERGY, THREADS>>>(d_lattice, d_interactions, d_energy, d_offset_lattice_per_walker, X, Y, num_walker);
+            break;
+
+        default:
+            printf("Invalid boundary type!\n");
+            break;
+    }
+    cudaDeviceSynchronize();
+    return;
+
 
     int found_interval = 0;
 
@@ -163,7 +191,19 @@ int main(int argc, char **argv){
         }
     }
 
-    calc_energy<<<BLOCKS_INTERVAL, THREADS>>>(d_store_lattice, d_interactions, d_interval_energies, d_offset_lattice_per_interval, X, Y, num_intervals);
+    switch (boundary_type) {
+        case 'o': // Open boundary
+            calc_energy_open_boundary<<<BLOCKS_INTERVAL, THREADS>>>(d_store_lattice, d_interactions, d_interval_energies, d_offset_lattice_per_interval, X, Y, num_intervals);
+            break;
+
+        case 'p': // Periodic boundary
+            calc_energy_periodic_boundary<<<BLOCKS_INTERVAL, THREADS>>>(d_store_lattice, d_interactions, d_interval_energies, d_offset_lattice_per_interval, X, Y, num_intervals);
+            break;
+
+        default:
+            printf("Invalid boundary type!\n");
+            break;
+    }
 
     std::vector<int> h_interval_energies(num_intervals);
     CHECK_CUDA(cudaMemcpy(h_interval_energies.data(), d_interval_energies, num_intervals*sizeof(*d_interval_energies), cudaMemcpyDeviceToHost));
@@ -172,7 +212,7 @@ int main(int argc, char **argv){
         std::cout << h_interval_energies[i] << std::endl;
     }
 
-    std::string path = "init/prob_" + std::to_string(prob_interactions) + "/X_" + std::to_string(X) + "_Y_" + std::to_string(Y) + "/seed_" + std::to_string(seed) + "/error_class_" + logical_error_type;
+    std::string path = "init/prob_" + std::to_string(prob_interactions) + "/X_" + std::to_string(X) + "_Y_" + std::to_string(Y) +  "/boundary_" +  boundary_type + "/seed_" + std::to_string(seed) + "/error_class_" + logical_error_type;
 
     create_directory(path + "/interactions");
     create_directory(path + "/lattice");

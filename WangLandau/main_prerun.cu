@@ -24,6 +24,8 @@ int main(int argc, char **argv){
 
     char boundary_type = 'p';
 
+    char boundary_type = 'p';
+
     int och;
 
     while (1) {
@@ -156,8 +158,6 @@ int main(int argc, char **argv){
     
     cudaDeviceSynchronize();
 
-    write(d_lattice, "Test.txt", X, Y, num_walker, true);
-
     switch (boundary_type) {
         case 'o': // Open boundary
             calc_energy_open_boundary<<<BLOCKS_ENERGY, THREADS>>>(d_lattice, d_interactions, d_energy, d_offset_lattice_per_walker, X, Y, num_walker);
@@ -171,9 +171,8 @@ int main(int argc, char **argv){
             printf("Invalid boundary type!\n");
             break;
     }
+    
     cudaDeviceSynchronize();
-    return;
-
 
     int found_interval = 0;
 

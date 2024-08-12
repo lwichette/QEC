@@ -448,15 +448,14 @@ __global__ void calc_energy_open_boundary(signed char *lattice, signed char *int
     for (int i = 0; i < nx; i++) {
         for (int j = 0; j < ny; j++) {
             signed char s_ij = lattice[offset + i * ny + j];
-            
             signed char s_up = (i > 0) ? lattice[offset + (i - 1) * ny + j] : 0;
             signed char s_left = (j > 0) ? lattice[offset + i * ny + (j - 1)] : 0;
             
-            energy += s_ij * (s_up * interactions[nx * ny + (i - 1) * ny + j] + s_left * interactions[i * ny + (j - 1)]);
-            if(tid==0)
-            {
-                printf("offset %d (i,j) = (%d, %d): s_ij=%d, s_up=%d, s_left=%d\n", offset, i, j, s_ij, s_up, s_left);
-            }
+            // to avoid accessing interactions out of range for boundary terms the indices are arbitrarily set to 0 
+            int inn = (i > 0) ? nx * ny + (i - 1) * ny + j : 0;
+            int jnn = (j > 0) ? i * ny + (j - 1) : 0;
+
+             energy += s_ij * (s_up * interactions[inn] + s_left * interactions[jnn]);
         }
     }
     if(tid==0)

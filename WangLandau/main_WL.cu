@@ -11,6 +11,7 @@ To Do:
     - print metric finished walker count / total walker count -> may use for finish condition
     - maybe implement runtime balanced subdivision as in https://www.osti.gov/servlets/purl/1567362
     - Add sort to lattice read function
+    - update histogram not working 
 */
 
 int main(int argc, char **argv){

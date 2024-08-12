@@ -8,6 +8,7 @@ using namespace std;
 
 
 int main(int argc, char **argv){
+    // questions: num walker is total number of walkers here and hence should be always larger than intervals, right? This should be catched
     
     int X, Y;
     
@@ -127,17 +128,24 @@ int main(int argc, char **argv){
     CHECK_CUDA(cudaMalloc(&d_interval_energies, num_intervals*sizeof(*d_interval_energies)));
     CHECK_CUDA(cudaMemset(d_interval_energies, 0, num_intervals*sizeof(*d_interval_energies)));
 
+    int *d_offset_lattice_per_walker, *d_offset_lattice_per_interval;
+    CHECK_CUDA(cudaMalloc(&d_offset_lattice_per_walker, num_walker * sizeof(*d_offset_lattice_per_walker)));
+    CHECK_CUDA(cudaMalloc(&d_offset_lattice_per_interval, num_intervals * sizeof(*d_offset_lattice_per_interval)));
+
     int BLOCKS_INIT = (num_walker*X*Y*2 + THREADS - 1)/THREADS;
     int BLOCKS_ENERGY = (num_walker + THREADS - 1)/THREADS;
     int BLOCKS_INTERVAL = (num_intervals + THREADS - 1)/THREADS;
 
     init_lattice<<<BLOCKS_INIT, THREADS>>>(d_lattice, d_probs, X, Y, num_walker, seed);
 
+    init_offsets_lattice<<<BLOCKS_ENERGY, THREADS>>>(d_offset_lattice_per_walker, X, Y, num_walker); 
+    init_offsets_lattice<<<BLOCKS_INTERVAL, THREADS>>>(d_offset_lattice_per_interval, X, Y, num_intervals);
+
     init_interactions<<<BLOCKS_INIT, THREADS>>>(d_interactions, X, Y, 1, seed + 1, prob_interactions, logical_error_type);
     
     cudaDeviceSynchronize();
 
-    calc_energy_pre_run<<<BLOCKS_ENERGY, THREADS>>>(d_lattice, d_interactions, d_energy, X, Y, num_walker);    
+    calc_energy<<<BLOCKS_ENERGY, THREADS>>>(d_lattice, d_interactions, d_energy, d_offset_lattice_per_walker, X, Y, num_walker);    
 
     int found_interval = 0;
 
@@ -155,8 +163,8 @@ int main(int argc, char **argv){
         }
     }
 
-    calc_energy_pre_run<<<BLOCKS_INTERVAL, THREADS>>>(d_store_lattice, d_interactions, d_interval_energies, X, Y, num_intervals);
-    
+    calc_energy<<<BLOCKS_INTERVAL, THREADS>>>(d_store_lattice, d_interactions, d_interval_energies, d_offset_lattice_per_interval, X, Y, num_intervals);
+
     std::vector<int> h_interval_energies(num_intervals);
     CHECK_CUDA(cudaMemcpy(h_interval_energies.data(), d_interval_energies, num_intervals*sizeof(*d_interval_energies), cudaMemcpyDeviceToHost));
 

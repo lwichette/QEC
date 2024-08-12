@@ -415,33 +415,13 @@ __global__ void init_interactions(signed char* interactions, const int nx, const
     }
 }
 
-__global__ void calc_energy_pre_run(signed char* lattice, signed char* interactions, int* d_energy, const int nx, const int ny, const int num_lattices){
-
-    long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
-
-    if (tid >= num_lattices) return;
-
-    int energy = 0; 
-
-    int offset_lattice = tid*nx*ny;
-
-    for (int l = 0; l < nx*ny; l++){ // latiice with nx rows and ny columns such that i row index and j column index
-        
-        int i = l/ny;
-        int j = l%ny;
-
-        int inn = (i - 1 >= 0) ? i - 1 : nx - 1;
-        int jnn = (j - 1 >= 0) ? j - 1 : ny - 1;  
-
-        energy += lattice[offset_lattice + i*ny +j]*(lattice[offset_lattice + inn*ny + j]*interactions[nx*ny + inn*ny + j] + lattice[offset_lattice + i*ny + jnn]*interactions[i*ny + jnn]);
-    }
-
-    d_energy[tid] = energy;
-}
-
 __global__ void calc_energy(signed char *lattice, signed char *interactions, int *d_energy, int *d_offset_lattice, const int nx, const int ny, const int num_lattices){
 
     long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
+
+    if (tid>=num_lattices) return;
+
+    printf("tid %lld offset %d \n", tid, d_offset_lattice[tid]);
 
     int energy = 0;
 
@@ -650,9 +630,11 @@ __global__ void init_offsets_histogramm(int *d_offset_histogramm, int *d_start, 
     }
 }
 
-__global__ void init_offsets_lattice(int *d_offset_lattice, int nx, int ny)
+__global__ void init_offsets_lattice(int *d_offset_lattice, int nx, int ny, int num_lattices)
 {
     long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
+
+    if (tid>=num_lattices) return;
 
     d_offset_lattice[tid] = tid * nx * ny;
 }

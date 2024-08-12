@@ -120,7 +120,7 @@ int main(int argc, char **argv){
     */
 
     // Initialization of lattices, interactions, offsets and indices
-    init_offsets_lattice<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, options.X, options.Y);
+    init_offsets_lattice<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, options.X, options.Y, num_walker_total);
     init_offsets_histogramm<<<options.num_intervals, options.walker_per_interval>>>(d_offset_histogramm, d_start, d_end);
     init_indices<<<options.num_intervals, options.walker_per_interval>>>(d_indices);
     cudaDeviceSynchronize();

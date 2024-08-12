@@ -83,8 +83,6 @@ __global__ void init_interactions(signed char* interactions, const int nx, const
 
 __global__ void calc_energy(signed char *lattice, signed char *interactions, int *d_energy, int *d_offset_lattice, const int nx, const int ny, const int num_lattices);
 
-__global__ void calc_energy_pre_run(signed char* lattice, signed char* interactions, int* d_energy, const int nx, const int ny, const int num_lattices);
-
 __global__ void wang_landau_pre_run(signed char *d_lattice, signed char *d_interactions, int *d_energy, unsigned long long *d_H, unsigned long long* d_iter, int *d_found_interval, signed char *d_store_lattice, const int E_min, const int E_max, const int num_iterations, const int nx, const int ny, const int seed, const int len_interval, const int found_interval, int num_walker, const int num_intervals);
 
 __global__ void wang_landau(
@@ -112,7 +110,7 @@ __global__ void init_indices(int *d_indices);
 
 __global__ void init_offsets_histogramm(int *d_offset_histogramm, int *d_start, int *d_end);
 
-__global__ void init_offsets_lattice(int *d_offset_lattice, int nx, int ny);
+__global__ void init_offsets_lattice(int *d_offset_lattice, int nx, int ny, int num_lattices);
 
 __global__ void replica_exchange(
     int *d_offset_lattice, int *d_energy, int *d_start, int *d_end, int *d_indices,

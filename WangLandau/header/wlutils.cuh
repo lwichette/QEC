@@ -81,7 +81,9 @@ __global__ void init_lattice(signed char* lattice, float* d_probs, const int nx,
 
 __global__ void init_interactions(signed char* interactions, const int nx, const int ny, const int num_lattices, const int seed, const double, const char problogical_error_type = 'I');
 
-__global__ void calc_energy(signed char *lattice, signed char *interactions, int *d_energy, int *d_offset_lattice, const int nx, const int ny, const int num_lattices);
+__global__ void calc_energy_periodic_boundary(signed char *lattice, signed char *interactions, int *d_energy, int *d_offset_lattice, const int nx, const int ny, const int num_lattices);
+
+__global__ void calc_energy_open_boundary(signed char *lattice, signed char *interactions, int *d_energy, int *d_offset_lattice, const int nx, const int ny, const int num_lattices);
 
 __global__ void wang_landau_pre_run(signed char *d_lattice, signed char *d_interactions, int *d_energy, unsigned long long *d_H, unsigned long long* d_iter, int *d_found_interval, signed char *d_store_lattice, const int E_min, const int E_max, const int num_iterations, const int nx, const int ny, const int seed, const int len_interval, const int found_interval, int num_walker, const int num_intervals);
 

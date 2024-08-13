@@ -24,6 +24,8 @@ int main(int argc, char **argv){
 
     int boundary_type = 0;
 
+    char boundary_type = 'p';
+
     int och;
 
     while (1) {

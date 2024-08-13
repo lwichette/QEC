@@ -24,8 +24,6 @@ int main(int argc, char **argv){
 
     int boundary_type = 0;
 
-    char boundary_type = 'p';
-
     int och;
 
     while (1) {
@@ -89,6 +87,7 @@ int main(int argc, char **argv){
 				exit(EXIT_FAILURE);
         }
     }
+
 
     double factor = std::exp(1);
 
@@ -160,7 +159,6 @@ int main(int argc, char **argv){
     int found_interval = 0;
 
     for (int i=0; i < num_wl_loops; i++){
-        
         if (i % 100 == 0) printf("Num wl loop: %d \n", i);
 
         wang_landau_pre_run<<<BLOCKS_ENERGY, THREADS>>>(d_lattice, d_interactions, d_energy, d_H, d_iter, d_offset_lattice_per_walker, d_found_interval, d_store_lattice, E_min, E_max, num_iterations, X, Y, seed + 2, interval_result.len_interval, found_interval, num_walker, num_intervals, boundary_type);

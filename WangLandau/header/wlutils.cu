@@ -162,7 +162,7 @@ void write(
             }
 
             std::string file_suffix = (energies.empty()) ? std::to_string(l) : std::to_string(energies[l]);
-            writeToFile(filename + "_" + file_suffix + ".txt", array_host.data() + offset, nx_w, ny);
+            writeToFile(filename + "_" + std::to_string(l) + "_" + file_suffix + ".txt", array_host.data() + offset, nx_w, ny);
         }
     }
 }
@@ -492,8 +492,7 @@ __global__ void wang_landau_pre_run(
     for (int it = 0; it < num_iterations; it++){
 
         RBIM result = rbim_func_map[boundary_type](d_lattice, d_interactions, d_energy, d_offset_lattice, d_iter, &st, tid, nx, ny);
-        // RBIM result = open_boundary_random_bond_ising(d_lattice, d_interactions, d_energy, d_offset_lattice, d_iter, &st, tid, nx, ny);
-
+ 
         int d_new_energy = result.new_energy;
 
         int index_old = d_energy[tid] - E_min;
@@ -878,6 +877,10 @@ __device__ RBIM open_boundary_random_bond_ising(
         int c_right = (j == (ny-1)) ? 0 : 1;
         int c_left = (j == 0) ? 0 : 1;
         
+        // if ((i==0 && j==0) || (i==0 && j==(ny-1)) || (i==(nx-1) && j==0) || (i==(nx-1) && j==(ny-1))){
+        //     printf("i %d, j %d c_up %d, c_down %d , c_right %d, c_left %d \n", i, j, c_up, c_down, c_right, c_left);
+        // }
+
         signed char energy_diff = -2 * d_lattice[d_offset_lattice[tid] + i * ny + j] * (
             c_up * d_lattice[d_offset_lattice[tid] + inn * ny + j] * d_interactions[nx * ny + inn * ny + j] + 
             c_left * d_lattice[d_offset_lattice[tid] + i * ny + jnn] * d_interactions[i * ny + jnn] + 
@@ -885,7 +888,7 @@ __device__ RBIM open_boundary_random_bond_ising(
             c_right * d_lattice[d_offset_lattice[tid] + i * ny + jpp] * d_interactions[i * ny + j]);
 
         int d_new_energy = d_energy[tid] + energy_diff;
-
+    
         RBIM rbim;
         rbim.new_energy = d_new_energy;
         rbim.i = i;
@@ -916,6 +919,10 @@ __global__ void wang_landau(
 
 
             RBIM result = rbim_func_map[boundary_type](d_lattice, d_interactions, d_energy, d_offset_lattice, d_offset_iter, &st, tid, nx, ny);
+
+            if (result.new_energy == -192){
+                printf("blockID %d threadIdx.x %d it %d i %d j %d \n", blockId, threadIdx.x, it, result.i, result.j);
+            }
 
             // If no new energy is found, set it to 0, else to tid + 1
             foundFlag[tid] = (d_expected_energy_spectrum[result.new_energy - d_start[0]] == 1) ? 0 : tid + 1;

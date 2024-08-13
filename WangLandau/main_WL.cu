@@ -7,8 +7,6 @@ To Do:
     - blockID to blockIdx.x to save storage?
     - d_indices array not needed, could in theory use shared memory in each fisher yates call
     - init flag for found new energy with seperate kernel and only update in wang landau inverted to current setting
-    - New energies smarter way to update histogram
-    - print metric finished walker count / total walker count -> may use for finish condition
     - maybe implement runtime balanced subdivision as in https://www.osti.gov/servlets/purl/1567362
     - Add sort to lattice read function
     - update histogram not working 
@@ -135,8 +133,7 @@ int main(int argc, char **argv){
     std::vector<signed char> h_lattice = get_lattice_with_pre_run_result(options.prob_interactions, options.seed_histogram, options.X, options.Y, interval_result.h_start, interval_result.h_end, options.num_intervals, num_walker_total, options.walker_per_interval, options.logical_error_type, options.boundary_type);
     CHECK_CUDA(cudaMemcpy(d_lattice, h_lattice.data(), num_walker_total * options.X * options.Y * sizeof(*d_lattice), cudaMemcpyHostToDevice));
 
-    // Calculate energy and find right configurations
-    calc_energy_periodic_boundary<<<options.num_intervals, options.walker_per_interval>>>(d_lattice, d_interactions, d_energy, d_offset_lattice, options.X, options.Y, num_walker_total);    
+    calc_energy(options.num_intervals, options.walker_per_interval, options.boundary_type, d_lattice, d_interactions, d_energy, d_offset_lattice, options.X, options.Y, num_walker_total);
     cudaDeviceSynchronize();
     
     check_energy_ranges<<<options.num_intervals, options.walker_per_interval>>>(d_energy, d_start, d_end);
@@ -196,37 +193,6 @@ int main(int argc, char **argv){
         
         replica_exchange<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, d_energy, d_start, d_end, d_indices, d_logG, d_offset_histogramm, false, options.seed_run, d_offset_iter);
         cudaDeviceSynchronize();
-        // print_finished_walker_ratio<<<1, num_walker_total>>>(d_factor, num_walker_total, exp(options.beta), d_finished_walkers_ratio);
-
-        // // This block here is mainly for testing the non convergence
-        // // get ratio of finished walkers to control dump of histogram
-        // thrust::device_ptr<double> d_finished_walkers_ratio_ptr(d_finished_walkers_ratio);
-        // finished_walkers_ratio = *d_finished_walkers_ratio_ptr;
-        // printf("ratio of finished walkers: %f\n", finished_walkers_ratio);
-        // if(finished_walkers_ratio >= 0.9){
-        //     std::vector<unsigned long long> h_hist(interval_result.len_histogram_over_all_walkers);
-        //     CHECK_CUDA(cudaMemcpy(h_hist.data(), d_H, interval_result.len_histogram_over_all_walkers * sizeof(*d_H), cudaMemcpyDeviceToHost));
-
-        //     std::ofstream hist_file("histogram_time_evolution.txt", std::ios::app);
-        //     int index_h_hist = 0;
-        //     for (int i = 0; i < options.num_intervals; i++)
-        //     {
-        //         int start_energy = interval_result.h_start[i];
-        //         int end_energy = interval_result.h_end[i];
-        //         int len_int = interval_result.h_end[i] - interval_result.h_start[i] + 1;
-        //         for (int j = 0; j < options.walker_per_interval; j++)
-        //         {
-        //             for (int k = 0; k < len_int; k++)
-        //             {
-        //                 hist_file << (int)interval_result.h_start[i] + k << " : " << h_hist[index_h_hist] << " ,";
-        //                 index_h_hist += 1;
-        //             }
-        //             hist_file << std::endl;
-        //         }
-        //     }
-        //     hist_file << std::endl;
-        //     hist_file.close();
-        // }
     }
 
     /*

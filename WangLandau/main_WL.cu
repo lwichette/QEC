@@ -11,6 +11,7 @@ To Do:
     - print metric finished walker count / total walker count -> may use for finish condition
     - maybe implement runtime balanced subdivision as in https://www.osti.gov/servlets/purl/1567362
     - Add sort to lattice read function
+    - update histogram not working 
 */
 
 int main(int argc, char **argv){
@@ -27,7 +28,7 @@ int main(int argc, char **argv){
 
     const int num_walker_total = options.num_intervals * options.walker_per_interval;
 
-    char *histogram_file = constructFilePath(options.prob_interactions, options.X, options.Y, options.seed_histogram, "histogram", options.logical_error_type);
+    char *histogram_file = constructFilePath(options.prob_interactions, options.X, options.Y, options.seed_histogram, "histogram", options.logical_error_type, options.boundary_type);
 
     // Energy spectrum from pre_run
     std::vector<int> h_expected_energy_spectrum;
@@ -125,12 +126,13 @@ int main(int argc, char **argv){
     init_indices<<<options.num_intervals, options.walker_per_interval>>>(d_indices);
     cudaDeviceSynchronize();
 
-    char *interaction_file = constructFilePath(options.prob_interactions, options.X, options.Y, options.seed_histogram, "interactions", options.logical_error_type);
+    char *interaction_file = constructFilePath(options.prob_interactions, options.X, options.Y, options.seed_histogram, "interactions", options.logical_error_type, options.boundary_type);
     std::vector<signed char> h_interactions;
     read(h_interactions, interaction_file);
     CHECK_CUDA(cudaMemcpy(d_interactions, h_interactions.data(), options.X * options.Y * 2 * sizeof(*d_interactions), cudaMemcpyHostToDevice));
     
-    std::vector<signed char> h_lattice = get_lattice_with_pre_run_result(options.prob_interactions, options.seed_histogram, options.X, options.Y, interval_result.h_start, interval_result.h_end, options.num_intervals, num_walker_total, options.walker_per_interval, options.logical_error_type);
+    
+    std::vector<signed char> h_lattice = get_lattice_with_pre_run_result(options.prob_interactions, options.seed_histogram, options.X, options.Y, interval_result.h_start, interval_result.h_end, options.num_intervals, num_walker_total, options.walker_per_interval, options.logical_error_type, options.boundary_type);
     CHECK_CUDA(cudaMemcpy(d_lattice, h_lattice.data(), num_walker_total * options.X * options.Y * sizeof(*d_lattice), cudaMemcpyHostToDevice));
 
     // Calculate energy and find right configurations
@@ -154,7 +156,7 @@ int main(int argc, char **argv){
         
         printf("Max Factor %8f \n", max_factor);
 
-        wang_landau<<<options.num_intervals, options.walker_per_interval>>>(d_lattice, d_interactions, d_energy, d_start, d_end, d_H, d_logG, d_offset_histogramm, d_offset_lattice, options.num_iterations, options.X, options.Y, options.seed_run, d_factor, d_offset_iter, d_expected_energy_spectrum, d_newEnergies, d_foundNewEnergyFlag, num_walker_total, options.beta, d_cond);
+        wang_landau<<<options.num_intervals, options.walker_per_interval>>>(d_lattice, d_interactions, d_energy, d_start, d_end, d_H, d_logG, d_offset_histogramm, d_offset_lattice, options.num_iterations, options.X, options.Y, options.seed_run, d_factor, d_offset_iter, d_expected_energy_spectrum, d_newEnergies, d_foundNewEnergyFlag, num_walker_total, options.beta, d_cond, options.boundary_type);
         cudaDeviceSynchronize(); 
 
         // get max of found new energy flag array to condition break and update the histogramm file with value in new energy array
@@ -238,8 +240,10 @@ int main(int argc, char **argv){
 
     std::ofstream f_log_density;
 
+    std::string boundary = (options.boundary_type == 0) ? "periodic" : "open";
+
     std::stringstream result_directory;
-    result_directory << "results/prob_" << std::fixed << std::setprecision(6) << options.prob_interactions
+    result_directory << "results/" << boundary << "/prob_" << std::fixed << std::setprecision(6) << options.prob_interactions
        << "/X_" << options.X
        << "_Y_" << options.Y
        << "/seed_" << options.seed_histogram

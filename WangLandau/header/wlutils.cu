@@ -1,6 +1,9 @@
 #include "wlutils.cuh"
 #include "cudamacro.h"
 
+__device__  RBIM (*rbim_func_map[]) (signed char *, signed char *, int *, int *, unsigned long long *, 
+    curandStatePhilox4_32_10_t *, const long long , const int , const int ) = {periodic_boundary_random_bond_ising, open_boundary_random_bond_ising};
+
 void parse_args(int argc, char *argv[], Options *options)
 {
     // overlap decimal is more like the reciprocal non overlap parameter here, i.e. 0 as overlap_decimal is full overlap of intervals.
@@ -24,9 +27,10 @@ void parse_args(int argc, char *argv[], Options *options)
             {"seed_histogram", 1, 0, 'h'},
             {"seed_run", 1, 0, 's'},
             {"logical_error", 1, 0, 'e'},
+            {"boundary_type", 1, 0, 't'},
             {0, 0, 0, 0}};
         
-        opt = getopt_long(argc, argv, "x:y:n:p:a:b:i:w:o:h:s:e:", long_options, &option_index);
+        opt = getopt_long(argc, argv, "x:y:n:p:a:b:i:w:o:h:s:e:t:", long_options, &option_index);
         
         if (opt == -1)
             break;
@@ -67,6 +71,9 @@ void parse_args(int argc, char *argv[], Options *options)
             break;
         case 'e':
             options->logical_error_type = *optarg;
+            break;
+        case 't':
+            options->boundary_type = std::atoi(optarg);
             break;
         default:
             fprintf(stderr, "Usage: %s [-i num_intervals] [-m E_min] [-M E_max] [-w walker_per_interval] [-o overlap_decimal] [-r num_iterations]\n", argv[0]);
@@ -277,10 +284,12 @@ void handleNewEnergyError(int *new_energies, int *new_energies_flag, char *histo
     outfile.close();
 }
 
-char *constructFilePath(float prob_interactions, int X, int Y, int seed, std::string type, char error_class)
+char *constructFilePath(float prob_interactions, int X, int Y, int seed, std::string type, char error_class, int boundary_type)
 {
+    std::string boundary = (boundary_type == 0) ? "periodic" : "open";
+
     std::stringstream strstr;
-    strstr << "init/prob_" << std::fixed << std::setprecision(6) << prob_interactions;
+    strstr << "init/" << boundary << "/prob_" << std::fixed << std::setprecision(6) << prob_interactions;
     strstr << "/X_" << X << "_Y_" << Y;
     strstr << "/seed_" << seed;
     strstr << "/error_class_" << error_class;
@@ -290,6 +299,8 @@ char *constructFilePath(float prob_interactions, int X, int Y, int seed, std::st
     // Convert the stringstream to a string
     std::string filePathStr = strstr.str();
 
+    std::cout << filePathStr;
+
     // Allocate memory for the char* result and copy the string data to it
     char *filePathCStr = new char[filePathStr.length() + 1];
     std::strcpy(filePathCStr, filePathStr.c_str());
@@ -297,10 +308,11 @@ char *constructFilePath(float prob_interactions, int X, int Y, int seed, std::st
     return filePathCStr;
 }
 
-std::vector<signed char> get_lattice_with_pre_run_result(float prob, int seed, int x, int y, std::vector<int> h_start, std::vector<int> h_end, int num_intervals, int num_walkers_total, int num_walkers_per_interval, char error_class){
+std::vector<signed char> get_lattice_with_pre_run_result(float prob, int seed, int x, int y, std::vector<int> h_start, std::vector<int> h_end, int num_intervals, int num_walkers_total, int num_walkers_per_interval, char error_class, int boundary_type){
+    std::string boundary = (boundary_type == 0) ? "periodic" : "open";
     namespace fs = std::filesystem;
     std::ostringstream oss;
-    oss << "init/prob_" << std::fixed << std::setprecision(6) << prob;
+    oss << "init/" << boundary << "/prob_" << std::fixed << std::setprecision(6) << prob;
     oss << "/X_" << x << "_Y_" << y;
     oss << "/seed_" << seed;
     oss << "/error_class_" << error_class;
@@ -465,19 +477,10 @@ __global__ void calc_energy_open_boundary(signed char *lattice, signed char *int
     d_energy[tid] = energy;
 }
 
-// void h_calc_energy_open_boundary(int blcks, int thrds, signed char *lattice, signed char *interactions, int *d_energy, int *d_offset_lattice, const int nx, const int ny, const int num_lattices){
-//     calc_energy_open_boundary<<<blcks, thrds>>>(lattice, interactions, d_energy, d_offset_lattice, nx, ny, num_lattices);    
-// }
-
-// void h_calc_energy_periodic_boundary(int blcks, int thrds, signed char *lattice, signed char *interactions, int *d_energy, int *d_offset_lattice, const int nx, const int ny, const int num_lattices){
-//     calc_energy_open_boundary<<<blcks, thrds>>>(lattice, interactions, d_energy, d_offset_lattice, nx, ny, num_lattices);    
-// }
-
-
 __global__ void wang_landau_pre_run(
-    signed char *d_lattice, signed char *d_interactions, int *d_energy, unsigned long long *d_H, unsigned long long* d_iter, int *d_found_interval,
+    signed char *d_lattice, signed char *d_interactions, int *d_energy, unsigned long long *d_H, unsigned long long* d_iter, int *d_offset_lattice, int *d_found_interval,
     signed char *d_store_lattice, const int E_min, const int E_max, const int num_iterations, const int nx, const int ny, 
-    const int seed, const int len_interval, const int found_interval, const int num_walker, const int num_interval
+    const int seed, const int len_interval, const int found_interval, const int num_walker, const int num_interval, int boundary_type
     ){
     
     long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
@@ -491,47 +494,29 @@ __global__ void wang_landau_pre_run(
     
     for (int it = 0; it < num_iterations; it++){
 
-        double randval = curand_uniform(&st);
-        randval *= (nx*ny - 1 + 0.999999);
-        int random_index = (int)trunc(randval);
+        RBIM result = rbim_func_map[boundary_type](d_lattice, d_interactions, d_energy, d_offset_lattice, d_iter, &st, tid, nx, ny);
+        // RBIM result = open_boundary_random_bond_ising(d_lattice, d_interactions, d_energy, d_offset_lattice, d_iter, &st, tid, nx, ny);
 
-        d_iter[tid] += 1;
-
-        int i = random_index/ny;
-        int j = random_index % ny;
-
-        // Set up periodic boundary conditions
-        int ipp = (i + 1 < nx) ? i + 1 : 0;
-        int inn = (i - 1 >= 0) ? i - 1: nx - 1;
-        int jpp = (j + 1 < ny) ? j + 1 : 0;
-        int jnn = (j - 1 >= 0) ? j - 1: ny - 1; 
-
-        // Nochmal checken
-        signed char energy_diff = -2 * d_lattice[offset_lattice + i*ny +j]*(d_lattice[offset_lattice + inn*ny + j]*d_interactions[nx*ny + inn*ny + j] + d_lattice[offset_lattice + i*ny + jnn]*d_interactions[i*ny + jnn]
-                                                                    + d_lattice[offset_lattice + ipp*ny + j]*d_interactions[nx*ny + i*ny + j] + d_lattice[offset_lattice + i*ny + jpp]*d_interactions[i*ny + j]);
-
-        int d_new_energy = d_energy[tid] + energy_diff; 
+        int d_new_energy = result.new_energy;
 
         int index_old = d_energy[tid] - E_min;
         
         if (d_new_energy > E_max || d_new_energy < E_min){
             printf("Iterator %d \n", it);
             printf("Thread Id %lld \n", tid);
-            printf("Randval %f \n", randval);
             printf("Energy out of range %d \n", d_new_energy);
             printf("Old energy %d \n", d_energy[tid]);
             assert(0);
             return;
         }
         else{
-            
             int index_new = d_new_energy - E_min;
 
             double prob = exp(static_cast<double>(d_H[index_old]) - static_cast<double>(d_H[index_new]));
 
             if(curand_uniform(&st) < prob){
 
-                d_lattice[offset_lattice + i*ny +j] *= -1;
+                d_lattice[offset_lattice + result.i*ny +result.j] *= -1;
                 d_energy[tid] = d_new_energy;
                 d_iter[tid] += 1;
 
@@ -916,7 +901,7 @@ __global__ void wang_landau(
     signed char *d_lattice, signed char *d_interactions, int *d_energy, int *d_start, int *d_end, unsigned long long *d_H, 
     double *d_logG, int *d_offset_histogramm, int *d_offset_lattice, const int num_iterations, const int nx, const int ny, 
     const int seed, double *factor, unsigned long long *d_offset_iter, int *d_expected_energy_spectrum, int *d_newEnergies, int *foundFlag, 
-    const int num_lattices, const double beta, signed char* d_cond
+    const int num_lattices, const double beta, signed char* d_cond, int boundary_type
     ){
 
     long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
@@ -932,7 +917,8 @@ __global__ void wang_landau(
 
         for (int it = 0; it < num_iterations; it++){
 
-            RBIM result = periodic_boundary_random_bond_ising(d_lattice, d_interactions, d_energy, d_offset_lattice, d_offset_iter, &st, tid, nx, ny);
+
+            RBIM result = rbim_func_map[boundary_type](d_lattice, d_interactions, d_energy, d_offset_lattice, d_offset_iter, &st, tid, nx, ny);
 
             // If no new energy is found, set it to 0, else to tid + 1
             foundFlag[tid] = (d_expected_energy_spectrum[result.new_energy - d_start[0]] == 1) ? 0 : tid + 1;

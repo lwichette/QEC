@@ -1,0 +1,41 @@
+#!/bin/bash
+
+#SBATCH --job-name=WL-main
+
+#SBATCH --partition=qc
+#SBATCH --account=quxki
+
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=mabe09@dfki.de
+
+#SBATCH --time=7-00:00:00
+
+#SBATCH --exclude=qcnode01
+
+#SBATCH -N 1
+#SBATCH --mem=18G
+#SBATCH --cpus-per-task=6
+#SBATCH --gres=gpu:1
+
+num_lines=$(awk 'END{print NR}' configs/prerun.txt)
+#SBATCH --array=1-${num_lines}
+
+#SBATCH -D /mnt/beegfs/data/QuDA-KI/qec
+
+config=configs/prerun.txt
+
+X=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $2}' $config)
+Y=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $3}' $config)
+p=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $4}' $config)
+num_iterations=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $5}' $config)
+loops=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $6}' $config)
+walker=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $7}' $config)
+seed=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $8}' $config)
+intervals=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $9}' $config)
+error=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $10}' $config)
+boundary=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $11}' $config)
+
+singularity exec --home /mnt/beegfs/data/QuDA-KI/qec/WangLandau --nv /mnt/beegfs/public/images/boost.sif /bin/bash -c "
+make prerun \
+&& ./prerun -x ${X} -y ${Y} -p ${p} -n ${num_iterations} -l ${loops} -w ${walker} -s ${seed} -i ${intervals} -e ${error} -b ${boundary} \
+&& make clean"

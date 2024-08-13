@@ -151,19 +151,7 @@ int main(int argc, char **argv){
     
     cudaDeviceSynchronize();
 
-    switch (boundary_type) {
-        case 1: // Open boundary
-            calc_energy_open_boundary<<<BLOCKS_ENERGY, THREADS>>>(d_lattice, d_interactions, d_energy, d_offset_lattice_per_walker, X, Y, num_walker);
-            break;
-
-        case 0: // Periodic boundary
-            calc_energy_periodic_boundary<<<BLOCKS_ENERGY, THREADS>>>(d_lattice, d_interactions, d_energy, d_offset_lattice_per_walker, X, Y, num_walker);
-            break;
-
-        default:
-            printf("Invalid boundary type!\n");
-            break;
-    }
+    calc_energy(BLOCKS_ENERGY, THREADS, boundary_type, d_lattice, d_interactions, d_energy, d_offset_lattice_per_walker, X, Y, num_walker);
     
     cudaDeviceSynchronize();
 
@@ -183,20 +171,9 @@ int main(int argc, char **argv){
         }
     }
 
+    calc_energy(BLOCKS_INTERVAL, THREADS, boundary_type, d_store_lattice, d_interactions, d_interval_energies, d_offset_lattice_per_interval, X, Y, num_intervals);
 
-    switch (boundary_type) {
-        case 1: // Open boundary
-            calc_energy_open_boundary<<<BLOCKS_INTERVAL, THREADS>>>(d_store_lattice, d_interactions, d_interval_energies, d_offset_lattice_per_interval, X, Y, num_intervals);
-            break;
-
-        case 0: // Periodic boundary
-            calc_energy_periodic_boundary<<<BLOCKS_INTERVAL, THREADS>>>(d_store_lattice, d_interactions, d_interval_energies, d_offset_lattice_per_interval, X, Y, num_intervals);
-            break;
-
-        default:
-            printf("Invalid boundary type!\n");
-            break;
-    }
+    cudaDeviceSynchronize();
 
     std::vector<int> h_interval_energies(num_intervals);
     CHECK_CUDA(cudaMemcpy(h_interval_energies.data(), d_interval_energies, num_intervals*sizeof(*d_interval_energies), cudaMemcpyDeviceToHost));
@@ -204,7 +181,6 @@ int main(int argc, char **argv){
     for (int i=0; i < num_intervals; i++){
         std::cout << h_interval_energies[i] << std::endl;
     }
-
 
     std::string boundary = (boundary_type == 0) ? "periodic" : "open";
 

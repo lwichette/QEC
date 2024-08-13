@@ -46,7 +46,6 @@ int main(int argc, char **argv){
     CHECK_CUDA(cudaMemcpy(d_start, interval_result.h_start.data(), options.num_intervals * sizeof(*d_start), cudaMemcpyHostToDevice));
     CHECK_CUDA(cudaMemcpy(d_end, interval_result.h_end.data(), options.num_intervals * sizeof(*d_start), cudaMemcpyHostToDevice));
 
-
     // Histogramm and G array
     unsigned long long *d_H;
     CHECK_CUDA(cudaMalloc(&d_H, interval_result.len_histogram_over_all_walkers * sizeof(*d_H)));
@@ -128,7 +127,6 @@ int main(int argc, char **argv){
     std::vector<signed char> h_interactions;
     read(h_interactions, interaction_file);
     CHECK_CUDA(cudaMemcpy(d_interactions, h_interactions.data(), options.X * options.Y * 2 * sizeof(*d_interactions), cudaMemcpyHostToDevice));
-    
     
     std::vector<signed char> h_lattice = get_lattice_with_pre_run_result(options.prob_interactions, options.seed_histogram, options.X, options.Y, interval_result.h_start, interval_result.h_end, options.num_intervals, num_walker_total, options.walker_per_interval, options.logical_error_type, options.boundary_type);
     CHECK_CUDA(cudaMemcpy(d_lattice, h_lattice.data(), num_walker_total * options.X * options.Y * sizeof(*d_lattice), cudaMemcpyHostToDevice));

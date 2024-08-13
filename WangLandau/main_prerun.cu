@@ -114,8 +114,8 @@ int main(int argc, char **argv){
     CHECK_CUDA(cudaMalloc(&d_lattice, num_walker * X * Y * sizeof(*d_lattice)));
 
     float *d_probs;
-    CHECK_CUDA(cudaMalloc(&d_probs, num_intervals * sizeof(*d_probs)));
-    CHECK_CUDA(cudaMemset(d_probs, 0, num_intervals*sizeof(*d_probs)));
+    CHECK_CUDA(cudaMalloc(&d_probs, num_walker * sizeof(*d_probs)));
+    CHECK_CUDA(cudaMemset(d_probs, 0, num_walker*sizeof(*d_probs)));
     
     signed char* d_interactions;
     CHECK_CUDA(cudaMalloc(&d_interactions, X * Y * 2 * sizeof(*d_interactions)));

@@ -470,10 +470,7 @@ __global__ void calc_energy_open_boundary(signed char *lattice, signed char *int
              energy += s_ij * (s_up * interactions[inn] + s_left * interactions[jnn]);
         }
     }
-    if(tid==0)
-        {
-            printf("E=%d\n", energy);
-        }
+
     d_energy[tid] = energy;
 }
 

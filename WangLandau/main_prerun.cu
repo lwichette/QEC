@@ -182,7 +182,6 @@ int main(int argc, char **argv){
         std::cout << h_interval_energies[i] << std::endl;
     }
 
-
     std::string boundary = (boundary_type == 0) ? "periodic" : "open";
 
     std::string path = "init/" +  boundary  + "/prob_" + std::to_string(prob_interactions) + "/X_" + std::to_string(X) + "_Y_" + std::to_string(Y) + "/seed_" + std::to_string(seed) + "/error_class_" + logical_error_type;

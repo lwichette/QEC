@@ -470,10 +470,7 @@ __global__ void calc_energy_open_boundary(signed char *lattice, signed char *int
              energy += s_ij * (s_up * interactions[inn] + s_left * interactions[jnn]);
         }
     }
-    if(tid==0)
-        {
-            printf("E=%d\n", energy);
-        }
+
     d_energy[tid] = energy;
 }
 
@@ -1011,5 +1008,22 @@ __global__ void print_finished_walker_ratio(double *d_factor, int num_walker_tot
         double ratio_of_finished_walkers = (double)shared_count[0] / num_walker_total;
         printf("ratio of finished walkers: %f\n", ratio_of_finished_walkers);
         d_finished_walkers_ratio[0] = ratio_of_finished_walkers;
+    }
+}
+
+
+void calc_energy(int blocks, int threads, const int boundary_type, signed char *lattice, signed char *interactions, int *d_energy, int *d_offset_lattice, const int nx, const int ny, const int num_lattices) {
+    switch (boundary_type) {
+        case 1: // Open boundary
+            calc_energy_open_boundary<<<blocks, threads>>>(lattice, interactions, d_energy, d_offset_lattice, nx, ny, num_lattices);
+            break;
+
+        case 0: // Periodic boundary
+            calc_energy_periodic_boundary<<<blocks, threads>>>(lattice, interactions, d_energy, d_offset_lattice, nx, ny, num_lattices);
+            break;
+
+        default:
+            printf("Invalid boundary type!\n");
+            break;
     }
 }

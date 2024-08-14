@@ -216,58 +216,6 @@ int main(int argc, char **argv){
         iterator += 1;
     }
 
-    /*
-    ---------------------------------------------
-    --------------Post Processing ---------------
-    ---------------------------------------------
-    */
+    result_handling(options, interval_result, d_logG);
 
-    std::vector<double> h_log_density_per_walker(interval_result.len_histogram_over_all_walkers);
-    CHECK_CUDA(cudaMemcpy(h_log_density_per_walker.data(), d_logG, interval_result.len_histogram_over_all_walkers * sizeof(*d_logG), cudaMemcpyDeviceToHost));
-
-    std::ofstream f_log_density;
-
-    std::string boundary = (options.boundary_type == 0) ? "periodic" : "open";
-
-    std::stringstream result_directory;
-    result_directory << "results/" << boundary << "/prob_" << std::fixed << std::setprecision(6) << options.prob_interactions
-       << "/X_" << options.X
-       << "_Y_" << options.Y
-       << "/seed_" << options.seed_histogram
-        << "/error_class_" << options.logical_error_type;
-
-    create_directory(result_directory.str());
-
-    result_directory << "/intervals_" << options.num_intervals
-       << "_iterations_" << options.num_iterations
-       << "_overlap_" << options.overlap_decimal
-       << "_walkers_" << options.walker_per_interval
-       << "_seed_run_" << options.seed_run
-       << "_alpha_" << options.alpha
-       << "_beta_"  << std::fixed << std::setprecision(10) << options.beta
-       << ".txt";
-
-    f_log_density.open(result_directory.str());
-
-    int index_h_log_g = 0;
-    if (f_log_density.is_open()){
-        for (int i = 0; i < options.num_intervals; i++){
-
-            int start_energy = interval_result.h_start[i];
-            int end_energy = interval_result.h_end[i];
-            int len_int = interval_result.h_end[i] - interval_result.h_start[i] + 1;
-
-            for (int j = 0; j < options.walker_per_interval; j++)
-            {
-                for (int k = 0; k < len_int; k++)
-                {
-                    f_log_density << (int)interval_result.h_start[i] + k << " : " << (float)h_log_density_per_walker[index_h_log_g] << " ,";
-                    index_h_log_g += 1;
-                }
-                f_log_density << std::endl;
-            }
-        }
-
-    }
-    f_log_density.close();
 }

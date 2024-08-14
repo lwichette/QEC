@@ -76,6 +76,8 @@ void handleNewEnergyError(int *new_energies, int *new_energies_flag, char *histo
 
 void calc_energy(int blocks, int threads, const int boundary_type, signed char *lattice, signed char *interactions, int *d_energy, int *d_offset_lattice, const int nx, const int ny, const int num_lattices);
 
+void result_handling(Options options, IntervalResult interval_result, double *d_logG);
+
 char *constructFilePath(float prob_interactions, int X, int Y, int seed, std::string type, char error_class, int boundary_type);
 
 std::vector<signed char> get_lattice_with_pre_run_result(float prob, int seed, int x, int y, std::vector<int> h_start, std::vector<int> h_end, int num_intervals, int num_walkers_total, int num_walkers_per_interval, char error_class, int boundary_type);

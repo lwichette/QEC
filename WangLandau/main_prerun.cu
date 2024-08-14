@@ -88,7 +88,6 @@ int main(int argc, char **argv){
         }
     }
 
-
     double factor = std::exp(1);
 
     const int E_min = -2*X*Y;
@@ -96,6 +95,8 @@ int main(int argc, char **argv){
 
     IntervalResult interval_result = generate_intervals(E_min, E_max, num_intervals, 1, 1.0f);
 
+    std::cout << "Intervals for the run" << std::endl;
+  
     for (int i=0; i< num_intervals; i++){
         std::cout << interval_result.h_start[i] << " " << interval_result.h_end[i] << std::endl;
     }
@@ -177,10 +178,6 @@ int main(int argc, char **argv){
 
     std::vector<int> h_interval_energies(num_intervals);
     CHECK_CUDA(cudaMemcpy(h_interval_energies.data(), d_interval_energies, num_intervals*sizeof(*d_interval_energies), cudaMemcpyDeviceToHost));
-
-    for (int i=0; i < num_intervals; i++){
-        std::cout << h_interval_energies[i] << std::endl;
-    }
 
     std::string boundary = (boundary_type == 0) ? "periodic" : "open";
 

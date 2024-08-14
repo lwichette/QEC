@@ -166,7 +166,7 @@ void write(
             }
 
             std::string file_suffix = (energies.empty()) ? std::to_string(l) : std::to_string(energies[l]);
-            writeToFile(filename + "_" + std::to_string(l) + "_" + file_suffix + ".txt", array_host.data() + offset, nx_w, ny);
+            writeToFile(filename + "_" + file_suffix + ".txt", array_host.data() + offset, nx_w, ny);
         }
     }
 

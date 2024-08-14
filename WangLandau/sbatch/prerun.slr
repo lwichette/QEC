@@ -1,12 +1,14 @@
 #!/bin/bash
 
-#SBATCH --job-name=WL-main
+#SBATCH --job-name=WL-prerun
 
 #SBATCH --partition=qc
 #SBATCH --account=quxki
 
-#SBATCH --mail-type=ALL
-#SBATCH --mail-user=mabe09@dfki.de
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=mbeuerle@uni-bremen.de
+
+#SBATCH --output=/mnt/beegfs/data/QuDA-KI/qec/WangLandau/slurm/slurm_%j.out   # Standard output file
 
 #SBATCH --time=7-00:00:00
 
@@ -17,10 +19,7 @@
 #SBATCH --cpus-per-task=6
 #SBATCH --gres=gpu:1
 
-num_lines=$(awk 'END{print NR}' configs/prerun.txt)
-#SBATCH --array=1-${num_lines}
-
-#SBATCH -D /mnt/beegfs/data/QuDA-KI/qec
+#SBATCH -D /mnt/beegfs/data/QuDA-KI/qec/WangLandau
 
 config=configs/prerun.txt
 
@@ -36,6 +35,8 @@ error=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $10}' $c
 boundary=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $11}' $config)
 
 singularity exec --home /mnt/beegfs/data/QuDA-KI/qec/WangLandau --nv /mnt/beegfs/public/images/boost.sif /bin/bash -c "
-make prerun \
-&& ./prerun -x ${X} -y ${Y} -p ${p} -n ${num_iterations} -l ${loops} -w ${walker} -s ${seed} -i ${intervals} -e ${error} -b ${boundary} \
-&& make clean"
+make prerun ID=$SLURM_ARRAY_TASK_ID \
+&& echo 'Running prerun with the following parameters:' \
+&& echo -x ${X} -y ${Y} -p ${p} -n ${num_iterations} -l ${loops} -w ${walker} -s ${seed} -i ${intervals} -e ${error} -b ${boundary} \
+&& ./prerun_$SLURM_ARRAY_TASK_ID -x ${X} -y ${Y} -p ${p} -n ${num_iterations} -l ${loops} -w ${walker} -s ${seed} -i ${intervals} -e ${error} -b ${boundary} \
+&& make clean ID=$SLURM_ARRAY_TASK_ID"

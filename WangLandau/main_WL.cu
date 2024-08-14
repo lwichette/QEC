@@ -159,10 +159,9 @@ int main(int argc, char **argv){
     int max_newEnergyFlag = 0;
 
     int block_count = (interval_result.len_histogram_over_all_walkers + max_threads_per_block - 1) / max_threads_per_block;
-    int iterator = 0;
 
     while (max_factor > exp(options.beta)){
-        printf("Max Factor %8f iterator %d \n", max_factor, iterator);
+        printf("Max Factor %8f \n", max_factor);
 
         wang_landau<<<options.num_intervals, options.walker_per_interval>>>(d_lattice, d_interactions, d_energy, d_start, d_end, d_H, d_logG, d_offset_histogramm, d_offset_lattice, options.num_iterations, options.X, options.Y, options.seed_run, d_factor, d_offset_iter, d_expected_energy_spectrum, d_newEnergies, d_foundNewEnergyFlag, num_walker_total, options.beta, d_cond, options.boundary_type);
         cudaDeviceSynchronize(); 
@@ -213,7 +212,6 @@ int main(int argc, char **argv){
         replica_exchange<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, d_energy, d_start, d_end, d_indices, d_logG, d_offset_histogramm, false, options.seed_run, d_offset_iter);
         cudaDeviceSynchronize();
 
-        iterator += 1;
     }
 
     /*

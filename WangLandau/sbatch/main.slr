@@ -5,8 +5,10 @@
 #SBATCH --partition=qc
 #SBATCH --account=quxki
 
-#SBATCH --mail-type=ALL
-#SBATCH --mail-user=mabe09@dfki.de
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=mbeuerle@uni-bremen.de
+
+#SBATCH --output=/mnt/beegfs/data/QuDA-KI/qec/WangLandau/slurm/slurm_%j.out   # Standard output file
 
 #SBATCH --time=7-00:00:00
 
@@ -17,10 +19,7 @@
 #SBATCH --cpus-per-task=6
 #SBATCH --gres=gpu:1
 
-num_lines=$(awk 'END{print NR}' configs/main.txt)
-#SBATCH --array=1-${num_lines}
-
-#SBATCH -D /mnt/beegfs/data/QuDA-KI/qec
+#SBATCH -D /mnt/beegfs/data/QuDA-KI/qec/WangLandau
 
 config=configs/main.txt
 
@@ -39,9 +38,11 @@ error=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $13}' $c
 boundary=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $14}' $config)
 
 singularity exec --home /mnt/beegfs/data/QuDA-KI/qec/WangLandau --nv /mnt/beegfs/public/images/boost.sif /bin/bash -c "
-make wl \
-&& ./wl -x ${X} -y ${Y} -n ${num_iterations} -p ${p} -a ${alpha} -b ${beta} -i ${intervals} -w ${walker} -o ${overlap} -h ${seed_hist} -r ${seed_run} -e ${error} -b ${boundary} \
-&& make clean"
+make wl ID=$SLURM_ARRAY_TASK_ID \
+&& echo 'Running main with the following params.' \
+&& echo -x ${X} -y ${Y} -n ${num_iterations} -p ${p} -a ${alpha} -b ${beta} -i ${intervals} -w ${walker} -o ${overlap} -h ${seed_hist} -s ${seed_run} -e ${error} -t ${boundary} \
+&& ./wl_$SLURM_ARRAY_TASK_ID -x ${X} -y ${Y} -n ${num_iterations} -p ${p} -a ${alpha} -b ${beta} -i ${intervals} -w ${walker} -o ${overlap} -h ${seed_hist} -s ${seed_run} -e ${error} -t ${boundary} \
+&& make clean ID=$SLURM_ARRAY_TASK_ID"
 
 
 

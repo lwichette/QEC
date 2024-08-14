@@ -5,13 +5,15 @@ LD=$(CUDACC)
 LDFLAGS=-lcurand
 LBOOSTFLAGS=-lboost_program_options
 
+ID ?= -10
+
 all: wl prerun
 
 wl: main_WL.cu
-	$(CUDACC) $(NVCC_FLAGS) ./header/wlutils.cu main_WL.cu -o wl $(LDFLAGS) $(LBOOSTFLAGS)
+	$(CUDACC) $(NVCC_FLAGS) ./header/wlutils.cu main_WL.cu -o wl_$(ID) $(LDFLAGS) $(LBOOSTFLAGS)
 
 prerun: main_prerun.cu
-	$(CUDACC) $(NVCC_FLAGS) ./header/wlutils.cu main_prerun.cu -o prerun $(LDFLAGS) $(LBOOSTFLAGS)
+	$(CUDACC) $(NVCC_FLAGS) ./header/wlutils.cu main_prerun.cu -o prerun_$(ID) $(LDFLAGS) $(LBOOSTFLAGS)
 
 clean:
-	rm -f wl prerun
+	rm -f wl_$(ID) prerun_$(ID)

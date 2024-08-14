@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import re
 
 def read_data_from_file(filename):
 
@@ -151,8 +152,8 @@ def rescale_results_for_concatenation(results_x, results_y, minimum_deviation_en
     return
 
 def main():
-    filename =  'results/prob_0.100000/X_8_Y_8/seed_42/intervals_10_iterations_10000_overlap_0.250000_walkers_3_alpha_0.800000_beta_0.0000000100.txt'
-    walker_results = read_data_from_file(filename) 
+    file_name =  'results/periodic/prob_0.000000/X_12_Y_12/seed_42/error_class_I/intervals_20_iterations_10000_overlap_0.250000_walkers_8_seed_run_42_alpha_0.800000_beta_0.0000000100.txt'
+    walker_results = read_data_from_file(file_name) 
 
     """normalize the walker results by min value for log results"""
     walker_results = get_renormalized_log_g_values_as_dict_list(walker_results)
@@ -180,9 +181,11 @@ def main():
     for i in range(len(results_x)):
         plot_data(results_x[i], results_y[i], color=colors[i % len(colors)])
     plt.xlabel('E')
-    plt.ylabel('log(g)/Z')
-    #plt.show()
-    plt.savefig("BLIBLABLUB.png")
+    plt.ylabel('log(g)')
+
+    # arg parsing from result name to constrcut plot name
+    args_string = file_name.split("results/periodic/")[1].split(".txt")[0].replace("/", "_")
+    plt.savefig(f"logPlot_{args_string}.png")
 
 
 if __name__ == '__main__':

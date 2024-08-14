@@ -12,6 +12,19 @@ To Do:
     - update histogram not working 
 */
 
+__global__ void check_energy(int *d_energy, int *d_check_energy, int num_walker_total, int iterator){
+    long long tid = threadIdx.x + blockIdx.x * blockDim.x;
+
+    if (tid >= num_walker_total) return;
+
+    if (d_energy[tid] != d_check_energy[tid]){
+        printf("Energy in blockId %d and walkerId %d is mismatching at iterator %d with energywl %d and energycalc %d\n", blockIdx.x, threadIdx.x, iterator, d_energy[tid], d_check_energy[tid]);
+        assert(0);
+    }
+
+    return;
+}
+
 int main(int argc, char **argv){
 
     // Get the device properties
@@ -151,20 +164,8 @@ int main(int argc, char **argv){
     while (max_factor > exp(options.beta)){
         printf("Max Factor %8f iterator %d \n", max_factor, iterator);
 
-        if (iterator == 943991){
-            std::vector<int> h_energy(num_walker_total);
-            CHECK_CUDA(cudaMemcpy(h_energy.data(), d_energy, num_walker_total*sizeof(*d_energy), cudaMemcpyDeviceToHost));
-            write(d_lattice, "error/lattice_before", options.X, options.Y, num_walker_total, true, h_energy);
-        }
-
         wang_landau<<<options.num_intervals, options.walker_per_interval>>>(d_lattice, d_interactions, d_energy, d_start, d_end, d_H, d_logG, d_offset_histogramm, d_offset_lattice, options.num_iterations, options.X, options.Y, options.seed_run, d_factor, d_offset_iter, d_expected_energy_spectrum, d_newEnergies, d_foundNewEnergyFlag, num_walker_total, options.beta, d_cond, options.boundary_type);
         cudaDeviceSynchronize(); 
-
-        if (iterator == 943991){
-            std::vector<int> h_energy(num_walker_total);
-            CHECK_CUDA(cudaMemcpy(h_energy.data(), d_energy, num_walker_total*sizeof(*d_energy), cudaMemcpyDeviceToHost));
-            write(d_lattice, "error/lattice_after", options.X, options.Y, num_walker_total, true, h_energy);
-        }
 
         // get max of found new energy flag array to condition break and update the histogramm file with value in new energy array
         thrust::device_ptr<int> d_newEnergyFlag_ptr(d_foundNewEnergyFlag);
@@ -206,11 +207,12 @@ int main(int argc, char **argv){
         //     std::cout << h_offset_lattice[i] << " " << h_energy[i] << std::endl;
         // }
 
-        // replica_exchange<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, d_energy, d_start, d_end, d_indices, d_logG, d_offset_histogramm, true, options.seed_run, d_offset_iter);
-        // cudaDeviceSynchronize();
+        replica_exchange<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, d_energy, d_start, d_end, d_indices, d_logG, d_offset_histogramm, true, options.seed_run, d_offset_iter);
+        cudaDeviceSynchronize();
 
-        // replica_exchange<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, d_energy, d_start, d_end, d_indices, d_logG, d_offset_histogramm, false, options.seed_run, d_offset_iter);
-        // cudaDeviceSynchronize();
+        replica_exchange<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, d_energy, d_start, d_end, d_indices, d_logG, d_offset_histogramm, false, options.seed_run, d_offset_iter);
+        cudaDeviceSynchronize();
+
         iterator += 1;
     }
 

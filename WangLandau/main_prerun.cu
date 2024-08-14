@@ -157,7 +157,7 @@ int main(int argc, char **argv){
     cudaDeviceSynchronize();
 
     int found_interval = 0;
-
+    
     for (int i=0; i < num_wl_loops; i++){
         if (i % 100 == 0) printf("Num wl loop: %d \n", i);
 

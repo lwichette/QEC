@@ -2,7 +2,7 @@
 #include "cudamacro.h"
 
 __device__  RBIM (*rbim_func_map[]) (signed char *, signed char *, int *, int *, unsigned long long *, 
-    curandStatePhilox4_32_10_t *, const long long , const int , const int ) = {periodic_boundary_random_bond_ising, open_boundary_random_bond_ising};
+    curandStatePhilox4_32_10_t *, const long long , const int , const int) = {periodic_boundary_random_bond_ising, open_boundary_random_bond_ising};
 
 void parse_args(int argc, char *argv[], Options *options)
 {
@@ -80,6 +80,8 @@ void parse_args(int argc, char *argv[], Options *options)
             exit(EXIT_FAILURE);
         }
     }
+    
+    return;
 }
 
 IntervalResult generate_intervals(const int E_min, const int E_max, int num_intervals, int num_walker, float overlap_decimal)
@@ -136,6 +138,8 @@ void writeToFile(const std::string& filename, const signed char* data, int nx_w,
         std::cerr << "Error opening file: " << filename << std::endl;
     }
     file.close();
+
+    return;
 }
 
 void write(
@@ -165,6 +169,8 @@ void write(
             writeToFile(filename + "_" + std::to_string(l) + "_" + file_suffix + ".txt", array_host.data() + offset, nx_w, ny);
         }
     }
+
+    return;
 }
 
 void create_directory(std::string path){
@@ -178,6 +184,8 @@ void create_directory(std::string path){
     } else {
         std::cout << "Directory already exists: " << path << std::endl;
     }
+
+    return;
 }
 
 void write_histograms(unsigned long long *d_H, std::string path_histograms, int len_histogram, int seed, int E_min){
@@ -202,6 +210,8 @@ void write_histograms(unsigned long long *d_H, std::string path_histograms, int 
             }
         }
     }
+
+    return;
 }
 
 int read_histogram(const char *filename, std::vector<int> &h_expected_energy_spectrum, int *E_min, int *E_max){
@@ -254,6 +264,8 @@ void read(std::vector<signed char> &lattice, std::string filename)
     while (inputFile >> spin){
         lattice.push_back(static_cast<signed char>(spin));
     }
+
+    return;
 }
 
 // It is important that the format of the histogramm file is like energy: count such that we can append a row with new_energy: 1
@@ -282,6 +294,8 @@ void handleNewEnergyError(int *new_energies, int *new_energies_flag, char *histo
 
     // Close the file
     outfile.close();
+
+    return;
 }
 
 char *constructFilePath(float prob_interactions, int X, int Y, int seed, std::string type, char error_class, int boundary_type)
@@ -375,6 +389,8 @@ __global__ void init_lattice(signed char* lattice, float *d_probs, const int nx,
     signed char val = (randval < d_probs[lattice_id]) ? -1 : 1;
 
     lattice[tid] = val;
+
+    return;
 }
 
 __global__ void init_interactions(signed char* interactions, const int nx, const int ny, const int num_lattices, const int seed, const double prob, const char logical_error_type){
@@ -425,6 +441,8 @@ __global__ void init_interactions(signed char* interactions, const int nx, const
             interactions[tid] *= -1;
         } 
     }
+
+    return;
 }
 
 __global__ void calc_energy_periodic_boundary(signed char *lattice, signed char *interactions, int *d_energy, int *d_offset_lattice, const int nx, const int ny, const int num_lattices){
@@ -446,6 +464,8 @@ __global__ void calc_energy_periodic_boundary(signed char *lattice, signed char 
     }
 
     d_energy[tid] = energy;
+
+    return;
 }
 
 __global__ void calc_energy_open_boundary(signed char *lattice, signed char *interactions, int *d_energy, int *d_offset_lattice, const int nx, const int ny, const int num_lattices){
@@ -472,7 +492,10 @@ __global__ void calc_energy_open_boundary(signed char *lattice, signed char *int
     }
 
     d_energy[tid] = energy;
+
+    return;
 }
+
 
 __global__ void wang_landau_pre_run(
     signed char *d_lattice, signed char *d_interactions, int *d_energy, unsigned long long *d_H, unsigned long long* d_iter, int *d_offset_lattice, int *d_found_interval,
@@ -527,6 +550,8 @@ __global__ void wang_landau_pre_run(
             }
         }
     }
+
+    return;
 }
 
 __global__ void find_spin_config_in_energy_range(signed char *d_lattice, signed char *d_interactions, const int nx, const int ny, const int num_lattices, const int seed, int *d_start, int *d_end, int *d_energy, int *d_offset_lattice)
@@ -566,6 +591,8 @@ __global__ void find_spin_config_in_energy_range(signed char *d_lattice, signed 
             d_lattice[d_offset_lattice[tid] + i * ny + j] *= -1;
         }
     }
+
+    return;
 }
 
 __global__ void check_energy_ranges(int *d_energy, int *d_start, int *d_end)
@@ -581,6 +608,8 @@ __global__ void check_energy_ranges(int *d_energy, int *d_start, int *d_end)
     }
 
     assert(check);
+
+    return;
 }
 
 __device__ void fisher_yates(int *d_shuffle, int seed, unsigned long long *d_offset_iter)
@@ -603,6 +632,8 @@ __device__ void fisher_yates(int *d_shuffle, int seed, unsigned long long *d_off
         d_shuffle[offset + i] = d_shuffle[offset + random_index];
         d_shuffle[offset + random_index] = temp;
     }
+
+    return;
 }
 
 __device__ void store_lattice(
@@ -629,6 +660,8 @@ __global__ void init_indices(int *d_indices)
     long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
 
     d_indices[tid] = threadIdx.x;
+
+    return;
 }
 
 __global__ void init_offsets_histogramm(int *d_offset_histogramm, int *d_start, int *d_end)
@@ -645,6 +678,8 @@ __global__ void init_offsets_histogramm(int *d_offset_histogramm, int *d_start, 
     {
         d_offset_histogramm[tid] = tid * (d_end[0] - d_start[0] + 1);
     }
+
+    return;
 }
 
 __global__ void init_offsets_lattice(int *d_offset_lattice, int nx, int ny, int num_lattices)
@@ -654,6 +689,8 @@ __global__ void init_offsets_lattice(int *d_offset_lattice, int nx, int ny, int 
     if (tid>=num_lattices) return;
 
     d_offset_lattice[tid] = tid * nx * ny;
+
+    return;
 }
 
 __global__ void replica_exchange(
@@ -698,6 +735,8 @@ __global__ void replica_exchange(
     }
     
     d_offset_iter[tid] += 1;
+
+    return;
 }
 
 __global__ void check_histogram(unsigned long long *d_H, double *d_log_G, double *d_shared_logG, int *d_offset_histogramm, int *d_end, int *d_start, double *d_factor, int nx, int ny, double alpha, double beta, int *d_expected_energy_spectrum, int len_energy_spectrum, int num_walker_total, signed char* d_cond){
@@ -759,6 +798,8 @@ __global__ void check_histogram(unsigned long long *d_H, double *d_log_G, double
         
         d_factor[tid] = sqrt(d_factor[tid]);
     }
+    
+    return;
 }
 
 
@@ -786,6 +827,8 @@ __global__ void calc_average_log_g(int num_intervals, long long len_histogram_ov
             atomicAdd(&d_shared_logG[intervalId*len_first_interval + energyId], d_log_G[tid]/num_walker_per_interval);   
         }  
     }
+    
+    return;
 }
 
 __global__ void redistribute_g_values(int num_intervals, long long len_histogram_over_all_walkers, int num_walker_per_interval,  double *d_log_G, double *d_shared_logG, int *d_end, int *d_start, double *d_factor, double beta, int *d_expected_energy_spectrum, signed char *d_cond){
@@ -822,6 +865,8 @@ __global__ void redistribute_g_values(int num_intervals, long long len_histogram
             d_log_G[tid] = d_shared_logG[intervalId*len_first_interval + energyId];
         }  
     }
+
+    return;
 }
 
 __device__ RBIM periodic_boundary_random_bond_ising(
@@ -877,9 +922,6 @@ __device__ RBIM open_boundary_random_bond_ising(
         int c_right = (j == (ny-1)) ? 0 : 1;
         int c_left = (j == 0) ? 0 : 1;
         
-        // if ((i==0 && j==0) || (i==0 && j==(ny-1)) || (i==(nx-1) && j==0) || (i==(nx-1) && j==(ny-1))){
-        //     printf("i %d, j %d c_up %d, c_down %d , c_right %d, c_left %d \n", i, j, c_up, c_down, c_right, c_left);
-        // }
 
         signed char energy_diff = -2 * d_lattice[d_offset_lattice[tid] + i * ny + j] * (
             c_up * d_lattice[d_offset_lattice[tid] + inn * ny + j] * d_interactions[nx * ny + inn * ny + j] + 
@@ -917,12 +959,7 @@ __global__ void wang_landau(
 
         for (int it = 0; it < num_iterations; it++){
 
-
             RBIM result = rbim_func_map[boundary_type](d_lattice, d_interactions, d_energy, d_offset_lattice, d_offset_iter, &st, tid, nx, ny);
-
-            if (result.new_energy == -192){
-                printf("blockID %d threadIdx.x %d it %d i %d j %d \n", blockId, threadIdx.x, it, result.i, result.j);
-            }
 
             // If no new energy is found, set it to 0, else to tid + 1
             foundFlag[tid] = (d_expected_energy_spectrum[result.new_energy - d_start[0]] == 1) ? 0 : tid + 1;
@@ -964,7 +1001,7 @@ __global__ void wang_landau(
     else{
         for (int it = 0; it < num_iterations; it++){
 
-            RBIM result = periodic_boundary_random_bond_ising(d_lattice, d_interactions, d_energy, d_offset_lattice, d_offset_iter, &st, tid, nx, ny);
+            RBIM result = rbim_func_map[boundary_type](d_lattice, d_interactions, d_energy, d_offset_lattice, d_offset_iter, &st, tid, nx, ny);
 
             // If no new energy is found, set it to 0, else to tid + 1
             foundFlag[tid] = (d_expected_energy_spectrum[result.new_energy - d_start[0]] == 1) ? 0 : tid + 1;
@@ -989,6 +1026,8 @@ __global__ void wang_landau(
             }
         }
     }
+
+    return;
 }
 
 __global__ void print_finished_walker_ratio(double *d_factor, int num_walker_total, const double exp_beta, double *d_finished_walkers_ratio){
@@ -1016,6 +1055,7 @@ __global__ void print_finished_walker_ratio(double *d_factor, int num_walker_tot
         printf("ratio of finished walkers: %f\n", ratio_of_finished_walkers);
         d_finished_walkers_ratio[0] = ratio_of_finished_walkers;
     }
+    return;
 }
 
 
@@ -1033,4 +1073,6 @@ void calc_energy(int blocks, int threads, const int boundary_type, signed char *
             printf("Invalid boundary type!\n");
             break;
     }
+    
+    return;
 }

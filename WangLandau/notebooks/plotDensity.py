@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import re
+from collections import OrderedDict
 
 def read_data_from_file(filename):
 
@@ -239,22 +240,35 @@ def plot_log_g_diff_to_theory(file_name, exact_results = []):
     unique_x = [x for x, y in unique_xy_pairs]
     unique_y = [y for x, y in unique_xy_pairs]  
 
-
     exact_results_x = np.linspace(min(unique_x), max(unique_x), len(exact_results))  
     exact_results_y = [np.log(float(max(x/2,0.1))) for x in exact_results]
 
     plt.figure(figsize=(14, 7))
     for i in range(len(unique_x)):
         plot_data(unique_x[i], unique_y[i], color='b')
-
-    for i, x in enumerate(exact_results_x):
-        plot_data(x, exact_results_y[i], color='black')
+    
+    plt.plot(exact_results_x, exact_results_y, color = 'r')
     plt.xlabel('E')
     plt.ylabel('log(g)')
 
+    unique_xy_pairs_ordered = list(OrderedDict.fromkeys(xy_pairs))  # Preserves the order
+    unique_x_ordered = [x for x, y in unique_xy_pairs_ordered]
+    unique_y_ordered = [y for x, y in unique_xy_pairs_ordered]
+
+    print(unique_x_ordered)
+    plt.figure()
+    for i, x in enumerate(exact_results_x):
+        idx = np.where(unique_x_ordered == x)
+        if idx[0].size > 0:
+            diff = unique_y_ordered[idx[0].tolist()[0]]-exact_results_y[i]
+            plot_data(x, diff, color='b')
+    plt.ylabel('diff from theoretical')
+
+    plt.show()
+
     # arg parsing from result name to constrcut plot name
-    args_string = file_name.split("results/periodic/")[1].split(".txt")[0].replace("/", "_")
-    plt.savefig(f"logPlot_{args_string}.png")
+    # args_string = file_name.split("results/periodic/")[1].split(".txt")[0].replace("/", "_")
+    # plt.savefig(f"logPlot_{args_string}.png")
 
 
 def main():

@@ -47,6 +47,7 @@ int main(int argc, char **argv){
         fprintf(stderr, "Error reading histogram file.\n");
         return 1;
     }
+    
     const int len_energy_spectrum = h_expected_energy_spectrum.size();
 
     // Get interval information

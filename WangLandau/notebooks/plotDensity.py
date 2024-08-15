@@ -251,6 +251,9 @@ def plot_log_g_diff_to_theory(file_name, exact_results = []):
     plt.xlabel('E')
     plt.ylabel('log(g)')
 
+    args_string_curves = file_name.split("results/")[1].split(".txt")[0].replace("/", "_")
+    plt.savefig(f"logPlot_{args_string_curves}.png")
+
     unique_xy_pairs_ordered = list(OrderedDict.fromkeys(xy_pairs))  # Preserves the order
     unique_x_ordered = [x for x, y in unique_xy_pairs_ordered]
     unique_y_ordered = [y for x, y in unique_xy_pairs_ordered]
@@ -264,11 +267,11 @@ def plot_log_g_diff_to_theory(file_name, exact_results = []):
             plot_data(x, diff, color='b')
     plt.ylabel('diff from theoretical')
 
-    plt.show()
+    # plt.show()
 
     # arg parsing from result name to constrcut plot name
-    # args_string = file_name.split("results/periodic/")[1].split(".txt")[0].replace("/", "_")
-    # plt.savefig(f"logPlot_{args_string}.png")
+    args_string = file_name.split("results/")[1].split(".txt")[0].replace("/", "_")
+    plt.savefig(f"difPlot_{args_string}.png")
 
 
 def main():

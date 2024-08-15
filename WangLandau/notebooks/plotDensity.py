@@ -157,19 +157,16 @@ def extract_theory_results_from_file(file_path, N, M):
     with open(file_path, 'r') as file:
         lines = file.readlines()
         
-        # Iterate over each line to find the target line
         for i, line in enumerate(lines):
-            # Check if the current line contains "#Torus with M=N"
             if f"{N_string}_{M_string}" in line:
-                # Next line is expected to contain the array
-                print(line)
-                break
-                
+                numbers_string = re.search(r'\[(.*?)\]', line).group(1)
+                array = [int(num.strip()) for num in numbers_string.split(',')]
+
     if array is None:
-        print(f"No array found for M={M}.")
+        print(f"No array found for N={N} M={M}.")
     return array
 
-def plot_log_g(file_name):
+def plot_log_g(file_name, exact_results = []):
     walker_results = read_data_from_file(file_name) 
 
     """normalize the walker results by min value for log results"""
@@ -204,11 +201,66 @@ def plot_log_g(file_name):
     args_string = file_name.split("results/periodic/")[1].split(".txt")[0].replace("/", "_")
     plt.savefig(f"logPlot_{args_string}.png")
 
+def plot_log_g_diff_to_theory(file_name, exact_results = []):
+    walker_results = read_data_from_file(file_name) 
+
+    """normalize the walker results by min value for log results"""
+    walker_results = get_renormalized_log_g_values_as_dict_list(walker_results)
+    
+    """averages over walker results per intervals"""
+    walker_results = average_matching_keys(walker_results)
+
+    results_x = []
+    results_y = []
+    for result in walker_results:
+        results_y.append(np.array(list(result.values())))
+        results_x.append(np.array(list(result.keys())))
+
+    """get inverse temp by log(g) derivative"""
+    derivatives_wrt_e = get_derivative_wrt_e(walker_results)
+
+    """get energy per interval pair with lowest deviation of inverse temp"""
+    minimum_deviation_energies = find_lowest_inverse_temp_deviation(derivatives_wrt_e)
+
+    """rescaling of log(g) values at concatenation points"""
+    rescale_results_for_concatenation(results_x, results_y, minimum_deviation_energies)
+
+    # Step 1: Flatten the lists
+    flattened_x = [x for sublist in results_x for x in sublist]
+    flattened_y = [y for sublist in results_y for y in sublist]
+
+    # Step 2: Pair x and y values
+    xy_pairs = list(zip(flattened_x, flattened_y))
+
+    # Step 3: Remove duplicates by converting the list of pairs into a set
+    unique_xy_pairs = list(set(xy_pairs))
+
+    # Step 4: Separate the unique x and y values back into their respective lists
+    unique_x = [x for x, y in unique_xy_pairs]
+    unique_y = [y for x, y in unique_xy_pairs]  
+
+
+    exact_results_x = np.linspace(min(unique_x), max(unique_x), len(exact_results))  
+    exact_results_y = [np.log(float(max(x/2,0.1))) for x in exact_results]
+
+    plt.figure(figsize=(14, 7))
+    for i in range(len(unique_x)):
+        plot_data(unique_x[i], unique_y[i], color='b')
+
+    for i, x in enumerate(exact_results_x):
+        plot_data(x, exact_results_y[i], color='black')
+    plt.xlabel('E')
+    plt.ylabel('log(g)')
+
+    # arg parsing from result name to constrcut plot name
+    args_string = file_name.split("results/periodic/")[1].split(".txt")[0].replace("/", "_")
+    plt.savefig(f"logPlot_{args_string}.png")
+
 
 def main():
-    file_name =  'results/periodic/prob_0.100000/X_14_Y_14/seed_42/error_class_X/intervals_5_iterations_1000_overlap_0.250000_walkers_5_seed_run_43_alpha_0.800000_beta_0.0000000100.txt'
-    plot_log_g(file_name=file_name)
-
+    file_name =  'results/periodic/prob_0.000000/X_12_Y_12/seed_42/error_class_I/intervals_20_iterations_10000_overlap_0.250000_walkers_8_seed_run_42_alpha_0.800000_beta_0.0000000100.txt'
+    exact_results = extract_theory_results_from_file("./notebooks/theory_results.txt", 12, 12)
+    plot_log_g_diff_to_theory(file_name=file_name, exact_results=exact_results)
 
 if __name__ == '__main__':
     main()

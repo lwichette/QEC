@@ -122,8 +122,6 @@ def find_lowest_inverse_temp_deviation(dictionaries):
 def rescale_results_for_concatenation(results_x, results_y, minimum_deviation_energies):
     if(len(minimum_deviation_energies)!= 0):
         for i, e_concat in enumerate(minimum_deviation_energies):
-            if i == 3:
-                print(results_x[i])
 
             e_concat_index_in_preceeding_interval = np.where(results_x[i] == e_concat)[0]
             e_concat_index_in_following_interval = np.where(results_x[i+1] == e_concat)[0]
@@ -151,8 +149,27 @@ def rescale_results_for_concatenation(results_x, results_y, minimum_deviation_en
             results_y[i+1] += shift_val
     return
 
-def main():
-    file_name =  'results/periodic/prob_0.000000/X_12_Y_12/seed_42/error_class_I/intervals_20_iterations_10000_overlap_0.250000_walkers_8_seed_run_42_alpha_0.800000_beta_0.0000000100.txt'
+def extract_theory_results_from_file(file_path, N, M):
+    M_string = str(M)
+    N_string = str(N)
+    array = None
+    
+    with open(file_path, 'r') as file:
+        lines = file.readlines()
+        
+        # Iterate over each line to find the target line
+        for i, line in enumerate(lines):
+            # Check if the current line contains "#Torus with M=N"
+            if f"{N_string}_{M_string}" in line:
+                # Next line is expected to contain the array
+                print(line)
+                break
+                
+    if array is None:
+        print(f"No array found for M={M}.")
+    return array
+
+def plot_log_g(file_name):
     walker_results = read_data_from_file(file_name) 
 
     """normalize the walker results by min value for log results"""
@@ -186,6 +203,11 @@ def main():
     # arg parsing from result name to constrcut plot name
     args_string = file_name.split("results/periodic/")[1].split(".txt")[0].replace("/", "_")
     plt.savefig(f"logPlot_{args_string}.png")
+
+
+def main():
+    file_name =  'results/periodic/prob_0.100000/X_14_Y_14/seed_42/error_class_X/intervals_5_iterations_1000_overlap_0.250000_walkers_5_seed_run_43_alpha_0.800000_beta_0.0000000100.txt'
+    plot_log_g(file_name=file_name)
 
 
 if __name__ == '__main__':

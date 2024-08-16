@@ -393,7 +393,9 @@ __global__ void init_lattice(signed char* lattice, float *d_probs, const int nx,
     return;
 }
 
-__global__ void init_interactions(signed char* interactions, const int nx, const int ny, const int num_lattices, const int seed, const double prob, const char logical_error_type){
+
+// Keeping this one here for comparison, to be deleted
+__global__ void init_interactions_old(signed char* interactions, const int nx, const int ny, const int num_lattices, const int seed, const double prob, const char logical_error_type){
     
     long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
 
@@ -444,6 +446,70 @@ __global__ void init_interactions(signed char* interactions, const int nx, const
 
     return;
 }
+
+
+// Test of changing init_interactions to swap up and left bonds. We want a column of left bonds and a row of up bonds
+
+//When considering different error classes, we want to add a row of flipped vertical bonds, or a column of flipped horizontal bonds, or both
+__global__ void init_interactions(signed char* interactions, const int nx, const int ny, const int num_lattices, const int seed, const double prob, const char logical_error_type){
+    
+    long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
+
+    if (tid >= nx*ny*2*num_lattices) return;
+
+    curandStatePhilox4_32_10_t st;
+    curand_init(seed, tid, 0, &st);
+
+    double randval = curand_uniform(&st);
+    signed char val = (randval < prob) ? -1 : 1;
+    
+    interactions[tid] = val;
+
+    int lin_interaction_idx = tid % (nx*ny*2); // only needed for non trivial num lattices
+    int i = lin_interaction_idx/ny; // row index
+    int j = lin_interaction_idx%ny; // column index
+
+    if(logical_error_type == 'I' && tid == 0){
+        printf("Id error class.\n");
+    }
+    else if(logical_error_type == 'X'){
+        if(tid == 0){ 
+            printf("Row error class.\n");
+        }
+        if (i==nx){ // flip all left interactions stored in first row --> changed to row nx, which should hopefully flip all up interactions instead
+            interactions[tid] *= -1;
+        } 
+    }
+    else if(logical_error_type == 'Z'){
+        if(tid == 0){ 
+            printf("Column error class.\n");
+        }
+        if (j==0 && i < nx){ // flip all up interactions stored in first column from row nx*ny onwards --> changed to row <nx, which should hopefully flip all left interactions instead
+            interactions[tid] *= -1;
+        } 
+    }
+    else if(logical_error_type == 'Y'){
+        if(tid == 0){ 
+            printf("Combined error class.\n");
+        }
+        if (i==nx){ // flip all left interactions stored in first row --> changed to row nx
+            interactions[tid] *= -1;
+        } 
+        if (j==0 && i < nx){ // flip all up interactions stored in first column from row nx onwards in interaction matrix --> changed to row <nx
+            interactions[tid] *= -1;
+        } 
+    }
+
+    return;
+}
+
+
+
+
+
+
+// End test
+
 
 __global__ void calc_energy_periodic_boundary(signed char *lattice, signed char *interactions, int *d_energy, int *d_offset_lattice, const int nx, const int ny, const int num_lattices){
 
@@ -777,7 +843,7 @@ __global__ void check_histogram(unsigned long long *d_H, double *d_log_G, double
     
         average = average / len_reduced_energy_spectrum;
         
-        printf("Walker %d in interval %d with min %lld alpha*average %2f and factor %.10f and d_cond %d \n", threadIdx.x, blockIdx.x, min, alpha*average, d_factor[tid], d_cond[blockId]);
+        //printf("Walker %d in interval %d with min %lld alpha*average %2f and factor %.10f and d_cond %d \n", threadIdx.x, blockIdx.x, min, alpha*average, d_factor[tid], d_cond[blockId]);
 
         if (min >= alpha * average){
             atomicAdd(&walkers_finished, 1);

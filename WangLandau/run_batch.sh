@@ -2,15 +2,27 @@
 
 SECONDS=0
 
-xval=10
-yval=10
-
-#Note: we need to use fewer intervals, at least at low system size -- keep getting issues with check_energy_ranges for 8 by 8
-intervals=5
+#Note: we seem to need to use fewer intervals, at least at low system size
+#Question: is this due to intervals only, or is there anything else going on? 
+intervals=3
 beta=0.0001
 
-for seed in {113..114}
+for seed in {111..150}
 do
+
+for size in {8,10}
+do
+
+xval=$size
+yval=$size
+
+#Might adjust later
+if [ $size == 8 ]; then
+intervals=3
+else
+intervals=3
+fi
+
 echo $seed
 
 ./prerun_-10 -x $xval -y $yval -p 0.107 -n 100000 -l 10 -w 16 -s $seed -i $intervals -e "I" -b 0
@@ -35,6 +47,6 @@ wait
 echo "Done"
 
 done
-
+done
 duration=$SECONDS
 echo "Total runtime: $((duration / 60)) minutes and $((duration % 60)) seconds."

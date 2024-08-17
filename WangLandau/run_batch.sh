@@ -2,25 +2,23 @@
 
 SECONDS=0
 
-#Note: we seem to need to use fewer intervals, at least at low system size
-#Question: is this due to intervals only, or is there anything else going on? 
-intervals=3
+#Note: should make sure we have "fresh" histograms from the prerun, probably?
 beta=0.0001
 
-for seed in {111..150}
+for seed in {100..500}
 do
 
-for size in {8,10}
+for size in {12,14}
 do
 
 xval=$size
 yval=$size
 
 #Might adjust later
-if [ $size == 8 ]; then
-intervals=3
+if [[ $size > 10 ]]; then
+intervals=20
 else
-intervals=3
+intervals=5
 fi
 
 echo $seed

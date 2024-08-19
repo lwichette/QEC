@@ -21,3 +21,6 @@ test_rng/test_rng
 wl
 prerun
 **/__pycache__/
+**/lattice/*
+**/wl_*
+**/prerun_*

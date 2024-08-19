@@ -2,7 +2,7 @@
 #include "cudamacro.h"
 
 __device__  RBIM (*rbim_func_map[]) (signed char *, signed char *, int *, int *, unsigned long long *, 
-    curandStatePhilox4_32_10_t *, const long long , const int , const int) = {periodic_boundary_random_bond_ising, open_boundary_random_bond_ising};
+    curandStatePhilox4_32_10_t *, const long long , const int , const int, const int) = {periodic_boundary_random_bond_ising, open_boundary_random_bond_ising};
 
 void parse_args(int argc, char *argv[], Options *options)
 {
@@ -143,30 +143,28 @@ void writeToFile(const std::string& filename, const signed char* data, int nx_w,
 }
 
 void write(
-    signed char* array, const std::string& filename, long nx, long ny, 
-    int num_lattices, bool lattice, const std::vector<int>& energies
+    signed char *array_host, const std::string& filename, long nx, long ny, 
+    int num_lattices, bool lattice, const int *energies
 ) {
     std::cout << "Writing to " << filename << " ..." << std::endl;
 
     int nx_w = (lattice) ? nx : 2 * nx;
-    std::vector<signed char> array_host(nx_w * ny * num_lattices);
-
-    CHECK_CUDA(cudaMemcpy(array_host.data(), array, nx_w * ny * num_lattices * sizeof(*array), cudaMemcpyDeviceToHost));
 
     if (num_lattices == 1) {
-        writeToFile(filename + ".txt", array_host.data(), nx_w, ny);
-    } else {
+        writeToFile(filename + ".txt", array_host, nx_w, ny);
+    } 
+    else {
         for (int l = 0; l < num_lattices; l++) {
             int offset = l * nx_w * ny;
-            
-            if (energies.empty() == false){
+
+            if (energies){
                 if (energies[l] == 0 && array_host[offset] == 0) {
                     continue;
                 }
             }
 
-            std::string file_suffix = (energies.empty()) ? std::to_string(l) : std::to_string(energies[l]);
-            writeToFile(filename + "_" + file_suffix + ".txt", array_host.data() + offset, nx_w, ny);
+            std::string file_suffix = (!energies) ? std::to_string(l) : std::to_string(energies[l]);
+            writeToFile(filename + "_" + file_suffix + ".txt", array_host + offset, nx_w, ny);
         }
     }
 
@@ -188,13 +186,9 @@ void create_directory(std::string path){
     return;
 }
 
-void write_histograms(unsigned long long *d_H, std::string path_histograms, int len_histogram, int seed, int E_min){
+void write_histograms(unsigned long long *h_histogram, std::string path_histograms, int len_histogram, int seed, int E_min){
     
     printf("Writing to %s ...\n", path_histograms.c_str());
-
-    std::vector<unsigned long long> h_histogram(len_histogram);
-
-    CHECK_CUDA(cudaMemcpy(h_histogram.data(), d_H, len_histogram*sizeof(*d_H), cudaMemcpyDeviceToHost));
 
     std::ofstream f;
     f.open(std::string(path_histograms + "/histogram.txt"));
@@ -399,8 +393,10 @@ __global__ void init_interactions(signed char* interactions, const int nx, const
 
     if (tid >= nx*ny*2*num_lattices) return;
 
+    int lattice_id = tid/(nx*ny*2);
+
     curandStatePhilox4_32_10_t st;
-    curand_init(seed, tid, 0, &st);
+    curand_init(seed + lattice_id, tid, 0, &st);
 
     double randval = curand_uniform(&st);
     signed char val = (randval < prob) ? -1 : 1;
@@ -445,12 +441,13 @@ __global__ void init_interactions(signed char* interactions, const int nx, const
     return;
 }
 
-__global__ void calc_energy_periodic_boundary(signed char *lattice, signed char *interactions, int *d_energy, int *d_offset_lattice, const int nx, const int ny, const int num_lattices){
+__global__ void calc_energy_periodic_boundary(signed char *lattice, signed char *interactions, int *d_energy, int *d_offset_lattice, const int nx, const int ny, const int num_lattices, const int walker_per_interactions){
 
     long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
 
     if (tid>=num_lattices) return;
 
+    int int_id = tid/walker_per_interactions;
     int energy = 0;
 
     for (int l = 0; l < nx * ny; l++){
@@ -460,7 +457,7 @@ __global__ void calc_energy_periodic_boundary(signed char *lattice, signed char 
         int inn = (i - 1 >= 0) ? i - 1 : nx - 1;
         int jnn = (j - 1 >= 0) ? j - 1 : ny - 1;
 
-        energy += lattice[d_offset_lattice[tid] + i * ny + j] * (lattice[d_offset_lattice[tid] + inn * ny + j] * interactions[nx * ny + inn * ny + j] + lattice[d_offset_lattice[tid] + i * ny + jnn] * interactions[i * ny + jnn]);
+        energy += lattice[d_offset_lattice[tid] + i * ny + j] * (lattice[d_offset_lattice[tid] + inn * ny + j] * interactions[int_id*2*nx*ny + nx * ny + inn * ny + j] + lattice[d_offset_lattice[tid] + i * ny + jnn] * interactions[int_id*nx*ny*2 + i * ny + jnn]);
     }
 
     d_energy[tid] = energy;
@@ -468,11 +465,13 @@ __global__ void calc_energy_periodic_boundary(signed char *lattice, signed char 
     return;
 }
 
-__global__ void calc_energy_open_boundary(signed char *lattice, signed char *interactions, int *d_energy, int *d_offset_lattice, const int nx, const int ny, const int num_lattices){
+__global__ void calc_energy_open_boundary(signed char *lattice, signed char *interactions, int *d_energy, int *d_offset_lattice, const int nx, const int ny, const int num_lattices, const int walker_per_interactions){
 
     long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
 
     if (tid>=num_lattices) return;
+
+    int int_id = tid/walker_per_interactions;
 
     int energy = 0;
     int offset = d_offset_lattice[tid];
@@ -487,7 +486,7 @@ __global__ void calc_energy_open_boundary(signed char *lattice, signed char *int
             int inn = (i > 0) ? nx * ny + (i - 1) * ny + j : 0;
             int jnn = (j > 0) ? i * ny + (j - 1) : 0;
 
-             energy += s_ij * (s_up * interactions[inn] + s_left * interactions[jnn]);
+             energy += s_ij * (s_up * interactions[int_id*nx*ny*2 + inn] + s_left * interactions[int_id*nx*ny*2 + jnn]);
         }
     }
 
@@ -498,9 +497,10 @@ __global__ void calc_energy_open_boundary(signed char *lattice, signed char *int
 
 
 __global__ void wang_landau_pre_run(
-    signed char *d_lattice, signed char *d_interactions, int *d_energy, unsigned long long *d_H, unsigned long long* d_iter, int *d_offset_lattice, int *d_found_interval,
-    signed char *d_store_lattice, const int E_min, const int E_max, const int num_iterations, const int nx, const int ny, 
-    const int seed, const int len_interval, const int found_interval, const int num_walker, const int num_interval, int boundary_type
+    signed char *d_lattice, signed char *d_interactions, int *d_energy, unsigned long long *d_H, unsigned long long* d_iter, 
+    int *d_offset_lattice, int *d_found_interval, signed char *d_store_lattice, const int E_min, const int E_max, 
+    const int num_iterations, const int nx, const int ny, const int seed, const int len_interval, const int found_interval, 
+    const int num_walker, const int num_interval, const int boundary_type, const int walker_per_interactions
     ){
     
     long long tid = static_cast<long long>(blockDim.x)*blockIdx.x + threadIdx.x;
@@ -508,17 +508,19 @@ __global__ void wang_landau_pre_run(
     if (tid >= num_walker) return;
     
     const int offset_lattice = tid*nx*ny;
+    const int int_id = tid/walker_per_interactions;
+    const int interaction_offset = int_id*2*nx*ny;
+
+    const int len_hist = E_max - E_min + 1;
 
     curandStatePhilox4_32_10_t st;
     curand_init(seed, tid, d_iter[tid], &st);
     
     for (int it = 0; it < num_iterations; it++){
 
-        RBIM result = rbim_func_map[boundary_type](d_lattice, d_interactions, d_energy, d_offset_lattice, d_iter, &st, tid, nx, ny);
+        RBIM result = rbim_func_map[boundary_type](d_lattice, d_interactions, d_energy, d_offset_lattice, d_iter, &st, tid, nx, ny, interaction_offset);
  
         int d_new_energy = result.new_energy;
-
-        int index_old = d_energy[tid] - E_min;
         
         if (d_new_energy > E_max || d_new_energy < E_min){
             printf("Iterator %d \n", it);
@@ -529,7 +531,8 @@ __global__ void wang_landau_pre_run(
             return;
         }
         else{
-            int index_new = d_new_energy - E_min;
+            int index_old = d_energy[tid] - E_min + int_id*len_hist;
+            int index_new = d_new_energy - E_min + int_id*len_hist;
 
             double prob = exp(static_cast<double>(d_H[index_old]) - static_cast<double>(d_H[index_new]));
 
@@ -542,7 +545,7 @@ __global__ void wang_landau_pre_run(
                 atomicAdd(&d_H[index_new], 1);
        
                 if (found_interval == 0){
-                    store_lattice(d_lattice, d_energy, d_found_interval, d_store_lattice, E_min, nx, ny, tid, len_interval, num_interval);
+                    store_lattice(d_lattice, d_energy, d_found_interval, d_store_lattice, E_min, nx, ny, tid, len_interval, num_interval, int_id);
                 }
             }
             else{
@@ -638,16 +641,17 @@ __device__ void fisher_yates(int *d_shuffle, int seed, unsigned long long *d_off
 
 __device__ void store_lattice(
     signed char *d_lattice, int *d_energy, int* d_found_interval, signed char* d_store_lattice,
-    const int E_min, const int nx, const int ny, const long long tid, const int len_interval, const int num_interval
+    const int E_min, const int nx, const int ny, const long long tid, const int len_interval, 
+    const int num_interval, const int int_id
     ){
     
     int interval_index = ((d_energy[tid] - E_min)/len_interval < num_interval) ? (d_energy[tid] - E_min)/len_interval : num_interval - 1;
 
-    if (atomicCAS(&d_found_interval[interval_index], 0, 1) != 0) return;
+    if (atomicCAS(&d_found_interval[int_id*num_interval + interval_index], 0, 1) != 0) return;
 
     for (int i=0; i < nx; i++){
         for (int j=0; j < ny; j++){
-            d_store_lattice[interval_index*nx*ny + i*ny + j] = d_lattice[tid*nx*ny + i*ny +j];
+            d_store_lattice[int_id*num_interval*nx*ny + interval_index*nx*ny + i*ny + j] = d_lattice[tid*nx*ny + i*ny +j];
         }
     }
     
@@ -871,7 +875,7 @@ __global__ void redistribute_g_values(int num_intervals, long long len_histogram
 
 __device__ RBIM periodic_boundary_random_bond_ising(
     signed char *d_lattice, signed char *d_interactions, int *d_energy, int *d_offset_lattice, unsigned long long *d_offset_iter, 
-    curandStatePhilox4_32_10_t *st, const long long tid, const int nx, const int ny
+    curandStatePhilox4_32_10_t *st, const long long tid, const int nx, const int ny, const int interaction_offset
     ){
         double randval = curand_uniform(st);
         randval *= (nx * ny - 1 + 0.999999);
@@ -887,7 +891,11 @@ __device__ RBIM periodic_boundary_random_bond_ising(
         int jpp = (j + 1 < ny) ? j + 1 : 0;
         int jnn = (j - 1 >= 0) ? j - 1 : ny - 1;
 
-        signed char energy_diff = -2 * d_lattice[d_offset_lattice[tid] + i * ny + j] * (d_lattice[d_offset_lattice[tid] + inn * ny + j] * d_interactions[nx * ny + inn * ny + j] + d_lattice[d_offset_lattice[tid] + i * ny + jnn] * d_interactions[i * ny + jnn] + d_lattice[d_offset_lattice[tid] + ipp * ny + j] * d_interactions[nx * ny + i * ny + j] + d_lattice[d_offset_lattice[tid] + i * ny + jpp] * d_interactions[i * ny + j]);
+        signed char energy_diff = -2 * d_lattice[d_offset_lattice[tid] + i * ny + j] * (
+            d_lattice[d_offset_lattice[tid] + inn * ny + j] * d_interactions[interaction_offset + nx * ny + inn * ny + j] 
+            + d_lattice[d_offset_lattice[tid] + i * ny + jnn] * d_interactions[interaction_offset + i * ny + jnn] 
+            + d_lattice[d_offset_lattice[tid] + ipp * ny + j] * d_interactions[interaction_offset + nx * ny + i * ny + j] 
+            + d_lattice[d_offset_lattice[tid] + i * ny + jpp] * d_interactions[interaction_offset + i * ny + j]);
 
         int d_new_energy = d_energy[tid] + energy_diff;
 
@@ -901,7 +909,7 @@ __device__ RBIM periodic_boundary_random_bond_ising(
 
 __device__ RBIM open_boundary_random_bond_ising(
     signed char *d_lattice, signed char *d_interactions, int *d_energy, int *d_offset_lattice, unsigned long long *d_offset_iter, 
-    curandStatePhilox4_32_10_t *st, const long long tid, const int nx, const int ny
+    curandStatePhilox4_32_10_t *st, const long long tid, const int nx, const int ny, const int interaction_offset
     ){
         double randval = curand_uniform(st);
         randval *= (nx * ny - 1 + 0.999999);
@@ -924,10 +932,10 @@ __device__ RBIM open_boundary_random_bond_ising(
         
 
         signed char energy_diff = -2 * d_lattice[d_offset_lattice[tid] + i * ny + j] * (
-            c_up * d_lattice[d_offset_lattice[tid] + inn * ny + j] * d_interactions[nx * ny + inn * ny + j] + 
-            c_left * d_lattice[d_offset_lattice[tid] + i * ny + jnn] * d_interactions[i * ny + jnn] + 
-            c_down * d_lattice[d_offset_lattice[tid] + ipp * ny + j] * d_interactions[nx * ny + i * ny + j] + 
-            c_right * d_lattice[d_offset_lattice[tid] + i * ny + jpp] * d_interactions[i * ny + j]);
+            c_up * d_lattice[d_offset_lattice[tid] + inn * ny + j] * d_interactions[interaction_offset + nx * ny + inn * ny + j] + 
+            c_left * d_lattice[d_offset_lattice[tid] + i * ny + jnn] * d_interactions[interaction_offset + i * ny + jnn] + 
+            c_down * d_lattice[d_offset_lattice[tid] + ipp * ny + j] * d_interactions[interaction_offset + nx * ny + i * ny + j] + 
+            c_right * d_lattice[d_offset_lattice[tid] + i * ny + jpp] * d_interactions[interaction_offset + i * ny + j]);
 
         int d_new_energy = d_energy[tid] + energy_diff;
     
@@ -939,6 +947,7 @@ __device__ RBIM open_boundary_random_bond_ising(
         return rbim;    
 }
 
+/*
 __global__ void wang_landau(
     signed char *d_lattice, signed char *d_interactions, int *d_energy, int *d_start, int *d_end, unsigned long long *d_H, 
     double *d_logG, int *d_offset_histogramm, int *d_offset_lattice, const int num_iterations, const int nx, const int ny, 
@@ -1029,6 +1038,7 @@ __global__ void wang_landau(
 
     return;
 }
+*/
 
 __global__ void print_finished_walker_ratio(double *d_factor, int num_walker_total, const double exp_beta, double *d_finished_walkers_ratio){
     
@@ -1059,14 +1069,19 @@ __global__ void print_finished_walker_ratio(double *d_factor, int num_walker_tot
 }
 
 
-void calc_energy(int blocks, int threads, const int boundary_type, signed char *lattice, signed char *interactions, int *d_energy, int *d_offset_lattice, const int nx, const int ny, const int num_lattices) {
+void calc_energy(
+    int blocks, int threads, const int boundary_type, signed char *lattice, 
+    signed char *interactions, int *d_energy, int *d_offset_lattice, 
+    const int nx, const int ny, const int total_walker, const int walker_per_interactions 
+    ) {
+    
     switch (boundary_type) {
         case 1: // Open boundary
-            calc_energy_open_boundary<<<blocks, threads>>>(lattice, interactions, d_energy, d_offset_lattice, nx, ny, num_lattices);
+            calc_energy_open_boundary<<<blocks, threads>>>(lattice, interactions, d_energy, d_offset_lattice, nx, ny, total_walker, walker_per_interactions);
             break;
 
         case 0: // Periodic boundary
-            calc_energy_periodic_boundary<<<blocks, threads>>>(lattice, interactions, d_energy, d_offset_lattice, nx, ny, num_lattices);
+            calc_energy_periodic_boundary<<<blocks, threads>>>(lattice, interactions, d_energy, d_offset_lattice, nx, ny, total_walker, walker_per_interactions);
             break;
 
         default:

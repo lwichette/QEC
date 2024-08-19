@@ -156,7 +156,7 @@ int main(int argc, char **argv){
     init_interactions<<<BLOCKS_INIT, THREADS>>>(d_interactions, X, Y, num_interactions, seed, prob_interactions, logical_error_type);
     cudaDeviceSynchronize();
     
-    init_lattice<<<BLOCKS_INIT, THREADS>>>(d_lattice, d_probs, X, Y, total_walker, seed + 1);
+    init_lattice<<<BLOCKS_INIT, THREADS>>>(d_lattice, d_probs, X, Y, total_walker, seed - 1);
     init_offsets_lattice<<<BLOCKS_ENERGY, THREADS>>>(d_offset_lattice_per_walker, X, Y, total_walker); 
     init_offsets_lattice<<<BLOCKS_INTERVAL, THREADS>>>(d_offset_lattice_per_interval, X, Y, total_intervals);
     cudaDeviceSynchronize();
@@ -169,7 +169,7 @@ int main(int argc, char **argv){
     for (int i=0; i < num_wl_loops; i++){
         if (i % 100 == 0) printf("Num wl loop: %d \n", i);
 
-        wang_landau_pre_run<<<BLOCKS_ENERGY, THREADS>>>(d_lattice, d_interactions, d_energy, d_H, d_iter, d_offset_lattice_per_walker, d_found_interval, d_store_lattice, E_min, E_max, num_iterations, X, Y, seed + 2, interval_result.len_interval, found_interval, total_walker, num_intervals, boundary_type, walker_per_interactions);
+        wang_landau_pre_run<<<BLOCKS_ENERGY, THREADS>>>(d_lattice, d_interactions, d_energy, d_H, d_iter, d_offset_lattice_per_walker, d_found_interval, d_store_lattice, E_min, E_max, num_iterations, X, Y, seed - 2, interval_result.len_interval, found_interval, total_walker, num_intervals, boundary_type, walker_per_interactions);
         cudaDeviceSynchronize();
         
         if (found_interval == 0){

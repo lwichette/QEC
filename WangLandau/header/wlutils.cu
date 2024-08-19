@@ -1128,3 +1128,20 @@ void result_handling(Options options, IntervalResult interval_result, double *d_
     f_log_density.close();
     return;
 }
+
+__global__ void generate_pauli_errors(int *pauli_errors, int num_qubits, unsigned long seed) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < num_qubits) {
+        curandState state;
+        curand_init(seed, idx, 0, &state);
+        pauli_errors[idx] = curand(&state) % 4;  // 0 -> I, 1 -> X, 2 -> Y, 3 -> Z
+    }
+}
+
+__device__ int scalar_commutator(int pauli1, int pauli2) {
+    //The action here should be compatible with the definition in https://arxiv.org/pdf/1809.10704
+    // Pauli operators are stored as: I = 0, X = 1, Y = 2, Z = 3 which yields:
+    if (pauli1 == 0 || pauli2 == 0) return 0;
+    if (pauli1 == pauli2) return 0; 
+    return -1;  // Other cases
+}

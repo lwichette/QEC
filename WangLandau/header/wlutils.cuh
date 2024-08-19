@@ -125,11 +125,15 @@ __global__ void replica_exchange(
 
 __global__ void print_finished_walker_ratio(double *d_factor, int num_walker_total, const double exp_beta, double *d_finished_walkers_ratio);
 
+__global__ void generate_pauli_errors(int *pauli_errors, int num_qubits, unsigned long seed);
+
 __device__ RBIM periodic_boundary_random_bond_ising(
     signed char *d_lattice, signed char *d_interactions, int *d_energy, int *d_offset_lattice, unsigned long long *d_offset_iter, 
     curandStatePhilox4_32_10_t *st, const long long tid, const int nx, const int ny
     );
 
 __device__ RBIM open_boundary_random_bond_ising(signed char *d_lattice, signed char *d_interactions, int *d_energy, int *d_offset_lattice, unsigned long long *d_offset_iter, curandStatePhilox4_32_10_t *st, const long long tid, const int nx, const int ny);
+
+__device__ int scalar_commutator(int pauli1, int pauli2);
 
 #endif // UTILS_H

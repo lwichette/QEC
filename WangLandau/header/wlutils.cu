@@ -1179,9 +1179,9 @@ __global__ void init_interactions_eight_vertex(double *int_X, double *int_Y, dou
         int j = idx%X; // columns index
 
         double interaction_x = int_X[idx]; 
-        double interaction_y = int_Y[idx];
+        double interaction_z = int_Z[idx];
 
-        if(i%2==0){ // in even rows is x right interaction and z down. The 1/2 steams from ordering as in pure bit flip implementation with first rows side neighbors and following once lateral.
+        if(i%2==0){ // in even rows is x right interaction and z down. The 1/2 comes from ordering scheme as in pure bit flip implementation with first rows side neighbors and following once lateral.
             if(j==0){
                 int_b[i/2*X+X-1] = interaction_x;
                 // printf("idx %lld int_b side at %d\n",idx, i/2*X+X-1);
@@ -1191,13 +1191,20 @@ __global__ void init_interactions_eight_vertex(double *int_X, double *int_Y, dou
                 // printf("idx %lld int_b side at %d\n",idx, i/2*X+j-1);
             } 
             if(i==0){
-                int_r[(Y-1)*X+j] = interaction_y;
+                int_r[(Y-1)*X+j] = interaction_z;
                 // printf("idx %lld int_r down at %d\n",idx, (Y-1)*X+j);
             }
             else{
-                int_r[(Y/2)*X+((i/2)-1)*X+j] = interaction_y;
+                int_r[(Y/2)*X+((i/2)-1)*X+j] = interaction_z;
                 // printf("idx %lld int_r down at %d\n",idx, (Y/2)*X+((i/2)-1)*X+j);
             }
+        }
+        else{ // in odd rows is x down interaction and z right.
+            int_r[(i/2)*X+j] = interaction_z;
+            // printf("idx %lld int_r side at %d\n",idx, (i/2)*X+j);
+
+            int_b[(Y/2)*X+(i/2)*X+j] = interaction_x;
+            // printf("idx %lld int_b down at %d\n",idx, (Y/2)*X+(i/2)*X+j);
         }
     }
 }

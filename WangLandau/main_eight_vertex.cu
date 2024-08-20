@@ -184,6 +184,7 @@ int main(int argc, char **argv){
     init_interactions_eight_vertex<<<num_blocks, max_threads_per_block>>>(d_interactions_x, d_interactions_y, d_interactions_z, num_qubits,  X, Y, d_interactions_r, d_interactions_b);
     cudaDeviceSynchronize();
 
+
     return 0;
 
 }

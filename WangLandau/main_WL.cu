@@ -12,19 +12,6 @@ To Do:
     - update histogram not working 
 */
 
-__global__ void check_energy(int *d_energy, int *d_check_energy, int num_walker_total, int iterator){
-    long long tid = threadIdx.x + blockIdx.x * blockDim.x;
-
-    if (tid >= num_walker_total) return;
-
-    if (d_energy[tid] != d_check_energy[tid]){
-        printf("Energy in blockId %d and walkerId %d is mismatching at iterator %d with energywl %d and energycalc %d\n", blockIdx.x, threadIdx.x, iterator, d_energy[tid], d_check_energy[tid]);
-        assert(0);
-    }
-
-    return;
-}
-
 int main(int argc, char **argv){
 
     // Get the device properties
@@ -37,92 +24,130 @@ int main(int argc, char **argv){
     Options options;
     parse_args(argc, argv, &options);
 
-    const int num_walker_total = options.num_intervals * options.walker_per_interval;
+    const int total_walker = options.num_interactions*options.num_intervals*options.walker_per_interval;
+    const int total_intervals = options.num_interactions*options.num_intervals;
+    const int walker_per_interactions = options.num_intervals*options.walker_per_interval;
 
-    char *histogram_file = constructFilePath(options.prob_interactions, options.X, options.Y, options.seed_histogram, "histogram", options.logical_error_type, options.boundary_type);
+    // Ŕead histograms for all different seeds
+    std::vector<signed char> h_expected_energy_spectrum;
+    std::vector<int> len_energy_spectrum;
+    int total_len_energy_spectrum = 0;
 
-    // Energy spectrum from pre_run
-    std::vector<int> h_expected_energy_spectrum;
-    if (read_histogram(histogram_file, h_expected_energy_spectrum, &options.E_min, &options.E_max) != 0){
-        fprintf(stderr, "Error reading histogram file.\n");
-        return 1;
+    for (int i=0; i < options.num_interactions; i++){
+        std::string hist_path = constructFilePath(options.prob_interactions, options.X, options.Y, options.seed_histogram + i, "histogram", options.logical_error_type, options.boundary_type);
+        std::vector<signed char> energy_spectrum = read_histogram(hist_path, options.E_min, options.E_max);
+        
+        h_expected_energy_spectrum.insert(h_expected_energy_spectrum.end(), energy_spectrum.begin(), energy_spectrum.end());
+        len_energy_spectrum.push_back(energy_spectrum.size());
+        total_len_energy_spectrum += len_energy_spectrum[i];
     }
-    const int len_energy_spectrum = h_expected_energy_spectrum.size();
-
-    // Get interval information
-    IntervalResult interval_result = generate_intervals(options.E_min, options.E_max, options.num_intervals, options.walker_per_interval, options.overlap_decimal);
     
+    // Generate intervals for all different energy spectrums
+    std::vector<int> h_end_int;
+    std::vector<int> h_start_int;
+    std::vector<int> len_histogram_int;
+    std::vector<int> len_interval_int;
+
+    long long total_len_histogram = 0;
+
+    for (int i=0; i < options.num_interactions; i++){
+        IntervalResult run_result = generate_intervals(options.E_min[i], options.E_max[i], options.num_intervals, options.walker_per_interval, options.overlap_decimal);  
+
+        h_end_int.insert(
+            h_end_int.end(),
+            run_result.h_end.begin(),
+            run_result.h_end.end()
+        );
+
+        h_start_int.insert(
+            h_start_int.end(),
+            run_result.h_start.begin(),
+            run_result.h_start.end()
+        );
+
+        len_histogram_int.push_back(run_result.len_histogram_over_all_walkers);
+        len_interval_int.push_back(run_result.len_interval);
+        total_len_histogram += run_result.len_histogram_over_all_walkers;
+    }
+
+    int *d_len_histograms;
+    CHECK_CUDA(cudaMalloc(&d_len_histograms, options.num_interactions*sizeof(*d_len_histograms)))
+    CHECK_CUDA(cudaMemcpy(d_len_histograms, len_histogram_int.data(), options.num_interactions*sizeof(*d_len_histograms), cudaMemcpyHostToDevice));
+   
     // Start end energies of the intervals 
     int *d_start, *d_end; 
-    CHECK_CUDA(cudaMalloc(&d_start, options.num_intervals * sizeof(*d_start))); 
-    CHECK_CUDA(cudaMalloc(&d_end, options.num_intervals * sizeof(*d_end)));
-    CHECK_CUDA(cudaMemcpy(d_start, interval_result.h_start.data(), options.num_intervals * sizeof(*d_start), cudaMemcpyHostToDevice));
-    CHECK_CUDA(cudaMemcpy(d_end, interval_result.h_end.data(), options.num_intervals * sizeof(*d_start), cudaMemcpyHostToDevice));
+    CHECK_CUDA(cudaMalloc(&d_start, total_intervals * sizeof(*d_start))); 
+    CHECK_CUDA(cudaMalloc(&d_end, total_intervals * sizeof(*d_end)));
+    CHECK_CUDA(cudaMemcpy(d_start, h_start_int.data(), total_intervals * sizeof(*d_start), cudaMemcpyHostToDevice));
+    CHECK_CUDA(cudaMemcpy(d_end, h_end_int.data(), total_intervals * sizeof(*d_start), cudaMemcpyHostToDevice));
 
     // Histogramm and G array
     unsigned long long *d_H;
-    CHECK_CUDA(cudaMalloc(&d_H, interval_result.len_histogram_over_all_walkers * sizeof(*d_H)));
-    CHECK_CUDA(cudaMemset(d_H, 0, interval_result.len_histogram_over_all_walkers * sizeof(*d_H)));
+    CHECK_CUDA(cudaMalloc(&d_H, total_len_histogram * sizeof(*d_H)));
+    CHECK_CUDA(cudaMemset(d_H, 0, total_len_histogram * sizeof(*d_H)));
 
     double *d_logG;
-    CHECK_CUDA(cudaMalloc(&d_logG, interval_result.len_histogram_over_all_walkers * sizeof(*d_logG)));
-    CHECK_CUDA(cudaMemset(d_logG, 0, interval_result.len_histogram_over_all_walkers * sizeof(*d_logG)));
+    CHECK_CUDA(cudaMalloc(&d_logG, total_len_histogram* sizeof(*d_logG)));
+    CHECK_CUDA(cudaMemset(d_logG, 0, total_len_histogram * sizeof(*d_logG)));
 
-    int size_shared_log_G = (options.num_intervals-1)*interval_result.len_interval + (interval_result.h_end[options.num_intervals-1] - interval_result.h_start[options.num_intervals-1] + 1);
-    
+    int size_shared_log_G = 0;
+    for (int i=0; i < options.num_interactions; i++){
+        size_shared_log_G += (options.num_intervals-1)*len_interval_int[i] + (h_end_int[i*options.num_intervals + options.num_intervals - 1] - h_start_int[i*options.num_intervals + options.num_intervals - 1] + 1);
+    }
+
     double *d_shared_logG;
     CHECK_CUDA(cudaMalloc(&d_shared_logG, size_shared_log_G*sizeof(*d_shared_logG)));
     CHECK_CUDA(cudaMemset(d_shared_logG, 0, size_shared_log_G*sizeof(*d_shared_logG)));
     
     long long *d_offset_shared_logG;
-    CHECK_CUDA(cudaMalloc(&d_offset_shared_logG, options.num_intervals*sizeof(*d_offset_shared_logG)));
-    CHECK_CUDA(cudaMemset(d_offset_shared_logG, 0, options.num_intervals*sizeof(*d_offset_shared_logG)));
+    CHECK_CUDA(cudaMalloc(&d_offset_shared_logG, total_intervals*sizeof(*d_offset_shared_logG)));
+    CHECK_CUDA(cudaMemset(d_offset_shared_logG, 0, total_intervals*sizeof(*d_offset_shared_logG)));
 
     // Offset histograms, lattice, seed_iterator
     int *d_offset_histogramm, *d_offset_lattice;
     unsigned long long *d_offset_iter;
-    CHECK_CUDA(cudaMalloc(&d_offset_histogramm, num_walker_total * sizeof(*d_offset_histogramm)));
-    CHECK_CUDA(cudaMalloc(&d_offset_lattice, num_walker_total * sizeof(*d_offset_lattice)));
-    CHECK_CUDA(cudaMalloc(&d_offset_iter, num_walker_total * sizeof(*d_offset_iter)));
-    CHECK_CUDA(cudaMemset(d_offset_iter, 0, num_walker_total * sizeof(*d_offset_iter)));
+    CHECK_CUDA(cudaMalloc(&d_offset_histogramm, total_walker * sizeof(*d_offset_histogramm)));
+    CHECK_CUDA(cudaMalloc(&d_offset_lattice, total_walker * sizeof(*d_offset_lattice)));
+    CHECK_CUDA(cudaMalloc(&d_offset_iter, total_walker * sizeof(*d_offset_iter)));
+    CHECK_CUDA(cudaMemset(d_offset_iter, 0, total_walker * sizeof(*d_offset_iter)));
     
     // f Factors for each walker
-    std::vector<double> h_factor(num_walker_total, exp(1.0));
+    std::vector<double> h_factor(total_walker, exp(1.0));
 
     double *d_factor;
-    CHECK_CUDA(cudaMalloc(&d_factor, num_walker_total * sizeof(*d_factor)));
-    CHECK_CUDA(cudaMemcpy(d_factor, h_factor.data(), num_walker_total * sizeof(*d_factor), cudaMemcpyHostToDevice));
+    CHECK_CUDA(cudaMalloc(&d_factor, total_walker * sizeof(*d_factor)));
+    CHECK_CUDA(cudaMemcpy(d_factor, h_factor.data(), total_walker * sizeof(*d_factor), cudaMemcpyHostToDevice));
 
     // Indices used for replica exchange later
     int *d_indices;
-    CHECK_CUDA(cudaMalloc(&d_indices, num_walker_total * sizeof(*d_indices)));
+    CHECK_CUDA(cudaMalloc(&d_indices, total_walker * sizeof(*d_indices)));
 
     // lattice, interactions
     signed char *d_lattice, *d_interactions;
-    CHECK_CUDA(cudaMalloc(&d_lattice, num_walker_total * options.X * options.Y * sizeof(*d_lattice)));
-    CHECK_CUDA(cudaMalloc(&d_interactions, options.X * options.Y * 2 * sizeof(*d_interactions)));
+    CHECK_CUDA(cudaMalloc(&d_lattice, total_walker * options.X * options.Y * sizeof(*d_lattice)));
+    CHECK_CUDA(cudaMalloc(&d_interactions, options.num_interactions*options.X * options.Y * 2 * sizeof(*d_interactions)));
 
     // Hamiltonian of lattices
     int *d_energy;
-    CHECK_CUDA(cudaMalloc(&d_energy, num_walker_total * sizeof(*d_energy)));
-    CHECK_CUDA(cudaMemset(d_energy, 0, num_walker_total * sizeof(*d_energy)));
+    CHECK_CUDA(cudaMalloc(&d_energy, total_walker * sizeof(*d_energy)));
+    CHECK_CUDA(cudaMemset(d_energy, 0, total_walker * sizeof(*d_energy)));
 
     // Binary indicator of energies were found or not
-    int *d_expected_energy_spectrum;
+    signed char *d_expected_energy_spectrum;
     CHECK_CUDA(cudaMalloc(&d_expected_energy_spectrum, h_expected_energy_spectrum.size() * sizeof(*d_expected_energy_spectrum)));
     CHECK_CUDA(cudaMemcpy(d_expected_energy_spectrum, h_expected_energy_spectrum.data(), h_expected_energy_spectrum.size() * sizeof(*d_expected_energy_spectrum), cudaMemcpyHostToDevice));
 
     // To catch energies which are outside of expected spectrum
     int *d_newEnergies, *d_foundNewEnergyFlag; 
-    CHECK_CUDA(cudaMalloc(&d_newEnergies, num_walker_total * sizeof(*d_newEnergies)));
-    CHECK_CUDA(cudaMalloc(&d_foundNewEnergyFlag, num_walker_total * sizeof(*d_foundNewEnergyFlag)));
+    CHECK_CUDA(cudaMalloc(&d_newEnergies, total_walker * sizeof(*d_newEnergies)));
+    CHECK_CUDA(cudaMalloc(&d_foundNewEnergyFlag, total_walker * sizeof(*d_foundNewEnergyFlag)));
 
     double* d_finished_walkers_ratio;
     CHECK_CUDA(cudaMalloc(&d_finished_walkers_ratio, 1 * sizeof(*d_finished_walkers_ratio)));
 
     signed char* d_cond;
-    CHECK_CUDA(cudaMalloc(&d_cond, options.num_intervals*sizeof(*d_cond)));
-    CHECK_CUDA(cudaMemset(d_cond, 0, options.num_intervals*sizeof(*d_cond)));
+    CHECK_CUDA(cudaMalloc(&d_cond, total_intervals*sizeof(*d_cond)));
+    CHECK_CUDA(cudaMemset(d_cond, 0, total_intervals*sizeof(*d_cond)));
 
     /*
     ----------------------------------------------
@@ -131,23 +156,47 @@ int main(int argc, char **argv){
     */
 
     // Initialization of lattices, interactions, offsets and indices
-    init_offsets_lattice<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, options.X, options.Y, num_walker_total);
-    init_offsets_histogramm<<<options.num_intervals, options.walker_per_interval>>>(d_offset_histogramm, d_start, d_end);
-    init_indices<<<options.num_intervals, options.walker_per_interval>>>(d_indices);
+    init_offsets_lattice<<<total_intervals, options.walker_per_interval>>>(d_offset_lattice, options.X, options.Y, total_walker);
+    init_offsets_histogramm<<<total_intervals, options.walker_per_interval>>>(d_offset_histogramm, d_start, d_end, d_len_histograms, options.num_intervals, total_walker);
+    init_indices<<<total_intervals, options.walker_per_interval>>>(d_indices, total_walker);
     cudaDeviceSynchronize();
 
-    char *interaction_file = constructFilePath(options.prob_interactions, options.X, options.Y, options.seed_histogram, "interactions", options.logical_error_type, options.boundary_type);
     std::vector<signed char> h_interactions;
-    read(h_interactions, interaction_file);
-    CHECK_CUDA(cudaMemcpy(d_interactions, h_interactions.data(), options.X * options.Y * 2 * sizeof(*d_interactions), cudaMemcpyHostToDevice));
-    
-    std::vector<signed char> h_lattice = get_lattice_with_pre_run_result(options.prob_interactions, options.seed_histogram, options.X, options.Y, interval_result.h_start, interval_result.h_end, options.num_intervals, num_walker_total, options.walker_per_interval, options.logical_error_type, options.boundary_type);
-    CHECK_CUDA(cudaMemcpy(d_lattice, h_lattice.data(), num_walker_total * options.X * options.Y * sizeof(*d_lattice), cudaMemcpyHostToDevice));
+    for (int i=0; i < options.num_interactions; i++){
+        std::string run_int_path = constructFilePath(options.prob_interactions, options.X, options.Y, options.seed_histogram + i, "interactions", options.logical_error_type, options.boundary_type);
+        std::vector<signed char> run_interactions;
+        read(run_interactions, run_int_path);
 
-    calc_energy(options.num_intervals, options.walker_per_interval, options.boundary_type, d_lattice, d_interactions, d_energy, d_offset_lattice, options.X, options.Y, num_walker_total);
-    cudaDeviceSynchronize();
+        h_interactions.insert(
+            h_interactions.end(),
+            run_interactions.begin(),
+            run_interactions.end()
+        );
+    } 
+
+    CHECK_CUDA(cudaMemcpy(d_interactions, h_interactions.data(), options.num_interactions*options.X*options.Y*2*sizeof(*d_interactions), cudaMemcpyHostToDevice));
     
-    check_energy_ranges<<<options.num_intervals, options.walker_per_interval>>>(d_energy, d_start, d_end);
+    std::vector<signed char> h_lattice;
+    
+    for (int i=0; i < options.num_interactions; i++){
+        std::vector<int> run_start(h_start_int.begin() + i*options.num_intervals, h_start_int.begin() + i*options.num_intervals + options.num_intervals);
+        std::vector<int> run_end(h_end_int.begin() + i*options.num_intervals, h_end_int.begin() + i*options.num_intervals + options.num_intervals);
+
+        std::vector<signed char> run_lattice = get_lattice_with_pre_run_result(options.prob_interactions, options.seed_histogram + i, options.X, options.Y, run_start, run_end, options.num_intervals, total_walker, options.walker_per_interval, options.logical_error_type, options.boundary_type);
+
+        h_lattice.insert(
+            h_lattice.end(),
+            run_lattice.begin(),
+            run_lattice.end()
+        );
+    }
+
+    CHECK_CUDA(cudaMemcpy(d_lattice, h_lattice.data(), total_walker * options.X * options.Y * sizeof(*d_lattice), cudaMemcpyHostToDevice));
+
+    calc_energy(total_intervals, options.walker_per_interval, options.boundary_type, d_lattice, d_interactions, d_energy, d_offset_lattice, options.X, options.Y, total_walker, walker_per_interactions);
+    cudaDeviceSynchronize();
+
+    check_energy_ranges<<<total_intervals, options.walker_per_interval>>>(d_energy, d_start, d_end, total_walker);
     cudaDeviceSynchronize();
 
     // Stop timing
@@ -158,31 +207,35 @@ int main(int argc, char **argv){
     double max_factor = exp(1.0);
     int max_newEnergyFlag = 0;
 
-    int block_count = (interval_result.len_histogram_over_all_walkers + max_threads_per_block - 1) / max_threads_per_block;
+    int block_count = (total_len_histogram + max_threads_per_block - 1) / max_threads_per_block;
 
     while (max_factor > exp(options.beta)){
         printf("Max Factor %8f \n", max_factor);
 
-        wang_landau<<<options.num_intervals, options.walker_per_interval>>>(d_lattice, d_interactions, d_energy, d_start, d_end, d_H, d_logG, d_offset_histogramm, d_offset_lattice, options.num_iterations, options.X, options.Y, options.seed_run, d_factor, d_offset_iter, d_expected_energy_spectrum, d_newEnergies, d_foundNewEnergyFlag, num_walker_total, options.beta, d_cond, options.boundary_type);
+        wang_landau<<<total_intervals, options.walker_per_interval>>>(d_lattice, d_interactions, d_energy, d_start, d_end, d_H, d_logG, d_offset_histogramm, d_offset_lattice, options.num_iterations, options.X, options.Y, options.seed_run, d_factor, d_offset_iter, d_expected_energy_spectrum, d_newEnergies, d_foundNewEnergyFlag, total_walker, options.beta, d_cond, options.boundary_type, walker_per_interactions, options.num_intervals);
+        wang_landau<<<total_intervals, options.walker_per_interval>>>(d_lattice, d_interactions, d_energy, d_start, d_end, d_H, d_logG, d_offset_histogramm, d_offset_lattice, options.num_iterations, options.X, options.Y, options.seed_run, d_factor, d_offset_iter, d_expected_energy_spectrum, d_newEnergies, d_foundNewEnergyFlag, total_walker, options.beta, d_cond, options.boundary_type, walker_per_interactions, options.num_intervals);
         cudaDeviceSynchronize(); 
 
         // get max of found new energy flag array to condition break and update the histogramm file with value in new energy array
         thrust::device_ptr<int> d_newEnergyFlag_ptr(d_foundNewEnergyFlag);
-        thrust::device_ptr<int> max_newEnergyFlag_ptr = thrust::max_element(d_newEnergyFlag_ptr, d_newEnergyFlag_ptr + num_walker_total);
+        thrust::device_ptr<int> max_newEnergyFlag_ptr = thrust::max_element(d_newEnergyFlag_ptr, d_newEnergyFlag_ptr + total_walker);
         max_newEnergyFlag = *max_newEnergyFlag_ptr;
 
         // If flag shows new energies get the device arrays containing these to the host, update histogramm file and print error message.
         if (max_newEnergyFlag != 0){
-            int h_newEnergies[num_walker_total];
-            int h_newEnergyFlag[num_walker_total];
-            CHECK_CUDA(cudaMemcpy(h_newEnergies, d_newEnergies, num_walker_total * sizeof(int), cudaMemcpyDeviceToHost));
-            CHECK_CUDA(cudaMemcpy(h_newEnergyFlag, d_foundNewEnergyFlag, num_walker_total * sizeof(int), cudaMemcpyDeviceToHost));
-
-            handleNewEnergyError(h_newEnergies, h_newEnergyFlag, histogram_file, num_walker_total); 
+            int h_newEnergies[total_walker];
+            int h_newEnergyFlag[total_walker];
+            CHECK_CUDA(cudaMemcpy(h_newEnergies, d_newEnergies, total_walker * sizeof(int), cudaMemcpyDeviceToHost));
+            CHECK_CUDA(cudaMemcpy(h_newEnergyFlag, d_foundNewEnergyFlag, total_walker * sizeof(int), cudaMemcpyDeviceToHost));
+            
+            // TO DO: Adjust for several interactions
+            // handleNewEnergyError(h_newEnergies, h_newEnergyFlag, histogram_file, total_walker); 
+            std::cerr << "Error: Found new energy:" << std::endl;
             return 1;
         }
 
-        check_histogram<<<options.num_intervals, options.walker_per_interval>>>(d_H, d_logG, d_shared_logG, d_offset_histogramm, d_end, d_start, d_factor, options.X, options.Y, options.alpha, options.beta, d_expected_energy_spectrum, len_energy_spectrum, num_walker_total, d_cond);
+        /*
+        check_histogram<<<options.num_intervals, options.walker_per_interval>>>(d_H, d_logG, d_shared_logG, d_offset_histogramm, d_end, d_start, d_factor, options.X, options.Y, options.alpha, options.beta, d_expected_energy_spectrum, len_energy_spectrum, total_walker, d_cond);
         cudaDeviceSynchronize();
         
         calc_average_log_g<<<block_count, max_threads_per_block>>>(options.num_intervals, interval_result.len_histogram_over_all_walkers, options.walker_per_interval, d_logG, d_shared_logG, d_end, d_start, d_expected_energy_spectrum, d_cond);
@@ -195,14 +248,14 @@ int main(int argc, char **argv){
 
         // get max factor over walkers for abort condition of while loop 
         thrust::device_ptr<double> d_factor_ptr(d_factor);
-        thrust::device_ptr<double> max_factor_ptr = thrust::max_element(d_factor_ptr, d_factor_ptr + num_walker_total);
+        thrust::device_ptr<double> max_factor_ptr = thrust::max_element(d_factor_ptr, d_factor_ptr + total_walker);
         max_factor = *max_factor_ptr;
 
-        // std::vector<int> h_offset_lattice(num_walker_total);
-        // std::vector<int> h_energy(num_walker_total);
-        // CHECK_CUDA(cudaMemcpy(h_offset_lattice.data(), d_offset_lattice, num_walker_total*sizeof(*d_offset_lattice), cudaMemcpyDeviceToHost));
-        // CHECK_CUDA(cudaMemcpy(h_energy.data(), d_energy, num_walker_total*sizeof(*d_energy), cudaMemcpyDeviceToHost));
-        // for (int i=0; i<num_walker_total; i++){
+        // std::vector<int> h_offset_lattice(total_walker);
+        // std::vector<int> h_energy(total_walker);
+        // CHECK_CUDA(cudaMemcpy(h_offset_lattice.data(), d_offset_lattice, total_walker*sizeof(*d_offset_lattice), cudaMemcpyDeviceToHost));
+        // CHECK_CUDA(cudaMemcpy(h_energy.data(), d_energy, total_walker*sizeof(*d_energy), cudaMemcpyDeviceToHost));
+        // for (int i=0; i<total_walker; i++){
         //     std::cout << h_offset_lattice[i] << " " << h_energy[i] << std::endl;
         // }
 
@@ -211,9 +264,11 @@ int main(int argc, char **argv){
 
         replica_exchange<<<options.num_intervals, options.walker_per_interval>>>(d_offset_lattice, d_energy, d_start, d_end, d_indices, d_logG, d_offset_histogramm, false, options.seed_run, d_offset_iter);
         cudaDeviceSynchronize();
-
+    */
     }
+   
 
-    result_handling(options, interval_result, d_logG);
-
+    //result_handling(options, interval_result, d_logG);
+    
+    return 0;
 }

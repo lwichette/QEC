@@ -154,6 +154,7 @@ int main(int argc, char **argv){
     right interaction of r (1,0) ising spin is d_interactions_z(3,0)
     down interaction of b (1,0) ising spin is d_interactions_x(3,0)
     down interaction of r (1,0) ising spin is d_interactions_z(4,0) (here may be at boundary periodically closed to get interaction from first in column)
+    (b and r are used as lattices are colored blue or red here)
 
     Example X=3, Y=6:
             X (measured in o's)
@@ -185,6 +186,11 @@ int main(int argc, char **argv){
     CHECK_CUDA(cudaMalloc(&d_interactions_b, X * Y * sizeof(*d_interactions_b)));
     CHECK_CUDA(cudaMalloc(&d_interactions_down_four_body, X * Y/2 * sizeof(*d_interactions_down_four_body)));
     CHECK_CUDA(cudaMalloc(&d_interactions_right_four_body, X * Y/2 * sizeof(*d_interactions_right_four_body)));
+
+    // init b and r lattice
+    signed char *d_lattice_r, *d_lattice_b;
+    CHECK_CUDA(cudaMalloc(&d_lattice_b, X * Y/2 * sizeof(*d_lattice_b)));
+    CHECK_CUDA(cudaMalloc(&d_lattice_r, X * Y/2 * sizeof(*d_lattice_r)));
 
     generate_pauli_errors<<<num_blocks, max_threads_per_block>>>(d_pauli_errors, num_qubits, seed, prob_i_err, prob_x_err, prob_y_err, prob_z_err);
     cudaDeviceSynchronize();

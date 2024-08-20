@@ -140,4 +140,6 @@ __device__ RBIM open_boundary_random_bond_ising(signed char *d_lattice, signed c
 
 __device__ int scalar_commutator(int pauli1, int pauli2);
 
+__device__ double calc_energy_periodic_eight_vertex(signed char *lattice_b, signed char *lattice_r, double *interactions_b, double *interactions_r, double *interactions_four_body_right, double *interactions_four_body_down, const int num_qubits, const int X, const int Y);
+
 #endif // UTILS_H

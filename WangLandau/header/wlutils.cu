@@ -1221,3 +1221,30 @@ __global__ void init_interactions_eight_vertex(double *int_X, double *int_Y, dou
         }
     }
 }
+
+
+__device__ double calc_energy_periodic_eight_vertex(signed char *lattice_b, signed char *lattice_r, double *interactions_b, double *interactions_r, double *interactions_four_body_right, double *interactions_four_body_down, const int num_qubits, const int X, const int Y){
+
+    long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
+
+    int energy = 0;
+
+    for (int l = 0; l < X*Y/2; l++){ // dim of both Ising lattices is (X, Y/2)
+        int i = l / X; // row index
+        int j = l % X; // column index
+
+        // these neighbor indices are used for interactions closed under an Ising lattice
+        int inn = (i + 1 < Y/2) ? i+1 : 0; // down neighbor row index
+        int jnn = (j + 1 < X) ? j+1 : 0; // right neighbor column index
+
+        // // these indices are used for four body interactions
+        // int right_neighbor_column = (i%2 == 0) ? jnn : 
+
+        energy += \
+            lattice_b[i * X + j] * (lattice_b[inn * X + j] * interactions_b[X*Y/2 + i * X + j] + lattice_b[i * X + jnn] * interactions_b[i * X + j])\
+            +lattice_r[i * X + j] * (lattice_r[inn * X + j] * interactions_r[X*Y/2 + i * X + j] + lattice_r[i * X + jnn] * interactions_r[i * X + j])\
+            ;
+    }
+
+    return energy;
+}

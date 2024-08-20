@@ -1144,7 +1144,6 @@ __global__ void generate_pauli_errors(int *pauli_errors, int num_qubits, unsigne
         } else {
             pauli_errors[idx] = 3;  // Z
         }
-        // printf("idx %lld pauli %d\n", idx, pauli_errors[idx]);
     }
 }
 
@@ -1172,7 +1171,7 @@ __global__ void get_interaction_from_commutator(int *pauli_errors, double *int_X
     }
 }
 
-__global__ void init_interactions_eight_vertex(double *int_X, double *int_Y, double *int_Z, int num_qubits,  int X, int Y, double *int_r, double *int_b) {
+__global__ void init_interactions_eight_vertex(double *int_X, double *int_Y, double *int_Z, int num_qubits,  int X, int Y, double *int_r, double *int_b, double *d_interactions_down_four_body, double *d_interactions_right_four_body) {
     unsigned long long idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx < num_qubits) {
         int i = idx/X; // row index
@@ -1180,15 +1179,24 @@ __global__ void init_interactions_eight_vertex(double *int_X, double *int_Y, dou
 
         double interaction_x = int_X[idx]; 
         double interaction_z = int_Z[idx];
+        double interaction_y = int_Y[idx];
 
-        if(i%2==0){ // in even rows is x right interaction and z down. The 1/2 comes from ordering scheme as in pure bit flip implementation with first rows side neighbors and following once lateral.
+        if(i%2==0){ 
+            // in even rows is x right interaction and z down. The 1/2 comes from ordering scheme as in pure bit flip implementation with first rows side neighbors and following once lateral.
+            // in even rows is four body term a right version.
             if(j==0){
                 int_b[i/2*X+X-1] = interaction_x;
                 // printf("idx %lld int_b side at %d\n",idx, i/2*X+X-1);
+
+                d_interactions_right_four_body[i/2*X+X-1] = interaction_y;
+                // printf("idx %lld right four body at %d\n",idx, i/2*X+X-1);
             }
             else{
                 int_b[i/2*X+j-1] = interaction_x;
                 // printf("idx %lld int_b side at %d\n",idx, i/2*X+j-1);
+
+                d_interactions_right_four_body[i/2*X+j-1] = interaction_y;
+                // printf("idx %lld right four body at %d\n",idx, i/2*X+j-1);
             } 
             if(i==0){
                 int_r[(Y-1)*X+j] = interaction_z;
@@ -1199,12 +1207,17 @@ __global__ void init_interactions_eight_vertex(double *int_X, double *int_Y, dou
                 // printf("idx %lld int_r down at %d\n",idx, (Y/2)*X+((i/2)-1)*X+j);
             }
         }
-        else{ // in odd rows is x down interaction and z right.
+        else{ 
+            // in odd rows is x down interaction and z right.
+            // in odd rows is four body term a downward version.
             int_r[(i/2)*X+j] = interaction_z;
             // printf("idx %lld int_r side at %d\n",idx, (i/2)*X+j);
 
             int_b[(Y/2)*X+(i/2)*X+j] = interaction_x;
-            // printf("idx %lld int_b down at %d\n",idx, (Y/2)*X+(i/2)*X+j);
+            // printf("idx %lld int_b down at %d\n",idx, (Y/2)*X+(i/2)*X+j);   
+
+            d_interactions_down_four_body[i/2*X+j] = interaction_y;
+            printf("idx %lld down four body at %d\n",idx, i/2*X+j);       
         }
     }
 }

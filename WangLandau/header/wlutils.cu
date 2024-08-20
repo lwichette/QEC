@@ -1158,7 +1158,6 @@ __device__ int scalar_commutator(int pauli1, int pauli2) {
 
 __global__ void get_interaction_from_commutator(int *pauli_errors, double *int_X, double *int_Y, double *int_Z, int num_qubits, double J_X, double J_Y, double J_Z) {
     unsigned long long idx = blockIdx.x * blockDim.x + threadIdx.x;
-
     if (idx < num_qubits) {
         
         int pauli = pauli_errors[idx];
@@ -1170,7 +1169,35 @@ __global__ void get_interaction_from_commutator(int *pauli_errors, double *int_X
         int_X[idx] = comm_result_X * J_X;
         int_Y[idx] = comm_result_Y * J_Y;
         int_Z[idx] = comm_result_Z * J_Z;
+    }
+}
 
-        printf("idx %lld pauli %d comm %d result %f \n", idx, pauli_errors[idx], scalar_commutator(pauli, 1), int_X[idx]);
+__global__ void init_interactions_eight_vertex(double *int_X, double *int_Y, double *int_Z, int num_qubits,  int X, int Y, double *int_r, double *int_b) {
+    unsigned long long idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < num_qubits) {
+        int i = idx/X; // row index
+        int j = idx%X; // columns index
+
+        double interaction_x = int_X[idx]; 
+        double interaction_y = int_Y[idx];
+
+        if(i%2==0){ // in even rows is x right interaction and z down. The 1/2 steams from ordering as in pure bit flip implementation with first rows side neighbors and following once lateral.
+            if(j==0){
+                int_b[i/2*X+X-1] = interaction_x;
+                // printf("idx %lld int_b side at %d\n",idx, i/2*X+X-1);
+            }
+            else{
+                int_b[i/2*X+j-1] = interaction_x;
+                // printf("idx %lld int_b side at %d\n",idx, i/2*X+j-1);
+            } 
+            if(i==0){
+                int_r[(Y-1)*X+j] = interaction_y;
+                // printf("idx %lld int_r down at %d\n",idx, (Y-1)*X+j);
+            }
+            else{
+                int_r[(Y/2)*X+((i/2)-1)*X+j] = interaction_y;
+                // printf("idx %lld int_r down at %d\n",idx, (Y/2)*X+((i/2)-1)*X+j);
+            }
+        }
     }
 }

@@ -4,9 +4,11 @@
 
 int main(int argc, char **argv){
     /*
-    X, Y sepcifies grid of qubits not Ising spins - have to be careful with boundary conditions and dimensions here!
+    IMPORTANT: 
+    X, Y sepcifies grid of qubits not Ising spins.
+    X is qubits per row and Y rows of grid such that Y must be even!
+    This is motivated by grid example down below. The Y is not equal to qubits per column but Y/2 is! To have equal amount of qubits per column, this must be even.
     */
-
 
     cudaDeviceProp prop;
     cudaGetDeviceProperties(&prop, 0); // Assuming device 0
@@ -113,14 +115,18 @@ int main(int argc, char **argv){
         prob_i_err = 1-(prob_x_err+prob_y_err+prob_z_err);
     }
 
+    if(Y%2!=0){
+        fprintf(stderr, "Error: Invalid value for Y. Must be even.\n");
+        exit(EXIT_FAILURE);
+    }
+
     unsigned long long num_qubits = X*Y; // which is equivalent to amount of interactions, i.e. add further Ising spins for open boundary but dimensionality of physical system remains unchanged
 
     int num_blocks = (num_qubits + max_threads_per_block - 1) / max_threads_per_block;
 
-    unsigned long long ising_x, ising_y;
-
-    ising_x = (boundary_type == 0) ? X : X+1;
-    ising_y = (boundary_type == 0) ? Y : Y+1;     
+    // unsigned long long ising_x, ising_y;
+    // ising_x = (boundary_type == 0) ? X : X+1;
+    // ising_y = (boundary_type == 0) ? Y : Y+1;     
 
     //Coupling strength from Nishimori condition in https://arxiv.org/pdf/1809.10704 eq 15 with beta = 1.
     double J_I = std::log(prob_i_err*prob_x_err*prob_y_err*prob_z_err)/4;
@@ -149,29 +155,33 @@ int main(int argc, char **argv){
     down interaction of b (1,0) ising spin is d_interactions_x(3,0)
     down interaction of r (1,0) ising spin is d_interactions_z(4,0) (here may be at boundary periodically closed to get interaction from first in column)
 
-    o-b-o-b-o-b 
-    | | | | | |
-    r-o-r-o-r-o
-    | | | | | |
-    o-b-o-b-o-b
-    | | | | | |
-    r-o-r-o-r-o 
-    | | | | | |
-    o-b-o-b-o-b
-    | | | | | |
-    r-o-r-o-r-o
+    Example X=3, Y=6:
+            X (measured in o's)
+
+        o-b-o-b-o-b 
+        | | | | | |
+        r-o-r-o-r-o
+        | | | | | |
+        o-b-o-b-o-b
+    Y   | | | | | |
+        r-o-r-o-r-o 
+        | | | | | |
+        o-b-o-b-o-b
+        | | | | | |
+        r-o-r-o-r-o
 
     */
-
-    double *d_interactions_x, *d_interactions_y, *d_interactions_z;
-    CHECK_CUDA(cudaMalloc(&d_interactions_x, X * Y * sizeof(*d_interactions_x)));
-    CHECK_CUDA(cudaMalloc(&d_interactions_y, X * Y * sizeof(*d_interactions_y)));
-    CHECK_CUDA(cudaMalloc(&d_interactions_z, X * Y * sizeof(*d_interactions_z)));
+    double *d_interactions_r, *d_interactions_b;
+    CHECK_CUDA(cudaMalloc(&d_interactions_r, X * Y * sizeof(*d_interactions_r)));
+    CHECK_CUDA(cudaMalloc(&d_interactions_b, X * Y * sizeof(*d_interactions_b)));
 
     generate_pauli_errors<<<num_blocks, max_threads_per_block>>>(d_pauli_errors, num_qubits, seed, prob_i_err, prob_x_err, prob_y_err, prob_z_err);
     cudaDeviceSynchronize();
 
     get_interaction_from_commutator<<<num_blocks, max_threads_per_block>>>(d_pauli_errors, d_interactions_x, d_interactions_y, d_interactions_z, num_qubits, J_X, J_Y, J_Z);
+    cudaDeviceSynchronize();
+
+    init_interactions_eight_vertex<<<num_blocks, max_threads_per_block>>>(d_interactions_x, d_interactions_y, d_interactions_z, num_qubits,  X, Y, d_interactions_r, d_interactions_b);
     cudaDeviceSynchronize();
 
     return 0;

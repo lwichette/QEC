@@ -129,6 +129,8 @@ __global__ void generate_pauli_errors(int *pauli_errors, int num_qubits, unsigne
 
 __global__ void get_interaction_from_commutator(int *pauli_errors, double *int_X, double *int_Y, double *int_Z, int num_qubits, double J_X, double J_Y, double J_Z);
 
+__global__ void init_interactions_eight_vertex(double *int_X, double *int_Y, double *int_Z, int num_qubits, int X, int Y, double *int_r, double *int_b);
+
 __device__ RBIM periodic_boundary_random_bond_ising(
     signed char *d_lattice, signed char *d_interactions, int *d_energy, int *d_offset_lattice, unsigned long long *d_offset_iter, 
     curandStatePhilox4_32_10_t *st, const long long tid, const int nx, const int ny

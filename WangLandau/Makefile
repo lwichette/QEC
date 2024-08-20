@@ -15,7 +15,7 @@ wl: main_WL.cu
 prerun: main_prerun.cu
 	$(CUDACC) $(NVCC_FLAGS) ./header/wlutils.cu main_prerun.cu -o prerun_$(ID) $(LDFLAGS) $(LBOOSTFLAGS)
 
-prerun: main_eight_vertex.cu
+eight_vertex: main_eight_vertex.cu
 	$(CUDACC) $(NVCC_FLAGS) ./header/wlutils.cu main_eight_vertex.cu -o eight_vertex_$(ID) $(LDFLAGS) $(LBOOSTFLAGS)
 
 

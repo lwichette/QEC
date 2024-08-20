@@ -1129,19 +1129,48 @@ void result_handling(Options options, IntervalResult interval_result, double *d_
     return;
 }
 
-__global__ void generate_pauli_errors(int *pauli_errors, int num_qubits, unsigned long seed) {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+__global__ void generate_pauli_errors(int *pauli_errors, int num_qubits, unsigned long seed, double p_I, double p_X, double p_Y, double p_Z) {
+    unsigned long long idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx < num_qubits) {
         curandState state;
         curand_init(seed, idx, 0, &state);
-        pauli_errors[idx] = curand(&state) % 4;  // 0 -> I, 1 -> X, 2 -> Y, 3 -> Z
+        double rand_val = curand_uniform(&state); // between 0 and 1 here
+        if (rand_val < p_I) {
+            pauli_errors[idx] = 0;  // I
+        } else if (rand_val < p_I + p_X) {
+            pauli_errors[idx] = 1;  // X
+        } else if (rand_val < p_I + p_X + p_Y) {
+            pauli_errors[idx] = 2;  // Y
+        } else {
+            pauli_errors[idx] = 3;  // Z
+        }
+        // printf("idx %lld pauli %d\n", idx, pauli_errors[idx]);
     }
 }
 
-__device__ int scalar_commutator(int pauli1, int pauli2) {
+// this is not really a commutator as it is symmetric right? It gives 1 iff commuting and -1 iff not.
+__device__ int scalar_commutator(int pauli1, int pauli2) { 
     //The action here should be compatible with the definition in https://arxiv.org/pdf/1809.10704
     // Pauli operators are stored as: I = 0, X = 1, Y = 2, Z = 3 which yields:
-    if (pauli1 == 0 || pauli2 == 0) return 0;
-    if (pauli1 == pauli2) return 0; 
-    return -1;  // Other cases
+    if ((pauli1 == 0 || pauli2 == 0) || pauli1 == pauli2) return 1;
+    else return -1;  // Other cases
+}
+
+__global__ void get_interaction_from_commutator(int *pauli_errors, double *int_X, double *int_Y, double *int_Z, int num_qubits, double J_X, double J_Y, double J_Z) {
+    unsigned long long idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (idx < num_qubits) {
+        
+        int pauli = pauli_errors[idx];
+
+        double comm_result_X = scalar_commutator(pauli, 1); // * J_X;
+        double comm_result_Y = scalar_commutator(pauli, 2); // * J_Y;
+        double comm_result_Z = scalar_commutator(pauli, 3); //  * J_Z;
+
+        int_X[idx] = comm_result_X * J_X;
+        int_Y[idx] = comm_result_Y * J_Y;
+        int_Z[idx] = comm_result_Z * J_Z;
+
+        printf("idx %lld pauli %d comm %d result %f \n", idx, pauli_errors[idx], scalar_commutator(pauli, 1), int_X[idx]);
+    }
 }

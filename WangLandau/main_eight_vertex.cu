@@ -14,11 +14,14 @@ int main(int argc, char **argv){
 
     int X, Y;
     
-    float prob_i_err, prob_x_err, prob_y_err, prob_z_err;
+    float prob_i_err = 0;
+    float prob_x_err = 0;
+    float prob_y_err = 0;
+    float prob_z_err = 0;
 
     int num_wl_loops, num_iterations, num_walker;
 
-    int seed;
+    int seed = 42;
 
     int num_intervals;
     
@@ -102,8 +105,8 @@ int main(int argc, char **argv){
         }
     }
 
-    if(prob_x_err+prob_y_err+prob_z_err>1){
-        fprintf(stderr, "Error: Invalid value for error probabilities. Must sum to less then 1.\n");
+    if(prob_x_err+prob_y_err+prob_z_err>1 || prob_x_err*prob_y_err*prob_z_err == 0){
+        fprintf(stderr, "Error: Invalid value for error probabilities. Must sum to less then 1 and not be 0.\n");
         exit(EXIT_FAILURE);
     }
     else{ 
@@ -112,24 +115,65 @@ int main(int argc, char **argv){
 
     unsigned long long num_qubits = X*Y; // which is equivalent to amount of interactions, i.e. add further Ising spins for open boundary but dimensionality of physical system remains unchanged
 
+    int num_blocks = (num_qubits + max_threads_per_block - 1) / max_threads_per_block;
+
     unsigned long long ising_x, ising_y;
 
     ising_x = (boundary_type == 0) ? X : X+1;
     ising_y = (boundary_type == 0) ? Y : Y+1;     
 
-    
     //Coupling strength from Nishimori condition in https://arxiv.org/pdf/1809.10704 eq 15 with beta = 1.
     double J_I = std::log(prob_i_err*prob_x_err*prob_y_err*prob_z_err)/4;
     double J_X = std::log((prob_i_err*prob_x_err)/(prob_y_err*prob_z_err))/4;
     double J_Y = std::log((prob_i_err*prob_z_err)/(prob_x_err*prob_y_err))/4;
     double J_Z = std::log((prob_i_err*prob_y_err)/(prob_x_err*prob_z_err))/4;
 
+    // declaration of Pauli error over grid of qubits
+    int *d_pauli_errors;
+    CHECK_CUDA(cudaMalloc(&d_pauli_errors, X * Y * sizeof(*d_pauli_errors)));
+
     // declaration of interactions stemming from different commutator terms in https://arxiv.org/pdf/1809.10704 eq 14.
-    signed char *d_interactions_x, *d_interactions_y, *d_interactions_z;
-    CHECK_CUDA(cudaMalloc(&d_interactions_x, ising_x * ising_y * 2 * sizeof(*d_interactions_x)));
-    CHECK_CUDA(cudaMalloc(&d_interactions_y, ising_x * ising_y * 2 * sizeof(*d_interactions_y)));
-    CHECK_CUDA(cudaMalloc(&d_interactions_z, ising_x * ising_y * 2 * sizeof(*d_interactions_z)));
-    
+    double *d_interactions_x, *d_interactions_y, *d_interactions_z;
+    CHECK_CUDA(cudaMalloc(&d_interactions_x, X * Y * sizeof(*d_interactions_x)));
+    CHECK_CUDA(cudaMalloc(&d_interactions_y, X * Y * sizeof(*d_interactions_y)));
+    CHECK_CUDA(cudaMalloc(&d_interactions_z, X * Y * sizeof(*d_interactions_z)));
+
+    /* 
+    declaration of interaction arrays which should be inititalized in same ordering as done in pure bit flip implementation.
+    o are qubits and their respictive error stored in d_pauli.
+    b are ising spins with closed interactions determined by |[X,E]|
+    r are ising spins with closed interactions determined by |[Z,E]|
+    Four body terms are not depicted.
+    right interaction of b (1,0) ising spin is d_interactions_x(2,1) (here may be at boundary periodically closed to get interaction from first in row)
+    right interaction of r (1,0) ising spin is d_interactions_z(3,0)
+    down interaction of b (1,0) ising spin is d_interactions_x(3,0)
+    down interaction of r (1,0) ising spin is d_interactions_z(4,0) (here may be at boundary periodically closed to get interaction from first in column)
+
+    o-b-o-b-o-b 
+    | | | | | |
+    r-o-r-o-r-o
+    | | | | | |
+    o-b-o-b-o-b
+    | | | | | |
+    r-o-r-o-r-o 
+    | | | | | |
+    o-b-o-b-o-b
+    | | | | | |
+    r-o-r-o-r-o
+
+    */
+
+    double *d_interactions_x, *d_interactions_y, *d_interactions_z;
+    CHECK_CUDA(cudaMalloc(&d_interactions_x, X * Y * sizeof(*d_interactions_x)));
+    CHECK_CUDA(cudaMalloc(&d_interactions_y, X * Y * sizeof(*d_interactions_y)));
+    CHECK_CUDA(cudaMalloc(&d_interactions_z, X * Y * sizeof(*d_interactions_z)));
+
+    generate_pauli_errors<<<num_blocks, max_threads_per_block>>>(d_pauli_errors, num_qubits, seed, prob_i_err, prob_x_err, prob_y_err, prob_z_err);
+    cudaDeviceSynchronize();
+
+    get_interaction_from_commutator<<<num_blocks, max_threads_per_block>>>(d_pauli_errors, d_interactions_x, d_interactions_y, d_interactions_z, num_qubits, J_X, J_Y, J_Z);
+    cudaDeviceSynchronize();
+
     return 0;
 
 }

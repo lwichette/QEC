@@ -170,10 +170,21 @@ int main(int argc, char **argv){
         | | | | | |
         r-o-r-o-r-o
 
+    The four body interactions are imagined to be rooted on the b lattice. 
+    for each b ising spin exist two types of four body interactions. 
+    A right four body term:      and a down four body term:
+
+                r                           b                              
+                |                           |                                  
+              b-o-b                       r-o-r                             
+                |                           |                           
+                r                           b                                   
     */
-    double *d_interactions_r, *d_interactions_b;
+    double *d_interactions_r, *d_interactions_b, *d_interactions_down_four_body, *d_interactions_right_four_body;
     CHECK_CUDA(cudaMalloc(&d_interactions_r, X * Y * sizeof(*d_interactions_r)));
     CHECK_CUDA(cudaMalloc(&d_interactions_b, X * Y * sizeof(*d_interactions_b)));
+    CHECK_CUDA(cudaMalloc(&d_interactions_down_four_body, X * Y/2 * sizeof(*d_interactions_down_four_body)));
+    CHECK_CUDA(cudaMalloc(&d_interactions_right_four_body, X * Y/2 * sizeof(*d_interactions_right_four_body)));
 
     generate_pauli_errors<<<num_blocks, max_threads_per_block>>>(d_pauli_errors, num_qubits, seed, prob_i_err, prob_x_err, prob_y_err, prob_z_err);
     cudaDeviceSynchronize();

@@ -187,10 +187,18 @@ int main(int argc, char **argv){
     CHECK_CUDA(cudaMalloc(&d_interactions_down_four_body, X * Y/2 * sizeof(*d_interactions_down_four_body)));
     CHECK_CUDA(cudaMalloc(&d_interactions_right_four_body, X * Y/2 * sizeof(*d_interactions_right_four_body)));
 
-    // init b and r lattice
+    // declare b and r lattice
     signed char *d_lattice_r, *d_lattice_b;
     CHECK_CUDA(cudaMalloc(&d_lattice_b, X * Y/2 * sizeof(*d_lattice_b)));
     CHECK_CUDA(cudaMalloc(&d_lattice_r, X * Y/2 * sizeof(*d_lattice_r)));
+
+    // init for testing lattices with 1 spins
+    CHECK_CUDA(cudaMemset(d_lattice_b, 1, X * Y/2 * sizeof(*d_lattice_b)));
+    CHECK_CUDA(cudaMemset(d_lattice_r, 1, X * Y/2 * sizeof(*d_lattice_r)));
+
+    // for testing only single lattice
+    double* d_energy;
+    CHECK_CUDA(cudaMalloc(&d_energy, 1 * sizeof(*d_energy)));
 
     generate_pauli_errors<<<num_blocks, max_threads_per_block>>>(d_pauli_errors, num_qubits, seed, prob_i_err, prob_x_err, prob_y_err, prob_z_err);
     cudaDeviceSynchronize();
@@ -200,6 +208,9 @@ int main(int argc, char **argv){
 
     init_interactions_eight_vertex<<<num_blocks, max_threads_per_block>>>(d_interactions_x, d_interactions_y, d_interactions_z, num_qubits,  X, Y, d_interactions_r, d_interactions_b, d_interactions_down_four_body, d_interactions_right_four_body);
     cudaDeviceSynchronize();
-    return 0;
 
+    calc_energy_eight_vertex<<<num_blocks, max_threads_per_block>>>(d_energy, d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body , d_interactions_down_four_body, num_qubits, X, Y);
+    cudaDeviceSynchronize();
+
+    return 0;
 }

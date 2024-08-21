@@ -1217,7 +1217,7 @@ __global__ void init_interactions_eight_vertex(double *int_X, double *int_Y, dou
             // printf("idx %lld int_b down at %d\n",idx, (Y/2)*X+(i/2)*X+j);   
 
             d_interactions_down_four_body[i/2*X+j] = interaction_y;
-            printf("idx %lld down four body at %d\n",idx, i/2*X+j);       
+            // printf("idx %lld down four body at %d\n",idx, i/2*X+j);       
         }
     }
 }
@@ -1237,14 +1237,26 @@ __device__ double calc_energy_periodic_eight_vertex(signed char *lattice_b, sign
         int inn = (i + 1 < Y/2) ? i+1 : 0; // down neighbor row index
         int jnn = (j + 1 < X) ? j+1 : 0; // right neighbor column index
 
-        // // these indices are used for four body interactions
-        // int right_neighbor_column = (i%2 == 0) ? jnn : 
+        // // these indices are used for right four body interaction
+        int right_four_body_side_b = i * X + jnn;
+        int right_four_body_up_r = (i-1 < 0) ? (Y/2 - 1) * X + jnn : (i-1) * X + jnn;
+        int right_four_body_down_r = inn * X + jnn;
+
+        printf("i %d j %d : right_left_b %d right_side_b %d right_up_r %d right_down_r %d \n", i, j, i * X + j, right_four_body_side_b, right_four_body_up_r, right_four_body_down_r);
 
         energy += \
             lattice_b[i * X + j] * (lattice_b[inn * X + j] * interactions_b[X*Y/2 + i * X + j] + lattice_b[i * X + jnn] * interactions_b[i * X + j])\
             +lattice_r[i * X + j] * (lattice_r[inn * X + j] * interactions_r[X*Y/2 + i * X + j] + lattice_r[i * X + jnn] * interactions_r[i * X + j])\
-            ;
+            + interactions_four_body_right[i * X + j] * (lattice_b[i * X + j] * lattice_b[right_four_body_side_b] * lattice_r[right_four_body_up_r] * lattice_r[right_four_body_down_r]);
     }
 
     return energy;
+}
+
+
+__global__ void calc_energy_eight_vertex(double* energy_out, signed char *lattice_b, signed char *lattice_r, double *interactions_b, double *interactions_r, double *interactions_four_body_right, double *interactions_four_body_down, const int num_qubits, const int X, const int Y) {
+    long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
+    if(tid == 0){
+        energy_out[tid] = calc_energy_periodic_eight_vertex(lattice_b, lattice_r, interactions_b, interactions_r, interactions_four_body_right, interactions_four_body_down, num_qubits, X, Y);
+    }
 }

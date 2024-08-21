@@ -8,8 +8,8 @@
             "name": "Wang Landau",
             "type": "cuda-gdb",
             "request": "launch",
-            "program": "${workspaceFolder}/WangLandau/wl",
-            "args": "-x 8 -y 8 -n 1000 -p 0.0 -a 0.8 -b 0.01 -i 4 -w 2 -o 0.25"
+            "program": "${workspaceFolder}/WangLandau/wl_-10",
+            "args": "-x 12 -y 12 -n 10000 -p 0.0 -a 0.8 -b 0.01 -i 10 -w 5 -o 0.25 -h 42 -s 80 -e I -t 0 -r 1"
         },
         {
             "name": "prerun",

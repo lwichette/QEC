@@ -1144,6 +1144,7 @@ __global__ void generate_pauli_errors(int *pauli_errors, int num_qubits, unsigne
         } else {
             pauli_errors[idx] = 3;  // Z
         }
+        printf("idx %lld error: %d \n", idx, pauli_errors[idx]);
     }
 }
 
@@ -1227,7 +1228,7 @@ __device__ double calc_energy_periodic_eight_vertex(signed char *lattice_b, sign
 
     long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
 
-    int energy = 0;
+    double energy = 0;
 
     for (int l = 0; l < X*Y/2; l++){ // dim of both Ising lattices is (X, Y/2)
         int i = l / X; // row index
@@ -1247,7 +1248,7 @@ __device__ double calc_energy_periodic_eight_vertex(signed char *lattice_b, sign
         int down_four_body_left_r = i * X + j;
         int down_four_body_right_r = i * X + jnn;
         int down_four_body_down_b = inn * X + j;
-        printf("i %d j %d : down_up_b %d down_down_b %d down_left_r %d down_right_r %d \n", i, j, i * X + j, inn * X + j, i * X + j, i * X + jnn);
+        // printf("i %d j %d : down_up_b %d down_down_b %d down_left_r %d down_right_r %d \n", i, j, i * X + j, inn * X + j, i * X + j, i * X + jnn);
 
         energy += \
             lattice_b[i * X + j] * (lattice_b[inn * X + j] * interactions_b[X*Y/2 + i * X + j] + lattice_b[i * X + jnn] * interactions_b[i * X + j])\

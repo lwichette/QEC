@@ -122,11 +122,7 @@ int main(int argc, char **argv){
 
     unsigned long long num_qubits = X*Y; // which is equivalent to amount of interactions, i.e. add further Ising spins for open boundary but dimensionality of physical system remains unchanged
 
-    int num_blocks = (num_qubits + max_threads_per_block - 1) / max_threads_per_block;
-
-    // unsigned long long ising_x, ising_y;
-    // ising_x = (boundary_type == 0) ? X : X+1;
-    // ising_y = (boundary_type == 0) ? Y : Y+1;     
+    int num_blocks = (num_qubits + max_threads_per_block - 1) / max_threads_per_block;  
 
     //Coupling strength from Nishimori condition in https://arxiv.org/pdf/1809.10704 eq 15 with beta = 1.
     double J_I = std::log(prob_i_err*prob_x_err*prob_y_err*prob_z_err)/4;
@@ -212,6 +208,6 @@ int main(int argc, char **argv){
     calc_energy_eight_vertex<<<num_blocks, max_threads_per_block>>>(d_energy, d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body , d_interactions_down_four_body, num_qubits, X, Y);
     cudaDeviceSynchronize();
 
-    return 0;
-    
+    return 0;    
+
 }

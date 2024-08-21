@@ -168,6 +168,8 @@ int main(int argc, char **argv)
     CHECK_CUDA(cudaMalloc(&d_cond, total_intervals * sizeof(*d_cond)));
     CHECK_CUDA(cudaMemset(d_cond, 0, total_intervals * sizeof(*d_cond)));
 
+    signed char *d_cond;
+
     /*
     ----------------------------------------------
     ------------ Actual WL Starts Now ------------
@@ -316,30 +318,27 @@ int main(int argc, char **argv)
             options.num_intervals);
         cudaDeviceSynchronize();
 
-        // Adjust result_handling
         // To Do d_cond_interaction and check_finished
         // Adjust result_handling individually
     }
 
     std::vector<double> h_logG(total_len_histogram);
     CHECK_CUDA(cudaMemcpy(h_logG.data(), d_logG, total_len_histogram * sizeof(*d_logG), cudaMemcpyDeviceToHost));
-    
-    for (int i=0; i < total_len_histogram; i++){
-        std::cout << h_logG[i] << std::endl;
-    }
 
     std::vector<int> h_offset_histogram(total_walker);
     CHECK_CUDA(cudaMemcpy(h_offset_histogram.data(), d_offset_histogram, total_walker * sizeof(*d_offset_histogram), cudaMemcpyDeviceToHost));
 
     for (int i=0; i < options.num_interactions; i++){
         std::vector<int> run_start(h_start_int.begin() + i * options.num_intervals,
-                                   h_start_int.begin() + (i + 1)* options.num_intervals);
+                                   h_start_int.begin() + (i + 1)*options.num_intervals);
                                        
         std::vector<int> run_end(h_end_int.begin() + i * options.num_intervals,
-                                 h_end_int.begin() + (i + 1)* options.num_intervals);
-
-        std::vector<double> run_logG(h_logG.begin() + h_offset_histogram[i*options.num_intervals*options.walker_per_interval],
-                                    h_logG.begin() + h_offset_histogram[(i+1)*options.num_intervals*options.walker_per_interval]);
+                                 h_end_int.begin() + (i + 1)*options.num_intervals);
+        
+        std::vector<double> run_logG;
+        auto start = h_logG.begin() + h_offset_histogram[i * (options.num_intervals * options.walker_per_interval)];
+        auto end = (i < options.num_interactions - 1) ? h_logG.begin() + h_offset_histogram[(i + 1) * (options.num_intervals * options.walker_per_interval)] : h_logG.end();
+        run_logG.assign(start, end);
         
         result_handling(options, run_logG, run_start, run_end, i);   
     }

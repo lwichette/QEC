@@ -177,7 +177,7 @@ int main(int argc, char **argv){
                 |                           |                           
                 r                           b                                   
     */
-    double *d_interactions_r, *d_interactions_b, *d_interactions_down_four_body, *d_interactions_right_four_body;
+    double *d_interactions_r, *d_interactions_b, *d_interactions_down_four_body, *d_interactions_right_four_body; // single set of interaction arrays for all walkers to share
     CHECK_CUDA(cudaMalloc(&d_interactions_r, X * Y * sizeof(*d_interactions_r)));
     CHECK_CUDA(cudaMalloc(&d_interactions_b, X * Y * sizeof(*d_interactions_b)));
     CHECK_CUDA(cudaMalloc(&d_interactions_down_four_body, X * Y/2 * sizeof(*d_interactions_down_four_body)));
@@ -185,16 +185,54 @@ int main(int argc, char **argv){
 
     // declare b and r lattice
     signed char *d_lattice_r, *d_lattice_b;
-    CHECK_CUDA(cudaMalloc(&d_lattice_b, X * Y/2 * sizeof(*d_lattice_b)));
-    CHECK_CUDA(cudaMalloc(&d_lattice_r, X * Y/2 * sizeof(*d_lattice_r)));
+    CHECK_CUDA(cudaMalloc(&d_lattice_b, num_walker * X * Y/2 * sizeof(*d_lattice_b)));
+    CHECK_CUDA(cudaMalloc(&d_lattice_r, num_walker * X * Y/2 * sizeof(*d_lattice_r)));
 
-    // init for testing lattices with 1 spins
-    CHECK_CUDA(cudaMemset(d_lattice_b, 1, X * Y/2 * sizeof(*d_lattice_b)));
-    CHECK_CUDA(cudaMemset(d_lattice_r, 1, X * Y/2 * sizeof(*d_lattice_r)));
+    double factor = std::exp(1);
+    
+    const int E_min = -3*X*Y; // derived from 2 decoupled Ising lattices with dim (X, Y/2) -> 2*(-2)*(X*Y/2) and additionally two four body interactions rooted on spins of one lattice: -2*(X*Y/2)
+    const int E_max = -E_min;
+    
+    IntervalResult interval_result = generate_intervals(E_min, E_max, num_intervals, 1, 1.0f);
+    
+    std::cout << "Intervals for the run" << std::endl;
+  
+    for (int i=0; i< num_intervals; i++){
+        std::cout << interval_result.h_start[i] << " " << interval_result.h_end[i] << std::endl;
+    }
+    
+    long long len_histogram = E_max - E_min + 1;
+    
+    unsigned long long *d_H; 
+    CHECK_CUDA(cudaMalloc(&d_H, len_histogram * sizeof(*d_H)));
+    CHECK_CUDA(cudaMemset(d_H, 0, len_histogram*sizeof(*d_H)));
+    
+    unsigned long long *d_iter;
+    CHECK_CUDA(cudaMalloc(&d_iter, num_walker*sizeof(*d_iter)));
+    CHECK_CUDA(cudaMemset(d_iter, 0, num_walker*sizeof(*d_iter)));
+    
+    float *d_probs; // for init lattice needed
+    CHECK_CUDA(cudaMalloc(&d_probs, num_walker * sizeof(*d_probs)));
+    CHECK_CUDA(cudaMemset(d_probs, 0, num_walker*sizeof(*d_probs)));
+    
+    // // Alternatively init lattices for testing with spin up
+    // CHECK_CUDA(cudaMemset(d_lattice_b, 1, num_walker * X * Y/2 * sizeof(*d_lattice_b)));
+    // CHECK_CUDA(cudaMemset(d_lattice_r, 1, num_walker * X * Y/2 * sizeof(*d_lattice_r)));
 
     // for testing only single lattice
-    double* d_energy;
-    CHECK_CUDA(cudaMalloc(&d_energy, 1 * sizeof(*d_energy)));
+    double *d_energy;
+    CHECK_CUDA(cudaMalloc(&d_energy, num_walker * sizeof(*d_energy)));
+
+    signed char *d_store_lattice; // to store found configs for given energy range
+    CHECK_CUDA(cudaMalloc(&d_store_lattice, num_intervals * X * Y/2 * sizeof(*d_store_lattice)));
+
+    int *d_found_interval; // signaler to identify intervals where configs where found inside
+    CHECK_CUDA(cudaMalloc(&d_found_interval, num_intervals*sizeof(*d_found_interval)));
+    CHECK_CUDA(cudaMemset(d_found_interval, 0, num_intervals*sizeof(*d_found_interval)));
+
+    double *d_interval_energies;
+    CHECK_CUDA(cudaMalloc(&d_interval_energies, num_intervals*sizeof(*d_interval_energies)));
+    CHECK_CUDA(cudaMemset(d_interval_energies, 0, num_intervals*sizeof(*d_interval_energies)));
 
     generate_pauli_errors<<<num_blocks, max_threads_per_block>>>(d_pauli_errors, num_qubits, seed, prob_i_err, prob_x_err, prob_y_err, prob_z_err);
     cudaDeviceSynchronize();

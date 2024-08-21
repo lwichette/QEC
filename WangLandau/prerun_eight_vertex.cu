@@ -21,17 +21,19 @@ int main(int argc, char **argv){
     float prob_y_err = 0;
     float prob_z_err = 0;
 
-    int num_wl_loops, num_iterations, num_walker;
+    int num_wl_loops, num_iterations, walker_per_interaction;
 
     int seed = 42;
 
-    int num_intervals;
+    int num_intervals_per_interaction;
     
     char logical_error_type = 'I';
 
     int boundary_type = 0;
 
     int och;
+
+    int num_interactions;
 
     while (1) {
         int option_index = 0;
@@ -48,10 +50,11 @@ int main(int argc, char **argv){
             {"num_intervals", required_argument, 0, 'i'},
             {"logical_error", required_argument, 0, 'e'},
             {"boundary", required_argument, 0, 'b'},
+            {"replicas", required_argument, 0, 'r'},
             {0, 0, 0, 0}
         };
 
-        och = getopt_long(argc, argv, "x:y:f:g:h:n:l:w:s:i:e:b:", long_options, &option_index);
+        och = getopt_long(argc, argv, "x:y:f:g:h:n:l:w:s:i:e:b:r:", long_options, &option_index);
         
         if (och == -1)
             break;
@@ -80,13 +83,13 @@ int main(int argc, char **argv){
                 num_wl_loops = atoi(optarg);
                 break;
 			case 'w':
-                num_walker = atoi(optarg);
+                walker_per_interaction = atoi(optarg);
                 break;
 			case 's':
 				seed = atoi(optarg);
                 break;
             case 'i':
-			    num_intervals = atoi(optarg);
+			    num_intervals_per_interaction = atoi(optarg);
 			    break;
             case 'e':
                 logical_error_type = *optarg;
@@ -97,6 +100,9 @@ int main(int argc, char **argv){
                     fprintf(stderr, "Error: Invalid value for boundary type. Must be 0 (periodic) or 1 (open).\n");
                     exit(EXIT_FAILURE);
                 }
+                break;
+            case 'r':
+                num_interactions = atoi(optarg);
                 break;
 			case '?':
 				exit(EXIT_FAILURE);
@@ -123,6 +129,9 @@ int main(int argc, char **argv){
     unsigned long long num_qubits = X*Y; // which is equivalent to amount of interactions, i.e. add further Ising spins for open boundary but dimensionality of physical system remains unchanged
 
     int num_blocks = (num_qubits + max_threads_per_block - 1) / max_threads_per_block;  
+
+    int total_walker = num_interactions*walker_per_interaction;
+    int total_intervals = num_interactions*num_intervals_per_interaction;
 
     //Coupling strength from Nishimori condition in https://arxiv.org/pdf/1809.10704 eq 15 with beta = 1.
     double J_I = std::log(prob_i_err*prob_x_err*prob_y_err*prob_z_err)/4;
@@ -178,42 +187,44 @@ int main(int argc, char **argv){
                 r                           b                                   
     */
     double *d_interactions_r, *d_interactions_b, *d_interactions_down_four_body, *d_interactions_right_four_body; // single set of interaction arrays for all walkers to share
-    CHECK_CUDA(cudaMalloc(&d_interactions_r, X * Y * sizeof(*d_interactions_r)));
-    CHECK_CUDA(cudaMalloc(&d_interactions_b, X * Y * sizeof(*d_interactions_b)));
-    CHECK_CUDA(cudaMalloc(&d_interactions_down_four_body, X * Y/2 * sizeof(*d_interactions_down_four_body)));
-    CHECK_CUDA(cudaMalloc(&d_interactions_right_four_body, X * Y/2 * sizeof(*d_interactions_right_four_body)));
+    CHECK_CUDA(cudaMalloc(&d_interactions_r, num_interactions * X * Y * sizeof(*d_interactions_r)));
+    CHECK_CUDA(cudaMalloc(&d_interactions_b, num_interactions * X * Y * sizeof(*d_interactions_b)));
+    CHECK_CUDA(cudaMalloc(&d_interactions_down_four_body, num_interactions* X * Y/2 * sizeof(*d_interactions_down_four_body)));
+    CHECK_CUDA(cudaMalloc(&d_interactions_right_four_body, num_interactions * X * Y/2 * sizeof(*d_interactions_right_four_body)));
 
     // declare b and r lattice
     signed char *d_lattice_r, *d_lattice_b;
-    CHECK_CUDA(cudaMalloc(&d_lattice_b, num_walker * X * Y/2 * sizeof(*d_lattice_b)));
-    CHECK_CUDA(cudaMalloc(&d_lattice_r, num_walker * X * Y/2 * sizeof(*d_lattice_r)));
+    CHECK_CUDA(cudaMalloc(&d_lattice_b, total_walker * X * Y/2 * sizeof(*d_lattice_b)));
+    CHECK_CUDA(cudaMalloc(&d_lattice_r, total_walker * X * Y/2 * sizeof(*d_lattice_r)));
 
     double factor = std::exp(1);
     
     const int E_min = -3*X*Y; // derived from 2 decoupled Ising lattices with dim (X, Y/2) -> 2*(-2)*(X*Y/2) and additionally two four body interactions rooted on spins of one lattice: -2*(X*Y/2)
     const int E_max = -E_min;
+
     
-    IntervalResult interval_result = generate_intervals(E_min, E_max, num_intervals, 1, 1.0f);
+    IntervalResult interval_result = generate_intervals(E_min, E_max, num_intervals_per_interaction, 1, 1.0f);
     
     std::cout << "Intervals for the run" << std::endl;
   
-    for (int i=0; i< num_intervals; i++){
+    for (int i=0; i< num_intervals_per_interaction; i++){
         std::cout << interval_result.h_start[i] << " " << interval_result.h_end[i] << std::endl;
     }
     
-    long long len_histogram = E_max - E_min + 1;
+    long long len_histogram = E_max - E_min + 1; // len of histogram per interaction 
+    long long len_total_histogram = num_interactions*len_histogram; // len of histogram over all interactions
     
     unsigned long long *d_H; 
-    CHECK_CUDA(cudaMalloc(&d_H, len_histogram * sizeof(*d_H)));
-    CHECK_CUDA(cudaMemset(d_H, 0, len_histogram*sizeof(*d_H)));
+    CHECK_CUDA(cudaMalloc(&d_H, len_total_histogram * sizeof(*d_H)));
+    CHECK_CUDA(cudaMemset(d_H, 0, len_total_histogram * sizeof(*d_H)));
     
     unsigned long long *d_iter;
-    CHECK_CUDA(cudaMalloc(&d_iter, num_walker*sizeof(*d_iter)));
-    CHECK_CUDA(cudaMemset(d_iter, 0, num_walker*sizeof(*d_iter)));
+    CHECK_CUDA(cudaMalloc(&d_iter, total_walker * sizeof(*d_iter)));
+    CHECK_CUDA(cudaMemset(d_iter, 0, total_walker * sizeof(*d_iter)));
     
-    float *d_probs; // for init lattice needed
-    CHECK_CUDA(cudaMalloc(&d_probs, num_walker * sizeof(*d_probs)));
-    CHECK_CUDA(cudaMemset(d_probs, 0, num_walker*sizeof(*d_probs)));
+    float *d_probs; // for lattice init
+    CHECK_CUDA(cudaMalloc(&d_probs, total_walker * sizeof(*d_probs)));
+    CHECK_CUDA(cudaMemset(d_probs, 0, total_walker * sizeof(*d_probs)));
     
     // // Alternatively init lattices for testing with spin up
     // CHECK_CUDA(cudaMemset(d_lattice_b, 1, num_walker * X * Y/2 * sizeof(*d_lattice_b)));
@@ -221,30 +232,39 @@ int main(int argc, char **argv){
 
     // for testing only single lattice
     double *d_energy;
-    CHECK_CUDA(cudaMalloc(&d_energy, num_walker * sizeof(*d_energy)));
+    CHECK_CUDA(cudaMalloc(&d_energy, total_walker * sizeof(*d_energy)));
 
-    signed char *d_store_lattice; // to store found configs for given energy range
-    CHECK_CUDA(cudaMalloc(&d_store_lattice, num_intervals * X * Y/2 * sizeof(*d_store_lattice)));
+    signed char *d_store_lattice_b, *d_store_lattice_r; // to store found configs for given energy range
+    CHECK_CUDA(cudaMalloc(&d_store_lattice_b, total_intervals * X * Y/2 * sizeof(*d_store_lattice_b)));
+    CHECK_CUDA(cudaMalloc(&d_store_lattice_r, total_intervals * X * Y/2 * sizeof(*d_store_lattice_r)));
 
     int *d_found_interval; // signaler to identify intervals where configs where found inside
-    CHECK_CUDA(cudaMalloc(&d_found_interval, num_intervals*sizeof(*d_found_interval)));
-    CHECK_CUDA(cudaMemset(d_found_interval, 0, num_intervals*sizeof(*d_found_interval)));
+    CHECK_CUDA(cudaMalloc(&d_found_interval, total_intervals * sizeof(*d_found_interval)));
+    CHECK_CUDA(cudaMemset(d_found_interval, 0, total_intervals * sizeof(*d_found_interval)));
 
     double *d_interval_energies;
-    CHECK_CUDA(cudaMalloc(&d_interval_energies, num_intervals*sizeof(*d_interval_energies)));
-    CHECK_CUDA(cudaMemset(d_interval_energies, 0, num_intervals*sizeof(*d_interval_energies)));
+    CHECK_CUDA(cudaMalloc(&d_interval_energies, total_intervals * sizeof(*d_interval_energies)));
+    CHECK_CUDA(cudaMemset(d_interval_energies, 0, total_intervals * sizeof(*d_interval_energies)));
 
-    generate_pauli_errors<<<num_blocks, max_threads_per_block>>>(d_pauli_errors, num_qubits, seed, prob_i_err, prob_x_err, prob_y_err, prob_z_err);
-    cudaDeviceSynchronize();
+    int *d_offset_lattice_per_walker, *d_offset_lattice_per_interval; // holds for both b and r lattice
+    CHECK_CUDA(cudaMalloc(&d_offset_lattice_per_walker, total_walker * sizeof(*d_offset_lattice_per_walker)));
+    CHECK_CUDA(cudaMalloc(&d_offset_lattice_per_interval, total_intervals * sizeof(*d_offset_lattice_per_interval)));
 
-    get_interaction_from_commutator<<<num_blocks, max_threads_per_block>>>(d_pauli_errors, d_interactions_x, d_interactions_y, d_interactions_z, num_qubits, J_X, J_Y, J_Z);
-    cudaDeviceSynchronize();
+    int BLOCKS_qubit_x_thread = (total_walker*X*Y + max_threads_per_block - 1)/max_threads_per_block;
+    int BLOCKS_total_walker_x_thread = (total_walker + max_threads_per_block - 1)/max_threads_per_block;
+    int BLOCKS_total_intervals_x_thread = (total_intervals + max_threads_per_block - 1)/max_threads_per_block;
 
-    init_interactions_eight_vertex<<<num_blocks, max_threads_per_block>>>(d_interactions_x, d_interactions_y, d_interactions_z, num_qubits,  X, Y, d_interactions_r, d_interactions_b, d_interactions_down_four_body, d_interactions_right_four_body);
-    cudaDeviceSynchronize();
+    // generate_pauli_errors<<<num_blocks, max_threads_per_block>>>(d_pauli_errors, num_qubits, seed, prob_i_err, prob_x_err, prob_y_err, prob_z_err);
+    // cudaDeviceSynchronize();
 
-    calc_energy_eight_vertex<<<num_blocks, max_threads_per_block>>>(d_energy, d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body , d_interactions_down_four_body, num_qubits, X, Y);
-    cudaDeviceSynchronize();
+    // get_interaction_from_commutator<<<num_blocks, max_threads_per_block>>>(d_pauli_errors, d_interactions_x, d_interactions_y, d_interactions_z, num_qubits, J_X, J_Y, J_Z);
+    // cudaDeviceSynchronize();
+
+    // init_interactions_eight_vertex<<<num_blocks, max_threads_per_block>>>(d_interactions_x, d_interactions_y, d_interactions_z, num_qubits,  X, Y, d_interactions_r, d_interactions_b, d_interactions_down_four_body, d_interactions_right_four_body);
+    // cudaDeviceSynchronize();
+
+    // calc_energy_eight_vertex<<<num_blocks, max_threads_per_block>>>(d_energy, d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body , d_interactions_down_four_body, num_qubits, X, Y);
+    // cudaDeviceSynchronize();
 
     return 0;    
 

@@ -168,7 +168,6 @@ int main(int argc, char **argv)
     CHECK_CUDA(cudaMalloc(&d_cond, total_intervals * sizeof(*d_cond)));
     CHECK_CUDA(cudaMemset(d_cond, 0, total_intervals * sizeof(*d_cond)));
 
-    signed char *d_cond;
 
     /*
     ----------------------------------------------

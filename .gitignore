@@ -24,3 +24,4 @@ prerun_*
 **/lattice/*
 **/wl_*
 **/prerun_*
+!WangLandau/prerun_eight_vertex.cu

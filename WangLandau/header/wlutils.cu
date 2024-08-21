@@ -339,7 +339,7 @@ std::string constructFilePath(float prob_interactions, int X, int Y, int seed, s
     std::string boundary = (boundary_type == 0) ? "periodic" : "open";
 
     std::stringstream strstr;
-    strstr << "/home/dfki.uni-bremen.de/mbeuerle/User/mbeuerle/Code/qec/WangLandau/init/" << boundary << "/prob_" << std::fixed << std::setprecision(6) << prob_interactions;
+    strstr << "init/" << boundary << "/prob_" << std::fixed << std::setprecision(6) << prob_interactions;
     strstr << "/X_" << X << "_Y_" << Y;
     strstr << "/seed_" << seed;
     strstr << "/error_class_" << error_class;
@@ -353,7 +353,7 @@ std::vector<signed char> get_lattice_with_pre_run_result(float prob, int seed, i
     std::string boundary = (boundary_type == 0) ? "periodic" : "open";
     namespace fs = std::filesystem;
     std::ostringstream oss;
-    oss << "/home/dfki.uni-bremen.de/mbeuerle/User/mbeuerle/Code/qec/WangLandau/init/" << boundary << "/prob_" << std::fixed << std::setprecision(6) << prob;
+    oss << "init/" << boundary << "/prob_" << std::fixed << std::setprecision(6) << prob;
     oss << "/X_" << x << "_Y_" << y;
     oss << "/seed_" << seed;
     oss << "/error_class_" << error_class;

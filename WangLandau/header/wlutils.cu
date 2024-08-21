@@ -922,7 +922,6 @@ __device__ RBIM open_boundary_random_bond_ising(
         int c_right = (j == (ny-1)) ? 0 : 1;
         int c_left = (j == 0) ? 0 : 1;
         
-
         signed char energy_diff = -2 * d_lattice[d_offset_lattice[tid] + i * ny + j] * (
             c_up * d_lattice[d_offset_lattice[tid] + inn * ny + j] * d_interactions[nx * ny + inn * ny + j] + 
             c_left * d_lattice[d_offset_lattice[tid] + i * ny + jnn] * d_interactions[i * ny + jnn] + 
@@ -996,6 +995,7 @@ __global__ void wang_landau(
                 
                 d_offset_iter[tid] += 1;
             }
+
         }
     }
     else{

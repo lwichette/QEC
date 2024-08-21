@@ -213,4 +213,5 @@ int main(int argc, char **argv){
     cudaDeviceSynchronize();
 
     return 0;
+    
 }

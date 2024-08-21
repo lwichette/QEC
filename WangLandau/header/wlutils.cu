@@ -1237,17 +1237,23 @@ __device__ double calc_energy_periodic_eight_vertex(signed char *lattice_b, sign
         int inn = (i + 1 < Y/2) ? i+1 : 0; // down neighbor row index
         int jnn = (j + 1 < X) ? j+1 : 0; // right neighbor column index
 
-        // // these indices are used for right four body interaction
+        // these indices are used for right four body interaction
         int right_four_body_side_b = i * X + jnn;
         int right_four_body_up_r = (i-1 < 0) ? (Y/2 - 1) * X + jnn : (i-1) * X + jnn;
         int right_four_body_down_r = inn * X + jnn;
+        // printf("i %d j %d : right_left_b %d right_side_b %d right_up_r %d right_down_r %d \n", i, j, i * X + j, right_four_body_side_b, right_four_body_up_r, right_four_body_down_r);
 
-        printf("i %d j %d : right_left_b %d right_side_b %d right_up_r %d right_down_r %d \n", i, j, i * X + j, right_four_body_side_b, right_four_body_up_r, right_four_body_down_r);
+        // these indices are used for down four body interaction
+        int down_four_body_left_r = i * X + j;
+        int down_four_body_right_r = i * X + jnn;
+        int down_four_body_down_b = inn * X + j;
+        printf("i %d j %d : down_up_b %d down_down_b %d down_left_r %d down_right_r %d \n", i, j, i * X + j, inn * X + j, i * X + j, i * X + jnn);
 
         energy += \
             lattice_b[i * X + j] * (lattice_b[inn * X + j] * interactions_b[X*Y/2 + i * X + j] + lattice_b[i * X + jnn] * interactions_b[i * X + j])\
             +lattice_r[i * X + j] * (lattice_r[inn * X + j] * interactions_r[X*Y/2 + i * X + j] + lattice_r[i * X + jnn] * interactions_r[i * X + j])\
-            + interactions_four_body_right[i * X + j] * (lattice_b[i * X + j] * lattice_b[right_four_body_side_b] * lattice_r[right_four_body_up_r] * lattice_r[right_four_body_down_r]);
+            + interactions_four_body_right[i * X + j] * (lattice_b[i * X + j] * lattice_b[right_four_body_side_b] * lattice_r[right_four_body_up_r] * lattice_r[right_four_body_down_r])\
+            + interactions_four_body_down[i * X + j] * (lattice_b[i * X + j] * lattice_b[down_four_body_down_b] * lattice_r[down_four_body_left_r] * lattice_r[down_four_body_right_r]);
     }
 
     return energy;

@@ -18,8 +18,8 @@ optim/cuIsing
 **/lattices_50
 dev_basic_cuda/dev_basic_cuda
 test_rng/test_rng
-wl
-prerun
+wl_*
+prerun_*
 **/__pycache__/
 **/lattice/*
 **/wl_*

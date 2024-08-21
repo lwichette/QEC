@@ -1157,6 +1157,7 @@ __global__ void wang_landau(
 
                 d_offset_iter[tid] += 1;
             }
+
         }
     }
     else{

@@ -1356,11 +1356,11 @@ __global__ void init_interactions_eight_vertex(double *int_X, double *int_Y, dou
         unsigned long long idx = tid % num_qubits; // idx on the threads' interaction
         int int_id = tid / num_qubits; // identifier of the threads' interaction
 
-        int offset_interactions_closed_on_sublattice = int_id * num_qubits; // offset on interaction arrays acting closed on sublattices
-        int offset_interactions_four_body = int_id * num_qubits / 2; // offset on four body interaction arrays 
+        unsigned long long offset_interactions_closed_on_sublattice = int_id * num_qubits; // offset on interaction arrays acting closed on sublattices
+        unsigned long long offset_interactions_four_body = int_id * num_qubits / 2; // offset on four body interaction arrays 
         
-        int i = idx/X; // row index
-        int j = idx%X; // columns index
+        int i = idx / X; // row index
+        int j = idx % X; // columns index
 
         double interaction_x = int_X[tid]; 
         double interaction_z = int_Z[tid];
@@ -1409,9 +1409,16 @@ __global__ void init_interactions_eight_vertex(double *int_X, double *int_Y, dou
 }
 
 
-__device__ double calc_energy_periodic_eight_vertex(signed char *lattice_b, signed char *lattice_r, double *interactions_b, double *interactions_r, double *interactions_four_body_right, double *interactions_four_body_down, const int num_qubits, const int X, const int Y){
+__device__ double calc_energy_periodic_eight_vertex(signed char *lattice_b, signed char *lattice_r, double *interactions_b, double *interactions_r, double *interactions_four_body_right, double *interactions_four_body_down, const int num_qubits, const int X, const int Y, const int num_lattices_x_interaction){
 
     long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
+
+    // int lattice_in_interaction = tid % num_lattices_x_interaction;
+    int int_id = tid / num_lattices_x_interaction;
+
+    unsigned long long offset_lattice = tid * num_qubits / 2; // offset on b r lattice arrays 
+    unsigned long long offset_interactions_closed_on_sublattice = int_id * num_qubits; // offset on interaction arrays acting closed on sublattices
+    unsigned long long offset_interactions_four_body = int_id * num_qubits / 2; // offset on four body interaction arrays 
 
     double energy = 0;
 
@@ -1436,19 +1443,19 @@ __device__ double calc_energy_periodic_eight_vertex(signed char *lattice_b, sign
         // printf("i %d j %d : down_up_b %d down_down_b %d down_left_r %d down_right_r %d \n", i, j, i * X + j, inn * X + j, i * X + j, i * X + jnn);
 
         energy += \
-            lattice_b[i * X + j] * (lattice_b[inn * X + j] * interactions_b[X*Y/2 + i * X + j] + lattice_b[i * X + jnn] * interactions_b[i * X + j])\
-            +lattice_r[i * X + j] * (lattice_r[inn * X + j] * interactions_r[X*Y/2 + i * X + j] + lattice_r[i * X + jnn] * interactions_r[i * X + j])\
-            + interactions_four_body_right[i * X + j] * (lattice_b[i * X + j] * lattice_b[right_four_body_side_b] * lattice_r[right_four_body_up_r] * lattice_r[right_four_body_down_r])\
-            + interactions_four_body_down[i * X + j] * (lattice_b[i * X + j] * lattice_b[down_four_body_down_b] * lattice_r[down_four_body_left_r] * lattice_r[down_four_body_right_r]);
+            lattice_b[offset_lattice + i * X + j] * (lattice_b[offset_lattice + inn * X + j] * interactions_b[offset_interactions_closed_on_sublattice + num_qubits / 2 + i * X + j] + lattice_b[offset_lattice + i * X + jnn] * interactions_b[offset_interactions_closed_on_sublattice + i * X + j])\
+            +lattice_r[offset_lattice + i * X + j] * (lattice_r[offset_lattice + inn * X + j] * interactions_r[offset_interactions_closed_on_sublattice + num_qubits / 2 + i * X + j] + lattice_r[offset_lattice + i * X + jnn] * interactions_r[offset_interactions_closed_on_sublattice + i * X + j])\
+            + interactions_four_body_right[offset_interactions_four_body + i * X + j] * (lattice_b[offset_lattice + i * X + j] * lattice_b[offset_lattice + right_four_body_side_b] * lattice_r[offset_lattice + right_four_body_up_r] * lattice_r[offset_lattice + right_four_body_down_r])\
+            + interactions_four_body_down[offset_interactions_four_body + i * X + j] * (lattice_b[offset_lattice + i * X + j] * lattice_b[offset_lattice + down_four_body_down_b] * lattice_r[offset_lattice + down_four_body_left_r] * lattice_r[offset_lattice + down_four_body_right_r]);
     }
 
     return energy;
 }
 
 
-__global__ void calc_energy_eight_vertex(double* energy_out, signed char *lattice_b, signed char *lattice_r, double *interactions_b, double *interactions_r, double *interactions_four_body_right, double *interactions_four_body_down, const int num_qubits, const int X, const int Y) {
+__global__ void calc_energy_eight_vertex(double* energy_out, signed char *lattice_b, signed char *lattice_r, double *interactions_b, double *interactions_r, double *interactions_four_body_right, double *interactions_four_body_down, const int num_qubits, const int X, const int Y, const int num_lattices, const int num_lattices_x_interaction) {
     long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
-    if(tid == 0){
-        energy_out[tid] = calc_energy_periodic_eight_vertex(lattice_b, lattice_r, interactions_b, interactions_r, interactions_four_body_right, interactions_four_body_down, num_qubits, X, Y);
+    if(tid < num_lattices){
+        energy_out[tid] = calc_energy_periodic_eight_vertex(lattice_b, lattice_r, interactions_b, interactions_r, interactions_four_body_right, interactions_four_body_down, num_qubits, X, Y, num_lattices_x_interaction);
     }
 }

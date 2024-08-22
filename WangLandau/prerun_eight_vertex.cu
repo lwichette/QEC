@@ -198,8 +198,12 @@ int main(int argc, char **argv){
 
     // declare b and r lattice
     signed char *d_lattice_r, *d_lattice_b;
-    CHECK_CUDA(cudaMalloc(&d_lattice_b, total_walker * X * Y/2 * sizeof(*d_lattice_b)));
-    CHECK_CUDA(cudaMalloc(&d_lattice_r, total_walker * X * Y/2 * sizeof(*d_lattice_r)));
+    CHECK_CUDA(cudaMalloc(&d_lattice_b, total_walker * num_qubits / 2 * sizeof(*d_lattice_b)));
+    CHECK_CUDA(cudaMalloc(&d_lattice_r, total_walker * num_qubits / 2 * sizeof(*d_lattice_r)));
+    // // init lattices for testing with spin up
+    // CHECK_CUDA(cudaMemset(d_lattice_b, 1, num_walker * X * Y/2 * sizeof(*d_lattice_b)));
+    // CHECK_CUDA(cudaMemset(d_lattice_r, 1, num_walker * X * Y/2 * sizeof(*d_lattice_r)));
+
 
     double factor = std::exp(1);
     
@@ -230,10 +234,6 @@ int main(int argc, char **argv){
     CHECK_CUDA(cudaMalloc(&d_probs, total_walker * sizeof(*d_probs)));
     CHECK_CUDA(cudaMemset(d_probs, 0, total_walker * sizeof(*d_probs)));
     
-    // // Alternatively init lattices for testing with spin up
-    // CHECK_CUDA(cudaMemset(d_lattice_b, 1, num_walker * X * Y/2 * sizeof(*d_lattice_b)));
-    // CHECK_CUDA(cudaMemset(d_lattice_r, 1, num_walker * X * Y/2 * sizeof(*d_lattice_r)));
-
     // for testing only single lattice
     double *d_energy;
     CHECK_CUDA(cudaMalloc(&d_energy, total_walker * sizeof(*d_energy)));
@@ -269,7 +269,7 @@ int main(int argc, char **argv){
     init_interactions_eight_vertex<<<blocks_qubit_x_thread, max_threads_per_block>>>(d_interactions_x, d_interactions_y, d_interactions_z, num_qubits, num_interactions,  X, Y, d_interactions_r, d_interactions_b, d_interactions_down_four_body, d_interactions_right_four_body);
     cudaDeviceSynchronize();
 
-    // calc_energy_eight_vertex<<<num_blocks, max_threads_per_block>>>(d_energy, d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body , d_interactions_down_four_body, num_qubits, X, Y);
+    // calc_energy_eight_vertex<<<num_blocks, max_threads_per_block>>>(d_energy, d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body , d_interactions_down_four_body, num_qubits, X, Y, );
     // cudaDeviceSynchronize();
 
     return 0;    

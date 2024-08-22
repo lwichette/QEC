@@ -23,7 +23,7 @@ __global__ void check_sums(int *d_cond_interactions, int num_intervals, int num_
     if (tid >= num_interactions) return;
 
     if (d_cond_interactions[tid] == num_intervals){
-        d_cond_interactions[tid] = 1;
+        d_cond_interactions[tid] = -1;
     }
 }
 
@@ -372,16 +372,6 @@ int main(int argc, char **argv)
             d_offset_histogram, false, options.seed_run, d_offset_iter,
             options.num_intervals, walker_per_interactions, d_cond_interactions);
         cudaDeviceSynchronize();
-
-        // To Do d_cond_interaction and check_finished
-        // Adjust result_handling individually
-    }
-
-    std::vector<int> h_cond_interactions(options.num_interactions);
-    CHECK_CUDA(cudaMemcpy(h_cond_interactions.data(), d_cond_interactions, options.num_interactions * sizeof(*d_cond_interactions), cudaMemcpyDeviceToHost));
-
-    for (int i=0; i < options.num_interactions; i++){
-        std::cout << h_cond_interactions[i] << std::endl;
     }
 
     std::vector<double> h_logG(total_len_histogram);

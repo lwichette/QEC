@@ -807,7 +807,7 @@ __global__ void replica_exchange(
     
     const int int_id = tid/walker_per_interactions;
 
-    if (d_cond_interaction[int_id]==1) return;
+    if (d_cond_interaction[int_id] == -1) return;
     
     long long cid = static_cast<long long>(blockDim.x) * (blockIdx.x + 1);
 
@@ -862,7 +862,7 @@ __global__ void check_histogram(
     if (tid >= num_walker_total) return;
     if (d_cond[blockId] == 1) return;
     
-    //if (d_cond_interaction[int_id] == 1) return;
+    if (d_cond_interaction[int_id] == -1) return;
 
     __shared__ int walkers_finished;
 
@@ -952,7 +952,7 @@ __global__ void calc_average_log_g(
         }
     }    
     
-    //if (d_cond_interaction[int_id] == 1) return;
+    if (d_cond_interaction[int_id] == -1) return;
 
     // Index inside histogram of the int_id interaction
     int tid_int = tid - d_offset_histogram[int_id*num_intervals_per_interaction*num_walker_per_interval];
@@ -1005,7 +1005,7 @@ __global__ void redistribute_g_values(
         }
     }    
 
-    // if (d_cond_interaction[int_id] == 1) return;
+    if (d_cond_interaction[int_id] == -1) return;
     
     int tid_int = tid - d_offset_histogram[int_id*num_intervals_per_interaction*num_walker_per_interval];
 
@@ -1129,7 +1129,7 @@ __global__ void wang_landau(
     const int int_id = tid/walker_per_interactions;
     const int interaction_offset = int_id * 2 * nx * ny;
 
-    // if (d_cond_interaction[int_id] == 1) return;
+    if (d_cond_interaction[int_id] == -1) return;
 
     curandStatePhilox4_32_10_t st;
     curand_init(seed, tid, d_offset_iter[tid], &st);

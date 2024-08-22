@@ -269,8 +269,14 @@ int main(int argc, char **argv){
     init_interactions_eight_vertex<<<blocks_qubit_x_thread, max_threads_per_block>>>(d_interactions_x, d_interactions_y, d_interactions_z, num_qubits, num_interactions,  X, Y, d_interactions_r, d_interactions_b, d_interactions_down_four_body, d_interactions_right_four_body);
     cudaDeviceSynchronize();
 
-    // calc_energy_eight_vertex<<<num_blocks, max_threads_per_block>>>(d_energy, d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body , d_interactions_down_four_body, num_qubits, X, Y, );
-    // cudaDeviceSynchronize();
+    init_lattice<<<blocks_total_walker_x_thread, max_threads_per_block>>>(d_lattice_b, d_probs, X, Y/2, total_walker, seed - 2);
+    init_lattice<<<blocks_total_walker_x_thread, max_threads_per_block>>>(d_lattice_r, d_probs, X, Y/2, total_walker, seed - 1);
+    init_offsets_lattice<<<blocks_total_walker_x_thread, max_threads_per_block>>>(d_offset_lattice_per_walker, X, Y/2, total_walker); 
+    init_offsets_lattice<<<blocks_total_walker_x_thread, max_threads_per_block>>>(d_offset_lattice_per_interval, X, Y/2, total_intervals);
+    cudaDeviceSynchronize();
+
+    calc_energy_eight_vertex<<<blocks_total_walker_x_thread, max_threads_per_block>>>(d_energy, d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body , d_interactions_down_four_body, num_qubits, X, Y, total_walker, walker_per_interaction);
+    cudaDeviceSynchronize();
 
     return 0;    
 

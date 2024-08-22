@@ -1457,5 +1457,6 @@ __global__ void calc_energy_eight_vertex(double* energy_out, signed char *lattic
     long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
     if(tid < num_lattices){
         energy_out[tid] = calc_energy_periodic_eight_vertex(lattice_b, lattice_r, interactions_b, interactions_r, interactions_four_body_right, interactions_four_body_down, num_qubits, X, Y, num_lattices_x_interaction);
+        printf("lattice %lld energy %f \n", tid, energy_out[tid]);
     }
 }

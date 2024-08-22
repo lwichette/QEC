@@ -21,11 +21,13 @@ int main(int argc, char **argv){
     float prob_y_err = 0;
     float prob_z_err = 0;
 
-    int num_wl_loops, num_iterations, walker_per_interaction;
+    int num_wl_loops = 0; 
+    int num_iterations = 0;
+    int walker_per_interaction = 1;
 
     int seed = 42;
 
-    int num_intervals_per_interaction;
+    int num_intervals_per_interaction = 1;
     
     char logical_error_type = 'I';
 
@@ -33,7 +35,7 @@ int main(int argc, char **argv){
 
     int och;
 
-    int num_interactions;
+    int num_interactions = 1;
 
     while (1) {
         int option_index = 0;
@@ -126,9 +128,7 @@ int main(int argc, char **argv){
         exit(EXIT_FAILURE);
     }
 
-    unsigned long long num_qubits = X*Y; // which is equivalent to amount of interactions, i.e. add further Ising spins for open boundary but dimensionality of physical system remains unchanged
-
-    int num_blocks = (num_qubits + max_threads_per_block - 1) / max_threads_per_block;  
+    unsigned long long num_qubits = X * Y; // which is equivalent to amount of interactions, i.e. add further Ising spins for open boundary but dimensionality of physical system remains unchanged
 
     int total_walker = num_interactions*walker_per_interaction;
     int total_intervals = num_interactions*num_intervals_per_interaction;
@@ -139,15 +139,19 @@ int main(int argc, char **argv){
     double J_Y = std::log((prob_i_err*prob_z_err)/(prob_x_err*prob_y_err))/4;
     double J_Z = std::log((prob_i_err*prob_y_err)/(prob_x_err*prob_z_err))/4;
 
+    std::cout << "J params for the run:" << std::endl;
+    std::cout << "J_I = " << J_I << "J_X = " << J_X << "J_Y = " << J_Y << "J_Z = " << J_Z << std::endl;
+
+
     // declaration of Pauli error over grid of qubits
     int *d_pauli_errors;
-    CHECK_CUDA(cudaMalloc(&d_pauli_errors, X * Y * sizeof(*d_pauli_errors)));
+    CHECK_CUDA(cudaMalloc(&d_pauli_errors, num_interactions * num_qubits * sizeof(*d_pauli_errors)));
 
     // declaration of interactions stemming from different commutator terms in https://arxiv.org/pdf/1809.10704 eq 14.
     double *d_interactions_x, *d_interactions_y, *d_interactions_z;
-    CHECK_CUDA(cudaMalloc(&d_interactions_x, X * Y * sizeof(*d_interactions_x)));
-    CHECK_CUDA(cudaMalloc(&d_interactions_y, X * Y * sizeof(*d_interactions_y)));
-    CHECK_CUDA(cudaMalloc(&d_interactions_z, X * Y * sizeof(*d_interactions_z)));
+    CHECK_CUDA(cudaMalloc(&d_interactions_x, num_interactions * num_qubits * sizeof(*d_interactions_x)));
+    CHECK_CUDA(cudaMalloc(&d_interactions_y, num_interactions * num_qubits * sizeof(*d_interactions_y)));
+    CHECK_CUDA(cudaMalloc(&d_interactions_z, num_interactions * num_qubits * sizeof(*d_interactions_z)));
 
     /* 
     declaration of interaction arrays which should be inititalized in same ordering as done in pure bit flip implementation.
@@ -208,7 +212,7 @@ int main(int argc, char **argv){
     std::cout << "Intervals for the run" << std::endl;
   
     for (int i=0; i< num_intervals_per_interaction; i++){
-        std::cout << interval_result.h_start[i] << " " << interval_result.h_end[i] << std::endl;
+        std::cout << "[" << interval_result.h_start[i] << ", " << interval_result.h_end[i] << "]" << std::endl;
     }
     
     long long len_histogram = E_max - E_min + 1; // len of histogram per interaction 
@@ -249,16 +253,18 @@ int main(int argc, char **argv){
     int *d_offset_lattice_per_walker, *d_offset_lattice_per_interval; // holds for both b and r lattice
     CHECK_CUDA(cudaMalloc(&d_offset_lattice_per_walker, total_walker * sizeof(*d_offset_lattice_per_walker)));
     CHECK_CUDA(cudaMalloc(&d_offset_lattice_per_interval, total_intervals * sizeof(*d_offset_lattice_per_interval)));
+ 
+    int blocks_qubit_x_thread = (num_interactions * num_qubits + max_threads_per_block - 1)/max_threads_per_block;
+    int blocks_total_walker_x_thread = (total_walker + max_threads_per_block - 1)/max_threads_per_block;
+    int blocks_total_intervals_x_thread = (total_intervals + max_threads_per_block - 1)/max_threads_per_block;
 
-    int BLOCKS_qubit_x_thread = (total_walker*X*Y + max_threads_per_block - 1)/max_threads_per_block;
-    int BLOCKS_total_walker_x_thread = (total_walker + max_threads_per_block - 1)/max_threads_per_block;
-    int BLOCKS_total_intervals_x_thread = (total_intervals + max_threads_per_block - 1)/max_threads_per_block;
+    // General question about when to use offset in curand_init
 
-    // generate_pauli_errors<<<num_blocks, max_threads_per_block>>>(d_pauli_errors, num_qubits, seed, prob_i_err, prob_x_err, prob_y_err, prob_z_err);
-    // cudaDeviceSynchronize();
+    generate_pauli_errors<<<blocks_qubit_x_thread, max_threads_per_block>>>(d_pauli_errors, num_qubits, num_interactions, seed, prob_i_err, prob_x_err, prob_y_err, prob_z_err);
+    cudaDeviceSynchronize();
 
-    // get_interaction_from_commutator<<<num_blocks, max_threads_per_block>>>(d_pauli_errors, d_interactions_x, d_interactions_y, d_interactions_z, num_qubits, J_X, J_Y, J_Z);
-    // cudaDeviceSynchronize();
+    get_interaction_from_commutator<<<blocks_qubit_x_thread, max_threads_per_block>>>(d_pauli_errors, d_interactions_x, d_interactions_y, d_interactions_z, num_qubits, num_interactions, J_X, J_Y, J_Z);
+    cudaDeviceSynchronize();
 
     // init_interactions_eight_vertex<<<num_blocks, max_threads_per_block>>>(d_interactions_x, d_interactions_y, d_interactions_z, num_qubits,  X, Y, d_interactions_r, d_interactions_b, d_interactions_down_four_body, d_interactions_right_four_body);
     // cudaDeviceSynchronize();

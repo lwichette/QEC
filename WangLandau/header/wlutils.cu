@@ -1302,9 +1302,9 @@ void result_handling(
     return;
 }
 
-__global__ void generate_pauli_errors(int *pauli_errors, int num_qubits, unsigned long seed, double p_I, double p_X, double p_Y, double p_Z) {
+__global__ void generate_pauli_errors(int *pauli_errors, const int num_qubits, const int num_interactions, unsigned long seed, double p_I, double p_X, double p_Y, double p_Z) {
     unsigned long long idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx < num_qubits) {
+    if (idx < num_qubits * num_interactions) {
         curandState state;
         curand_init(seed, idx, 0, &state);
         double rand_val = curand_uniform(&state); // between 0 and 1 here
@@ -1317,7 +1317,7 @@ __global__ void generate_pauli_errors(int *pauli_errors, int num_qubits, unsigne
         } else {
             pauli_errors[idx] = 3;  // Z
         }
-        printf("idx %lld error: %d \n", idx, pauli_errors[idx]);
+        // printf("idx %lld error: %d \n", idx, pauli_errors[idx]);
     }
 }
 
@@ -1329,9 +1329,9 @@ __device__ int scalar_commutator(int pauli1, int pauli2) {
     else return -1;  // Other cases
 }
 
-__global__ void get_interaction_from_commutator(int *pauli_errors, double *int_X, double *int_Y, double *int_Z, int num_qubits, double J_X, double J_Y, double J_Z) {
+__global__ void get_interaction_from_commutator(int *pauli_errors, double *int_X, double *int_Y, double *int_Z, const int num_qubits, const int num_interactions, double J_X, double J_Y, double J_Z) {
     unsigned long long idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx < num_qubits) {
+    if (idx < num_interactions * num_qubits) {
         
         int pauli = pauli_errors[idx];
 
@@ -1342,6 +1342,8 @@ __global__ void get_interaction_from_commutator(int *pauli_errors, double *int_X
         int_X[idx] = comm_result_X * J_X;
         int_Y[idx] = comm_result_Y * J_Y;
         int_Z[idx] = comm_result_Z * J_Z;
+
+        printf("idx %lld int_X %f int_Y %f int_Z %f \n", idx, int_X[idx], int_Y[idx], int_Z[idx]);
     }
 }
 

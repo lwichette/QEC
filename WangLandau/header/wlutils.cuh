@@ -156,9 +156,9 @@ __global__ void replica_exchange(
 
 __global__ void print_finished_walker_ratio(double *d_factor, int num_walker_total, const double exp_beta, double *d_finished_walkers_ratio);
 
-__global__ void generate_pauli_errors(int *pauli_errors, int num_qubits, unsigned long seed, double p_I, double p_X, double p_Y, double p_Z);
+__global__ void generate_pauli_errors(int *pauli_errors, const int num_qubits, const int num_interactions, unsigned long seed, double p_I, double p_X, double p_Y, double p_Z);
 
-__global__ void get_interaction_from_commutator(int *pauli_errors, double *int_X, double *int_Y, double *int_Z, int num_qubits, double J_X, double J_Y, double J_Z);
+__global__ void get_interaction_from_commutator(int *pauli_errors, double *int_X, double *int_Y, double *int_Z, const int num_qubits, const int num_interactions, double J_X, double J_Y, double J_Z);
 
 __global__ void init_interactions_eight_vertex(double *int_X, double *int_Y, double *int_Z, int num_qubits, int X, int Y, double *int_r, double *int_b, double *d_interactions_down_four_body, double *d_interactions_right_four_body);
 

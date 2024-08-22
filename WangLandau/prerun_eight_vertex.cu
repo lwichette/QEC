@@ -266,8 +266,8 @@ int main(int argc, char **argv){
     get_interaction_from_commutator<<<blocks_qubit_x_thread, max_threads_per_block>>>(d_pauli_errors, d_interactions_x, d_interactions_y, d_interactions_z, num_qubits, num_interactions, J_X, J_Y, J_Z);
     cudaDeviceSynchronize();
 
-    // init_interactions_eight_vertex<<<num_blocks, max_threads_per_block>>>(d_interactions_x, d_interactions_y, d_interactions_z, num_qubits,  X, Y, d_interactions_r, d_interactions_b, d_interactions_down_four_body, d_interactions_right_four_body);
-    // cudaDeviceSynchronize();
+    init_interactions_eight_vertex<<<blocks_qubit_x_thread, max_threads_per_block>>>(d_interactions_x, d_interactions_y, d_interactions_z, num_qubits, num_interactions,  X, Y, d_interactions_r, d_interactions_b, d_interactions_down_four_body, d_interactions_right_four_body);
+    cudaDeviceSynchronize();
 
     // calc_energy_eight_vertex<<<num_blocks, max_threads_per_block>>>(d_energy, d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body , d_interactions_down_four_body, num_qubits, X, Y);
     // cudaDeviceSynchronize();

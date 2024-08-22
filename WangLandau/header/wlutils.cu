@@ -1347,52 +1347,62 @@ __global__ void get_interaction_from_commutator(int *pauli_errors, double *int_X
     }
 }
 
-__global__ void init_interactions_eight_vertex(double *int_X, double *int_Y, double *int_Z, int num_qubits,  int X, int Y, double *int_r, double *int_b, double *d_interactions_down_four_body, double *d_interactions_right_four_body) {
-    unsigned long long idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx < num_qubits) {
+__global__ void init_interactions_eight_vertex(double *int_X, double *int_Y, double *int_Z, const int num_qubits, const int num_interactions,  int X, int Y, double *int_r, double *int_b, double *d_interactions_down_four_body, double *d_interactions_right_four_body) {
+    
+    unsigned long long tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < num_interactions * num_qubits) {
+
+        unsigned long long idx = tid % num_qubits; // idx on the threads' interaction
+        int int_id = tid / num_qubits; // identifier of the threads' interaction
+
+        int offset_interactions_closed_on_sublattice = int_id * num_qubits; // offset on interaction arrays acting closed on sublattices
+        int offset_interactions_four_body = int_id * num_qubits / 2; // offset on four body interaction arrays 
+        
         int i = idx/X; // row index
         int j = idx%X; // columns index
 
-        double interaction_x = int_X[idx]; 
-        double interaction_z = int_Z[idx];
-        double interaction_y = int_Y[idx];
+        double interaction_x = int_X[tid]; 
+        double interaction_z = int_Z[tid];
+        double interaction_y = int_Y[tid];
 
         if(i%2==0){ 
             // in even rows is x right interaction and z down. The 1/2 comes from ordering scheme as in pure bit flip implementation with first rows side neighbors and following once lateral.
             // in even rows is four body term a right version.
             if(j==0){
-                int_b[i/2*X+X-1] = interaction_x;
+                int_b[offset_interactions_closed_on_sublattice + i/2*X+X-1] = interaction_x;
                 // printf("idx %lld int_b side at %d\n",idx, i/2*X+X-1);
 
-                d_interactions_right_four_body[i/2*X+X-1] = interaction_y;
+                d_interactions_right_four_body[offset_interactions_four_body + i/2*X+X-1] = interaction_y;
                 // printf("idx %lld right four body at %d\n",idx, i/2*X+X-1);
             }
             else{
-                int_b[i/2*X+j-1] = interaction_x;
+                int_b[offset_interactions_closed_on_sublattice + i/2*X+j-1] = interaction_x;
                 // printf("idx %lld int_b side at %d\n",idx, i/2*X+j-1);
 
-                d_interactions_right_four_body[i/2*X+j-1] = interaction_y;
+                d_interactions_right_four_body[offset_interactions_four_body + i/2*X+j-1] = interaction_y;
                 // printf("idx %lld right four body at %d\n",idx, i/2*X+j-1);
             } 
             if(i==0){
-                int_r[(Y-1)*X+j] = interaction_z;
+                int_r[offset_interactions_closed_on_sublattice + (Y-1)*X+j] = interaction_z;
                 // printf("idx %lld int_r down at %d\n",idx, (Y-1)*X+j);
             }
             else{
-                int_r[(Y/2)*X+((i/2)-1)*X+j] = interaction_z;
+                int_r[offset_interactions_closed_on_sublattice + (Y/2)*X+((i/2)-1)*X+j] = interaction_z;
                 // printf("idx %lld int_r down at %d\n",idx, (Y/2)*X+((i/2)-1)*X+j);
             }
         }
+        
         else{ 
             // in odd rows is x down interaction and z right.
             // in odd rows is four body term a downward version.
-            int_r[(i/2)*X+j] = interaction_z;
+            int_r[offset_interactions_closed_on_sublattice + (i/2)*X+j] = interaction_z;
             // printf("idx %lld int_r side at %d\n",idx, (i/2)*X+j);
 
-            int_b[(Y/2)*X+(i/2)*X+j] = interaction_x;
+            int_b[offset_interactions_closed_on_sublattice + (Y/2)*X+(i/2)*X+j] = interaction_x;
             // printf("idx %lld int_b down at %d\n",idx, (Y/2)*X+(i/2)*X+j);   
 
-            d_interactions_down_four_body[i/2*X+j] = interaction_y;
+            d_interactions_down_four_body[offset_interactions_four_body + i/2*X+j] = interaction_y;
             // printf("idx %lld down four body at %d\n",idx, i/2*X+j);       
         }
     }

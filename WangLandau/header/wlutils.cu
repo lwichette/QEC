@@ -386,7 +386,7 @@ std::vector<signed char> get_lattice_with_pre_run_result(float prob, int seed, i
                         // Check if the number is between interval boundaries
                         if (number >= h_start[interval_iterator] && number <= h_end[interval_iterator])
                         {
-                            std::cout << "Processing file: " << entry.path() << " with energy: " << number << " for interval [" << h_start[interval_iterator] << ", " << h_end[interval_iterator] << "]" << std::endl;
+                            //std::cout << "Processing file: " << entry.path() << " with energy: " << number << " for interval [" << h_start[interval_iterator] << ", " << h_end[interval_iterator] << "]" << std::endl;
                             for (int walker_per_interval_iterator = 0; walker_per_interval_iterator < num_walkers_per_interval; walker_per_interval_iterator++)
                             {
                                 read(lattice_over_all_walkers, entry.path().string());
@@ -439,7 +439,7 @@ __global__ void init_lattice(signed char *lattice, float *d_probs, const int nx,
     return;
 }
 
-__global__ void init_interactions(signed char *interactions, const int nx, const int ny, const int num_lattices, const int seed, const double prob, const char logical_error_type)
+__global__ void init_interactionsOld(signed char *interactions, const int nx, const int ny, const int num_lattices, const int seed, const double prob, const char logical_error_type)
 {
 
     long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
@@ -509,7 +509,7 @@ __global__ void init_interactions(signed char *interactions, const int nx, const
 // Test of changing init_interactions to swap up and left bonds. We want a column of left bonds and a row of up bonds
 
 // When considering different error classes, we want to add a row of flipped vertical bonds, or a column of flipped horizontal bonds, or both
-__global__ void init_interactions_Linnea(signed char *interactions, const int nx, const int ny, const int num_lattices, const int seed, const double prob, const char logical_error_type)
+__global__ void init_interactions(signed char *interactions, const int nx, const int ny, const int num_lattices, const int seed, const double prob, const char logical_error_type)
 {
 
     long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
@@ -989,7 +989,7 @@ __global__ void check_histogram(
 
         average = average / len_reduced_energy_spectrum;
 
-        printf("Walker %d in interval %d with min %lld alpha*average %2f and factor %.10f and d_cond %d \n", threadIdx.x, blockIdx.x, min, alpha * average, d_factor[tid], d_cond[blockId]);
+        //printf("Walker %d in interval %d with min %lld alpha*average %2f and factor %.10f and d_cond %d \n", threadIdx.x, blockIdx.x, min, alpha * average, d_factor[tid], d_cond[blockId]);
 
         if (min >= alpha * average)
         {

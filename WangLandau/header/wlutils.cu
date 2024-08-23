@@ -989,7 +989,7 @@ __global__ void check_histogram(
 
         average = average / len_reduced_energy_spectrum;
 
-        printf("Walker %d in interval %d with min %lld alpha*average %2f and factor %.10f and d_cond %d \n", threadIdx.x, blockIdx.x, min, alpha * average, d_factor[tid], d_cond[blockId]);
+        // printf("Walker %d in interval %d with min %lld alpha*average %2f and factor %.10f and d_cond %d \n", threadIdx.x, blockIdx.x, min, alpha * average, d_factor[tid], d_cond[blockId]);
 
         if (min >= alpha * average)
         {

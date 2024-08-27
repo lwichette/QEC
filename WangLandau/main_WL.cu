@@ -186,7 +186,6 @@ int main(int argc, char **argv)
     bool *h_result_is_dumped;
     h_result_is_dumped = (bool *)calloc(options.num_interactions, sizeof(*h_result_is_dumped));
 
-
     std::vector<int> h_offset_intervals(options.num_interactions + 1);
 
     for (int i = 0; i < options.num_interactions; i++)
@@ -214,8 +213,7 @@ int main(int argc, char **argv)
         d_offset_histogram, d_start, d_end, d_len_histograms,
         options.num_intervals, total_walker);
 
-    init_indices<<<total_intervals, options.walker_per_interval>>>(d_indices,
-                                                                   total_walker);
+    init_indices<<<total_intervals, options.walker_per_interval>>>(d_indices, total_walker);
     cudaDeviceSynchronize();
 
     std::vector<signed char> h_interactions;
@@ -308,7 +306,7 @@ int main(int argc, char **argv)
             // handleNewEnergyError(h_newEnergies, h_newEnergyFlag, histogram_file,
             // total_walker);
             std::cerr << "Error: Found new energy:" << std::endl;
-            return 1;
+            return -1;
         }
 
         check_histogram<<<total_intervals, options.walker_per_interval>>>(
@@ -364,37 +362,67 @@ int main(int argc, char **argv)
             cudaDeviceSynchronize();
         }
 
-        // results dump out: if a single interaction already finished 
-        if (min_cond_interactions == -1){
-            CHECK_CUDA(cudaMemcpy(h_cond_interactions, d_cond_interactions, options.num_interactions * sizeof(int), cudaMemcpyDeviceToHost)); 
-
-            std::vector<double> h_logG(total_len_histogram);
-            CHECK_CUDA(cudaMemcpy(h_logG.data(), d_logG, total_len_histogram * sizeof(*d_logG), cudaMemcpyDeviceToHost));
-
-            std::vector<int> h_offset_histogram(total_walker);
-            CHECK_CUDA(cudaMemcpy(h_offset_histogram.data(), d_offset_histogram, total_walker * sizeof(*d_offset_histogram), cudaMemcpyDeviceToHost));
+        // results dump out: if a single interaction already finished
+        if (min_cond_interactions == -1)
+        {
+            CHECK_CUDA(cudaMemcpy(h_cond_interactions, d_cond_interactions, options.num_interactions * sizeof(int), cudaMemcpyDeviceToHost));
 
             for (int i = 0; i < options.num_interactions; i++)
             {
-                if(h_cond_interactions[i] == -1 && !h_result_is_dumped[i]){
-                    h_result_is_dumped[i] = true; 
+                if (h_cond_interactions[i] == -1 && !h_result_is_dumped[i])
+                {
 
-                    std::vector<int> run_start(h_start_int.begin() + i * options.num_intervals,
-                                               h_start_int.begin() + (i + 1) * options.num_intervals);
+                    int offset_of_interaction_histogram;
+                    CHECK_CUDA(cudaMemcpy(&offset_of_interaction_histogram, d_offset_histogram + i * (options.num_intervals * options.walker_per_interval), sizeof(*d_offset_histogram), cudaMemcpyDeviceToHost));
 
-                    std::vector<int> run_end(h_end_int.begin() + i * options.num_intervals,
-                                             h_end_int.begin() + (i + 1) * options.num_intervals);
+                    int len_of_interaction_histogram = len_histogram_int[i];
 
-                    std::vector<double> run_logG;
-                    auto start = h_logG.begin() + h_offset_histogram[i * (options.num_intervals * options.walker_per_interval)];
-                    auto end = (i < options.num_interactions - 1) ? h_logG.begin() + h_offset_histogram[(i + 1) * (options.num_intervals * options.walker_per_interval)] : h_logG.end();
-                    run_logG.assign(start, end);
+                    if (offset_of_interaction_histogram + len_of_interaction_histogram > total_len_histogram)
+                    {
+                        std::cerr << "Error: Copy range exceeds histogram bounds" << std::endl;
+                        return -1;
+                    }
 
-                    result_handling(options, run_logG, run_start, run_end, i);
+                    std::vector<double> h_logG(len_of_interaction_histogram);
+                    CHECK_CUDA(cudaMemcpy(h_logG.data(), d_logG + offset_of_interaction_histogram, len_of_interaction_histogram * sizeof(*d_logG), cudaMemcpyDeviceToHost));
+
+                    h_result_is_dumped[i] = true; // setting flag such that result for this interaction wont be dumped again
+
+                    std::vector<int> run_start(h_start_int.begin() + i * options.num_intervals, h_start_int.begin() + (i + 1) * options.num_intervals);
+
+                    std::vector<int> run_end(h_end_int.begin() + i * options.num_intervals, h_end_int.begin() + (i + 1) * options.num_intervals);
+
+                    result_handling(options, h_logG, run_start, run_end, i);
                 }
             }
         }
     }
+
+    // Free temporary storage
+    CHECK_CUDA(cudaFree(d_temp_storage));
+
+    // Free allocated device memory
+    CHECK_CUDA(cudaFree(d_H));
+    CHECK_CUDA(cudaFree(d_logG));
+    CHECK_CUDA(cudaFree(d_shared_logG));
+    CHECK_CUDA(cudaFree(d_offset_shared_logG));
+    CHECK_CUDA(cudaFree(d_factor));
+    CHECK_CUDA(cudaFree(d_indices));
+    CHECK_CUDA(cudaFree(d_lattice));
+    CHECK_CUDA(cudaFree(d_interactions));
+    CHECK_CUDA(cudaFree(d_energy));
+    CHECK_CUDA(cudaFree(d_expected_energy_spectrum));
+    CHECK_CUDA(cudaFree(d_newEnergies));
+    CHECK_CUDA(cudaFree(d_foundNewEnergyFlag));
+    CHECK_CUDA(cudaFree(d_finished_walkers_ratio));
+    CHECK_CUDA(cudaFree(d_start));
+    CHECK_CUDA(cudaFree(d_end));
+    CHECK_CUDA(cudaFree(d_offset_energy_spectrum));
+    CHECK_CUDA(cudaFree(d_len_energy_spectrum));
+    CHECK_CUDA(cudaFree(d_len_histograms));
+    CHECK_CUDA(cudaFree(d_offset_histogram));
+    CHECK_CUDA(cudaFree(d_offset_lattice));
+    CHECK_CUDA(cudaFree(d_offset_iter));
 
     return 0;
 }

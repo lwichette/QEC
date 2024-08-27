@@ -83,6 +83,11 @@ void calc_energy(int blocks, int threads, const int boundary_type, signed char *
 
 void result_handling(Options options, std::vector<double> h_logG, std::vector<int> h_start, std::vector<int> h_end, int int_id);
 
+void check_interactions_finished(
+    signed char *d_cond, int *d_cond_interactions,
+    int *d_offset_intervals, int num_intervals, int num_interactions,
+    void *d_temp_storage, size_t &temp_storage_bytes);
+
 std::string constructFilePath(float prob_interactions, int X, int Y, int seed, std::string type, char error_class, int boundary_type);
 
 std::vector<signed char> get_lattice_with_pre_run_result(float prob, int seed, int x, int y, std::vector<int> h_start, std::vector<int> h_end, int num_intervals, int num_walkers_total, int num_walkers_per_interval, char error_class, int boundary_type);
@@ -158,6 +163,8 @@ __global__ void replica_exchange(
     const int walker_per_interactions, int *d_cond_interactions);
 
 __global__ void print_finished_walker_ratio(double *d_factor, int num_walker_total, const double exp_beta, double *d_finished_walkers_ratio);
+
+__global__ void check_sums(int *d_cond_interactions, int num_intervals, int num_interactions);
 
 __device__ RBIM periodic_boundary_random_bond_ising(
     signed char *d_lattice, signed char *d_interactions, int *d_energy, int *d_offset_lattice, unsigned long long *d_offset_iter,

@@ -16,40 +16,6 @@ https://www.osti.gov/servlets/purl/1567362
     - update histogram not working
 */
 
-__global__ void check_sums(int *d_cond_interactions, int num_intervals, int num_interactions)
-{
-
-    const long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
-
-    if (tid >= num_interactions)
-        return;
-
-    if (d_cond_interactions[tid] == num_intervals)
-    {
-        d_cond_interactions[tid] = -1;
-    }
-}
-
-void check_interactions_finished(
-    signed char *d_cond, int *d_cond_interactions,
-    int *d_offset_intervals, int num_intervals, int num_interactions,
-    void *d_temp_storage, size_t &temp_storage_bytes)
-{
-
-    // Determine the amount of temporary storage needed
-    cub::DeviceSegmentedReduce::Sum(d_temp_storage, temp_storage_bytes, d_cond, d_cond_interactions, num_interactions, d_offset_intervals, d_offset_intervals + 1);
-    CHECK_CUDA(cudaMalloc(&d_temp_storage, temp_storage_bytes));
-
-    // Perform the segmented reduction
-    cub::DeviceSegmentedReduce::Sum(d_temp_storage, temp_storage_bytes, d_cond, d_cond_interactions, num_interactions, d_offset_intervals, d_offset_intervals + 1);
-    cudaDeviceSynchronize();
-
-    check_sums<<<num_interactions, 1>>>(d_cond_interactions, num_intervals, num_interactions);
-    cudaDeviceSynchronize();
-
-    cudaFree(d_temp_storage);
-}
-
 int main(int argc, char **argv)
 {
 
@@ -212,6 +178,14 @@ int main(int argc, char **argv)
     int *d_cond_interactions;
     CHECK_CUDA(cudaMalloc(&d_cond_interactions, options.num_interactions * sizeof(*d_cond_interactions)));
     CHECK_CUDA(cudaMemset(d_cond_interactions, 0, options.num_interactions * sizeof(*d_cond_interactions)));
+
+    // host storage for the is finished flag per interaction stored in d_cond_interaction
+    int *h_cond_interactions;
+    h_cond_interactions = (int *)malloc(options.num_interactions * sizeof(*h_cond_interactions));
+
+    bool *h_result_is_dumped;
+    h_result_is_dumped = (bool *)calloc(options.num_interactions, sizeof(*h_result_is_dumped));
+
 
     std::vector<int> h_offset_intervals(options.num_interactions + 1);
 
@@ -382,29 +356,35 @@ int main(int argc, char **argv)
                 options.num_intervals, walker_per_interactions, d_cond_interactions);
             cudaDeviceSynchronize();
         }
-    }
 
-    ////// ----------------- Post Processing ---------------------- //////
-    std::vector<double> h_logG(total_len_histogram);
-    CHECK_CUDA(cudaMemcpy(h_logG.data(), d_logG, total_len_histogram * sizeof(*d_logG), cudaMemcpyDeviceToHost));
+        CHECK_CUDA(cudaMemcpy(h_cond_interactions, d_cond_interactions, options.num_interactions * sizeof(int), cudaMemcpyDeviceToHost)); 
 
-    std::vector<int> h_offset_histogram(total_walker);
-    CHECK_CUDA(cudaMemcpy(h_offset_histogram.data(), d_offset_histogram, total_walker * sizeof(*d_offset_histogram), cudaMemcpyDeviceToHost));
+        ////// ----------------- Post Processing ---------------------- //////
+        std::vector<double> h_logG(total_len_histogram);
+        CHECK_CUDA(cudaMemcpy(h_logG.data(), d_logG, total_len_histogram * sizeof(*d_logG), cudaMemcpyDeviceToHost));
 
-    for (int i = 0; i < options.num_interactions; i++)
-    {
-        std::vector<int> run_start(h_start_int.begin() + i * options.num_intervals,
-                                   h_start_int.begin() + (i + 1) * options.num_intervals);
+        std::vector<int> h_offset_histogram(total_walker);
+        CHECK_CUDA(cudaMemcpy(h_offset_histogram.data(), d_offset_histogram, total_walker * sizeof(*d_offset_histogram), cudaMemcpyDeviceToHost));
 
-        std::vector<int> run_end(h_end_int.begin() + i * options.num_intervals,
-                                 h_end_int.begin() + (i + 1) * options.num_intervals);
+        for (int i = 0; i < options.num_interactions; i++)
+        {
+            if(h_cond_interactions[i] == -1 && !h_result_is_dumped[i]){
+                h_result_is_dumped[i] = true; 
 
-        std::vector<double> run_logG;
-        auto start = h_logG.begin() + h_offset_histogram[i * (options.num_intervals * options.walker_per_interval)];
-        auto end = (i < options.num_interactions - 1) ? h_logG.begin() + h_offset_histogram[(i + 1) * (options.num_intervals * options.walker_per_interval)] : h_logG.end();
-        run_logG.assign(start, end);
+                std::vector<int> run_start(h_start_int.begin() + i * options.num_intervals,
+                                           h_start_int.begin() + (i + 1) * options.num_intervals);
 
-        result_handling(options, run_logG, run_start, run_end, i);
+                std::vector<int> run_end(h_end_int.begin() + i * options.num_intervals,
+                                         h_end_int.begin() + (i + 1) * options.num_intervals);
+
+                std::vector<double> run_logG;
+                auto start = h_logG.begin() + h_offset_histogram[i * (options.num_intervals * options.walker_per_interval)];
+                auto end = (i < options.num_interactions - 1) ? h_logG.begin() + h_offset_histogram[(i + 1) * (options.num_intervals * options.walker_per_interval)] : h_logG.end();
+                run_logG.assign(start, end);
+
+                result_handling(options, run_logG, run_start, run_end, i);
+            }
+        }
     }
 
     return 0;

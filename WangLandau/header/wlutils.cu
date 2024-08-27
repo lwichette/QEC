@@ -1432,3 +1432,37 @@ void result_handling(
     f_log_density.close();
     return;
 }
+
+__global__ void check_sums(int *d_cond_interactions, int num_intervals, int num_interactions)
+{
+
+    const long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
+
+    if (tid >= num_interactions)
+        return;
+
+    if (d_cond_interactions[tid] == num_intervals)
+    {
+        d_cond_interactions[tid] = -1;
+    }
+}
+
+void check_interactions_finished(
+    signed char *d_cond, int *d_cond_interactions,
+    int *d_offset_intervals, int num_intervals, int num_interactions,
+    void *d_temp_storage, size_t &temp_storage_bytes)
+{
+
+    // Determine the amount of temporary storage needed
+    cub::DeviceSegmentedReduce::Sum(d_temp_storage, temp_storage_bytes, d_cond, d_cond_interactions, num_interactions, d_offset_intervals, d_offset_intervals + 1);
+    CHECK_CUDA(cudaMalloc(&d_temp_storage, temp_storage_bytes));
+
+    // Perform the segmented reduction
+    cub::DeviceSegmentedReduce::Sum(d_temp_storage, temp_storage_bytes, d_cond, d_cond_interactions, num_interactions, d_offset_intervals, d_offset_intervals + 1);
+    cudaDeviceSynchronize();
+
+    check_sums<<<num_interactions, 1>>>(d_cond_interactions, num_intervals, num_interactions);
+    cudaDeviceSynchronize();
+
+    cudaFree(d_temp_storage);
+}

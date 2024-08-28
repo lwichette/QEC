@@ -1433,6 +1433,197 @@ void result_handling(
     return;
 }
 
+int find_stitching_keys(const std::map<int, double> &current_interval, const std::map<int, double> &next_interval)
+{
+    int min_key = -1;
+    double min_diff = std::numeric_limits<double>::max();
+
+    auto it1 = current_interval.begin();
+    auto it2 = next_interval.begin();
+
+    while (it1 != current_interval.end() && it2 != next_interval.end())
+    {
+        if (it1->first == it2->first)
+        {
+            if (std::next(it1) != current_interval.end() && std::next(it2) != next_interval.end())
+            {
+                double diff1 = (std::next(it1)->second - it1->second) / (std::next(it1)->first - it1->first);
+                double diff2 = (std::next(it2)->second - it2->second) / (std::next(it2)->first - it2->first);
+
+                double diff_between_intervals = std::abs(diff1 - diff2);
+                if (diff_between_intervals < min_diff)
+                {
+                    min_diff = diff_between_intervals;
+                    min_key = it1->first;
+                }
+            }
+            ++it1;
+            ++it2;
+        }
+        else if (it1->first < it2->first)
+        {
+            ++it1;
+        }
+        else
+        {
+            ++it2;
+        }
+    }
+
+    return min_key;
+}
+
+// Function to rescale the intervals for continuous concatenation
+void rescale_intervals_for_concatenation(std::vector<std::map<int, double>> &interval_data, const std::vector<int> &stitching_keys)
+{
+    for (size_t i = 0; i < stitching_keys.size(); ++i)
+    {
+        int e_concat = stitching_keys[i];
+
+        auto idx_in_preceding_interval = interval_data[i].find(e_concat);
+        auto idx_in_following_interval = interval_data[i + 1].find(e_concat);
+
+        if (idx_in_preceding_interval == interval_data[i].end() || idx_in_following_interval == interval_data[i + 1].end())
+        {
+            throw std::runtime_error("stitching energy " + std::to_string(e_concat) + " not found in one of the intervals which may be caused by non overlapping intervals which can not be normalized properly.");
+        }
+
+        double shift_val = idx_in_preceding_interval->second - idx_in_following_interval->second; // difference by which the following interval results get affinely shifted
+
+        // Apply the shift to all values in the following interval
+        for (auto &[key, value] : interval_data[i + 1])
+        {
+            value += shift_val;
+        }
+    }
+}
+
+// Function to cut overlapping parts in the interval data based on stitching keys
+void cut_overlapping_histogram_parts(
+    std::vector<std::map<int, double>> &interval_data,
+    const std::vector<int> &stitching_keys)
+{
+    for (size_t i = 0; i < stitching_keys.size(); ++i)
+    {
+        int stitching_energy_of_interval_i = stitching_keys[i];
+
+        // Modify the i-th interval
+        auto &current_interval = interval_data[i];
+        auto it = current_interval.upper_bound(stitching_energy_of_interval_i);
+        current_interval.erase(it, current_interval.end()); // Keep only keys <= stitching_energy_of_interval_i as std::map is sorted by keys ascendingly
+
+        // Modify the (i+1)-th interval if follwing interval is still in bounds of run parameters
+        if (i + 1 < interval_data.size())
+        {
+            auto &next_interval = interval_data[i + 1];
+            auto it2 = next_interval.lower_bound(stitching_energy_of_interval_i + 1);
+            next_interval.erase(next_interval.begin(), it2); // Keep only keys > stitching_energy_of_interval_i
+        }
+    }
+}
+
+void result_handling_stitched_histogram(
+    Options options, std::vector<double> h_logG,
+    std::vector<int> h_start, std::vector<int> h_end, int int_id)
+{
+
+    int index_h_log_g = 0;
+
+    // Store the results of the first walker for each interval as they are averaged already
+    std::vector<std::map<int, double>> interval_data(options.num_intervals);
+
+    for (int i = 0; i < options.num_intervals; i++)
+    {
+        int len_int = h_end[i] - h_start[i] + 1;
+
+        for (int j = 0; j < options.walker_per_interval; j++)
+        {
+            if (j == 0)
+            {
+                for (int k = 0; k < len_int; k++)
+                {
+
+                    int key = h_start[i] + k;
+                    double value = h_logG[index_h_log_g];
+
+                    if (value != 0)
+                    {
+                        interval_data[i][key] = value; // Store the non-zero value with its key at correct map object according to interval
+                    }
+
+                    index_h_log_g += 1;
+                }
+            }
+            else
+            {
+                index_h_log_g += len_int;
+            }
+        }
+    }
+
+    // Calculate best stitching points
+    std::vector<int> stitching_keys;
+    for (int i = 0; i < options.num_intervals - 1; i++)
+    {
+        const auto &current_interval = interval_data[i];
+        const auto &next_interval = interval_data[i + 1];
+
+        int min_key = find_stitching_keys(current_interval, next_interval);
+        if (min_key != -1)
+        {
+            stitching_keys.push_back(min_key);
+        }
+        else
+        {
+            stitching_keys.push_back(current_interval.end()->first); // when no overlap is found only pushback to keep a key per interval but will be catched when normalization of histogram
+            std::cout << "Found no matching key for intervals " << i << " and " << i + 1 << std::endl;
+        }
+    }
+    rescale_intervals_for_concatenation(interval_data, stitching_keys);
+    cut_overlapping_histogram_parts(interval_data, stitching_keys);
+
+    // From here on only write to csv
+    std::stringstream result_directory;
+    std::string boundary = (options.boundary_type == 0) ? "periodic" : "open";
+    result_directory << "results/" << boundary << "/prob_" << std::fixed << std::setprecision(6) << options.prob_interactions
+                     << "/X_" << options.X
+                     << "_Y_" << options.Y
+                     << "/seed_" << options.seed_histogram + int_id
+                     << "/error_class_" << options.logical_error_type;
+
+    create_directory(result_directory.str());
+
+    result_directory << "/StitchedHistogram_"
+                     << "_intervals_" << options.num_intervals
+                     << "_iterations_" << options.num_iterations
+                     << "_overlap_" << options.overlap_decimal
+                     << "_walkers_" << options.walker_per_interval
+                     << "_seed_run_" << options.seed_run
+                     << "_alpha_" << options.alpha
+                     << "_beta_" << std::fixed << std::setprecision(10) << options.beta
+                     << "exchange_offset" << options.replica_exchange_offset
+                     << ".csv";
+
+    std::ofstream file(result_directory.str());
+
+    if (!file.is_open())
+    {
+        std::cerr << "Error opening file: " << result_directory.str() << std::endl;
+        return;
+    }
+
+    for (size_t i = 0; i < interval_data.size(); ++i)
+    {
+        const auto &interval_map = interval_data[i];
+        for (const auto &[key, value] : interval_map)
+        {
+            file << key << " : " << value << '\n';
+        }
+    }
+
+    file.close();
+}
+
 __global__ void check_sums(int *d_cond_interactions, int num_intervals, int num_interactions)
 {
 

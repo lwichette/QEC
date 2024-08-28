@@ -388,11 +388,12 @@ int main(int argc, char **argv)
 
                     h_result_is_dumped[i] = true; // setting flag such that result for this interaction wont be dumped again
 
-                    std::vector<int> run_start(h_start_int.begin() + i * options.num_intervals, h_start_int.begin() + (i + 1) * options.num_intervals);
+                    std::vector<int> run_start(h_start_int.begin() + i * options.num_intervals, h_start_int.begin() + (i + 1) * options.num_intervals); // stores start energies of intervals of currently handled interaction
 
-                    std::vector<int> run_end(h_end_int.begin() + i * options.num_intervals, h_end_int.begin() + (i + 1) * options.num_intervals);
+                    std::vector<int> run_end(h_end_int.begin() + i * options.num_intervals, h_end_int.begin() + (i + 1) * options.num_intervals); // stores end energies of intervals of currently handled interaction
 
-                    result_handling(options, h_logG, run_start, run_end, i);
+                    result_handling_stitched_histogram(options, h_logG, run_start, run_end, i); // reduced result dump
+                    // result_handling(options, h_logG, run_start, run_end, i); // extended result dump
                 }
             }
         }

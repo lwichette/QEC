@@ -83,10 +83,22 @@ void calc_energy(int blocks, int threads, const int boundary_type, signed char *
 
 void result_handling(Options options, std::vector<double> h_logG, std::vector<int> h_start, std::vector<int> h_end, int int_id);
 
+void result_handling_stitched_histogram(
+    Options options, std::vector<double> h_logG,
+    std::vector<int> h_start, std::vector<int> h_end, int int_id);
+
+void rescale_intervals_for_concatenation(std::vector<std::map<int, double>> &interval_data, const std::vector<int> &stitching_keys);
+
 void check_interactions_finished(
     signed char *d_cond, int *d_cond_interactions,
     int *d_offset_intervals, int num_intervals, int num_interactions,
     void *d_temp_storage, size_t &temp_storage_bytes);
+
+void cut_overlapping_histogram_parts(
+    std::vector<std::map<int, double>> &interval_data,
+    const std::vector<int> &stitching_keys);
+
+int find_stitching_keys(const std::map<int, double> &current_interval, const std::map<int, double> &next_interval);
 
 std::string constructFilePath(float prob_interactions, int X, int Y, int seed, std::string type, char error_class, int boundary_type);
 

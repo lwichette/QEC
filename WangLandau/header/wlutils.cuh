@@ -112,6 +112,8 @@ __global__ void calc_energy_periodic_boundary(signed char *lattice, signed char 
 
 __global__ void calc_energy_open_boundary(signed char *lattice, signed char *interactions, int *d_energy, int *d_offset_lattice, const int nx, const int ny, const int num_lattices, const int walker_per_interactions);
 
+__global__ void calc_energy_cylinder(signed char *lattice, signed char *interactions, int *d_energy, int *d_offset_lattice, const int nx, const int ny, const int num_lattices, const int walker_per_interactions);
+
 __global__ void wang_landau_pre_run(
     signed char *d_lattice, signed char *d_interactions, int *d_energy,
     unsigned long long *d_H, unsigned long long *d_iter, int *d_offset_lattice,
@@ -178,10 +180,10 @@ __global__ void print_finished_walker_ratio(double *d_factor, int num_walker_tot
 
 __global__ void check_sums(int *d_cond_interactions, int num_intervals, int num_interactions);
 
-__device__ RBIM periodic_boundary_random_bond_ising(
-    signed char *d_lattice, signed char *d_interactions, int *d_energy, int *d_offset_lattice, unsigned long long *d_offset_iter,
-    curandStatePhilox4_32_10_t *st, const long long tid, const int nx, const int ny, const int interaction_offset);
+__device__ RBIM periodic_boundary_random_bond_ising(signed char *d_lattice, signed char *d_interactions, int *d_energy, int *d_offset_lattice, unsigned long long *d_offset_iter, curandStatePhilox4_32_10_t *st, const long long tid, const int nx, const int ny, const int interaction_offset);
 
 __device__ RBIM open_boundary_random_bond_ising(signed char *d_lattice, signed char *d_interactions, int *d_energy, int *d_offset_lattice, unsigned long long *d_offset_iter, curandStatePhilox4_32_10_t *st, const long long tid, const int nx, const int ny, const int interaction_offset);
 
-#endif // UTILS_H
+__device__ RBIM cylinder_random_bond_ising(signed char *d_lattice, signed char *d_interactions, int *d_energy, int *d_offset_lattice, unsigned long long *d_offset_iter, curandStatePhilox4_32_10_t *st, const long long tid, const int nx, const int ny, const int interaction_offset);
+
+#endif // WLUTILS_H

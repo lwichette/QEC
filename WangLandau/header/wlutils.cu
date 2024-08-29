@@ -1,8 +1,8 @@
 #include "wlutils.cuh"
 #include "cudamacro.h"
 
-__device__ RBIM (*rbim_func_map[])(signed char *, signed char *, int *, int *, unsigned long long *,
-                                   curandStatePhilox4_32_10_t *, const long long, const int, const int, const int) = {periodic_boundary_random_bond_ising, open_boundary_random_bond_ising};
+// order is important 0: periodic, 1: open, 2: cylinder
+__device__ RBIM (*rbim_func_map[])(signed char *, signed char *, int *, int *, unsigned long long *, curandStatePhilox4_32_10_t *, const long long, const int, const int, const int) = {periodic_boundary_random_bond_ising, open_boundary_random_bond_ising, cylinder_random_bond_ising};
 
 void parse_args(int argc, char *argv[], Options *options)
 {
@@ -341,7 +341,24 @@ void handleNewEnergyError(int *new_energies, int *new_energies_flag, char *histo
 
 std::string constructFilePath(float prob_interactions, int X, int Y, int seed, std::string type, char error_class, int boundary_type)
 {
-    std::string boundary = (boundary_type == 0) ? "periodic" : "open";
+    std::string boundary;
+
+    if (boundary_type == 0)
+    {
+        boundary = "periodic";
+    }
+    else if (boundary_type == 1)
+    {
+        boundary = "open";
+    }
+    else if (boundary_type == 2)
+    {
+        boundary = "cylinder";
+    }
+    else
+    {
+        boundary = "unknown"; // Handle any unexpected boundary_type values
+    }
 
     std::stringstream strstr;
     strstr << "init/" << boundary << "/prob_" << std::fixed << std::setprecision(6) << prob_interactions;
@@ -355,7 +372,25 @@ std::string constructFilePath(float prob_interactions, int X, int Y, int seed, s
 
 std::vector<signed char> get_lattice_with_pre_run_result(float prob, int seed, int x, int y, std::vector<int> h_start, std::vector<int> h_end, int num_intervals, int num_walkers_total, int num_walkers_per_interval, char error_class, int boundary_type)
 {
-    std::string boundary = (boundary_type == 0) ? "periodic" : "open";
+    std::string boundary;
+
+    if (boundary_type == 0)
+    {
+        boundary = "periodic";
+    }
+    else if (boundary_type == 1)
+    {
+        boundary = "open";
+    }
+    else if (boundary_type == 2)
+    {
+        boundary = "cylinder";
+    }
+    else
+    {
+        boundary = "unknown"; // Handle any unexpected boundary_type values
+    }
+
     namespace fs = std::filesystem;
     std::ostringstream oss;
     oss << "init/" << boundary << "/prob_" << std::fixed << std::setprecision(6) << prob;
@@ -574,10 +609,6 @@ __global__ void init_interactions(signed char *interactions, const int nx, const
     return;
 }
 
-// End test
-
-// End test
-
 __global__ void calc_energy_periodic_boundary(signed char *lattice, signed char *interactions, int *d_energy, int *d_offset_lattice, const int nx, const int ny, const int num_lattices, const int walker_per_interactions)
 {
 
@@ -631,6 +662,45 @@ __global__ void calc_energy_open_boundary(signed char *lattice, signed char *int
             int jnn = (j > 0) ? i * ny + (j - 1) : 0;
 
             energy += s_ij * (s_up * interactions[int_id * nx * ny * 2 + inn] + s_left * interactions[int_id * nx * ny * 2 + jnn]);
+        }
+    }
+
+    d_energy[tid] = energy;
+
+    return;
+}
+
+__global__ void calc_energy_cylinder(signed char *lattice, signed char *interactions, int *d_energy, int *d_offset_lattice, const int nx, const int ny, const int num_lattices, const int walker_per_interactions)
+{
+
+    long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
+
+    if (tid >= num_lattices)
+        return;
+
+    int int_id = tid / walker_per_interactions;
+
+    int energy = 0;
+    int offset_lattice = d_offset_lattice[tid];
+    int offset_interactions = int_id * nx * ny * 2;
+
+    for (int i = 0; i < nx; i++) // row index up to nx
+    {
+        for (int j = 0; j < ny; j++) // column index up to ny
+        {
+            signed char s_ij = lattice[offset_lattice + i * ny + j];
+            // up neighbor spin set to zero at boundary to set open condition in vertical lattice direction
+            signed char s_up = (i > 0) ? lattice[offset_lattice + (i - 1) * ny + j] : 0;
+            // left neighbor spin closed periodically to close cylinder in horizontal lattice direction - last horizontal index is ny-1
+            signed char s_left = (j > 0) ? lattice[offset_lattice + i * ny + (j - 1)] : lattice[offset_lattice + i * ny + (ny - 1)];
+
+            // down interaction linearised index set arbitrarily to zero
+            int inn = (i > 0) ? nx * ny + (i - 1) * ny + j : 0;
+            // right interacton linearised index closed periodically
+            int jnn = (j > 0) ? i * ny + (j - 1) : i * ny + (ny - 1);
+
+            // formula follows root spin times [up neighbor times down interaction rooted at up neighbor spin]
+            energy += s_ij * (s_up * interactions[offset_interactions + inn] + s_left * interactions[offset_interactions + jnn]);
         }
     }
 
@@ -1213,6 +1283,47 @@ __device__ RBIM open_boundary_random_bond_ising(
     return rbim;
 }
 
+// gets called with a thread per walker
+__device__ RBIM cylinder_random_bond_ising(
+    signed char *d_lattice, signed char *d_interactions, int *d_energy, int *d_offset_lattice, unsigned long long *d_offset_iter,
+    curandStatePhilox4_32_10_t *st, const long long tid, const int nx, const int ny, const int interaction_offset)
+{
+    double randval = curand_uniform(st);
+    randval *= (nx * ny - 1 + 0.999999);
+    int random_index = (int)trunc(randval);
+
+    d_offset_iter[tid] += 1;
+
+    int i = random_index / ny;
+    int j = random_index % ny;
+
+    int ipp = (i + 1) % nx;
+    int inn = (i - 1 + nx) % nx;
+    int jpp = (j + 1 < ny) ? j + 1 : 0;
+    int jnn = (j - 1 >= 0) ? j - 1 : ny - 1;
+
+    int c_up = (i > 0);
+    int c_down = (i < nx - 1);
+
+    int index = d_offset_lattice[tid] + i * ny + j;
+    signed char current_spin = d_lattice[index];
+
+    // // for test
+    // printf("nx: %d ny: %d i: %d j: %d ipp: %d inn: %d jpp: %d jnn: %d c_up: %d c_down: %d \n", nx, ny, i, j, ipp, inn, jpp, jnn, c_up, c_down);
+
+    // "-" simulates spin flip and "2" stems from energy diff.
+    signed char energy_diff = -2 * current_spin * (c_up * d_lattice[d_offset_lattice[tid] + inn * ny + j] * d_interactions[interaction_offset + nx * ny + inn * ny + j] + d_lattice[d_offset_lattice[tid] + i * ny + jnn] * d_interactions[interaction_offset + i * ny + jnn] + c_down * d_lattice[d_offset_lattice[tid] + ipp * ny + j] * d_interactions[interaction_offset + nx * ny + i * ny + j] + d_lattice[d_offset_lattice[tid] + i * ny + jpp] * d_interactions[interaction_offset + i * ny + j]);
+
+    int d_new_energy = d_energy[tid] + energy_diff;
+
+    RBIM rbim;
+    rbim.new_energy = d_new_energy;
+    rbim.i = i;
+    rbim.j = j;
+
+    return rbim;
+}
+
 __global__ void wang_landau(
     signed char *d_lattice, signed char *d_interactions, int *d_energy, int *d_start, int *d_end, unsigned long long *d_H,
     double *d_logG, int *d_offset_histogramm, int *d_offset_lattice, const int num_iterations, const int nx, const int ny,
@@ -1363,6 +1474,10 @@ void calc_energy(
 
     switch (boundary_type)
     {
+    case 2: // Cylinder closed horizontally
+        calc_energy_cylinder<<<blocks, threads>>>(lattice, interactions, d_energy, d_offset_lattice, nx, ny, total_walker, walker_per_interactions);
+        break;
+
     case 1: // Open boundary
         calc_energy_open_boundary<<<blocks, threads>>>(lattice, interactions, d_energy, d_offset_lattice, nx, ny, total_walker, walker_per_interactions);
         break;
@@ -1385,7 +1500,24 @@ void result_handling(
 {
     std::ofstream f_log_density;
 
-    std::string boundary = (options.boundary_type == 0) ? "periodic" : "open";
+    std::string boundary;
+
+    if (options.boundary_type == 0)
+    {
+        boundary = "periodic";
+    }
+    else if (options.boundary_type == 1)
+    {
+        boundary = "open";
+    }
+    else if (options.boundary_type == 2)
+    {
+        boundary = "cylinder";
+    }
+    else
+    {
+        boundary = "unknown"; // Handle any unexpected boundary_type values
+    }
 
     std::stringstream result_directory;
     result_directory << "results/" << boundary << "/prob_" << std::fixed << std::setprecision(6) << options.prob_interactions
@@ -1584,7 +1716,26 @@ void result_handling_stitched_histogram(
 
     // From here on only write to csv
     std::stringstream result_directory;
-    std::string boundary = (options.boundary_type == 0) ? "periodic" : "open";
+
+    std::string boundary;
+
+    if (options.boundary_type == 0)
+    {
+        boundary = "periodic";
+    }
+    else if (options.boundary_type == 1)
+    {
+        boundary = "open";
+    }
+    else if (options.boundary_type == 2)
+    {
+        boundary = "cylinder";
+    }
+    else
+    {
+        boundary = "unknown"; // Handle any unexpected boundary_type values
+    }
+
     result_directory << "results/" << boundary << "/prob_" << std::fixed << std::setprecision(6) << options.prob_interactions
                      << "/X_" << options.X
                      << "_Y_" << options.Y

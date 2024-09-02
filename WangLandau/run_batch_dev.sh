@@ -32,7 +32,7 @@ for probability in 0.02 0.06 0.08 0.12
     do
       xval=$size
       yval=$size
-      for error_type in I X Z Y
+      for error_type in I X Y Z
       do
         timeout $time_limit ./prerun_-10 -x $xval -y $yval -p $probability -n $iterations -l 100 -w 100 -s $seed_hist -i 20 -e "$error_type" -b $boundary_type -r $num_interactions
         if [ $? -eq 124 ]; then

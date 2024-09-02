@@ -275,7 +275,7 @@ int main(int argc, char **argv)
 
     while (max_factor > exp(options.beta))
     {
-        printf("Max Factor %8f \n", max_factor);
+        // printf("Max Factor %8f \n", max_factor);
 
         wang_landau<<<total_intervals, options.walker_per_interval>>>(
             d_lattice, d_interactions, d_energy, d_start, d_end, d_H, d_logG,

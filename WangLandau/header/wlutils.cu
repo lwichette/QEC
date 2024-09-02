@@ -162,7 +162,7 @@ void write(
     signed char *array_host, const std::string &filename, long nx, long ny,
     int num_lattices, bool lattice, const int *energies)
 {
-    std::cout << "Writing to " << filename << " ..." << std::endl;
+    // std::cout << "Writing to " << filename << " ..." << std::endl;
 
     int nx_w = (lattice) ? nx : 2 * nx;
 
@@ -199,16 +199,16 @@ void create_directory(std::string path)
         // Create directory
         if (std::filesystem::create_directories(path))
         {
-            std::cout << "Successfully created directory: " << path << std::endl;
+            // std::cout << "Successfully created directory: " << path << std::endl;
         }
         else
         {
-            std::cerr << "Failed to create directory: " << path << std::endl;
+            // std::cerr << "Failed to create directory: " << path << std::endl;
         }
     }
     else
     {
-        std::cout << "Directory already exists: " << path << std::endl;
+        // std::cout << "Directory already exists: " << path << std::endl;
     }
 
     return;
@@ -403,7 +403,7 @@ std::vector<signed char> get_lattice_with_pre_run_result(float prob, int seed, i
     std::vector<signed char> lattice_over_all_walkers;
     for (int interval_iterator = 0; interval_iterator < num_intervals; interval_iterator++)
     {
-        std::cout << interval_iterator << " ";
+        // std::cout << interval_iterator << " ";
         try
         {
             for (const auto &entry : fs::directory_iterator(lattice_path))
@@ -421,7 +421,7 @@ std::vector<signed char> get_lattice_with_pre_run_result(float prob, int seed, i
                         // Check if the number is between interval boundaries
                         if (number >= h_start[interval_iterator] && number <= h_end[interval_iterator])
                         {
-                            std::cout << "Processing file: " << entry.path() << " with energy: " << number << " for interval [" << h_start[interval_iterator] << ", " << h_end[interval_iterator] << "]" << std::endl;
+                            // std::cout << "Processing file: " << entry.path() << " with energy: " << number << " for interval [" << h_start[interval_iterator] << ", " << h_end[interval_iterator] << "]" << std::endl;
                             for (int walker_per_interval_iterator = 0; walker_per_interval_iterator < num_walkers_per_interval; walker_per_interval_iterator++)
                             {
                                 read(lattice_over_all_walkers, entry.path().string());

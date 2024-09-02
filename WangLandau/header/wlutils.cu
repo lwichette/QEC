@@ -1788,7 +1788,6 @@ void result_handling_stitched_histogram(
     result_directory << "results/" << boundary << "/prob_" << std::fixed << std::setprecision(6) << options.prob_interactions
                      << "/X_" << options.X
                      << "_Y_" << options.Y
-                     << "/seed_" << options.seed_histogram + int_id
                      << "/error_class_" << options.logical_error_type;
 
     create_directory(result_directory.str());
@@ -1798,13 +1797,12 @@ void result_handling_stitched_histogram(
                      << "_iterations_" << options.num_iterations
                      << "_overlap_" << options.overlap_decimal
                      << "_walkers_" << options.walker_per_interval
-                     << "_seed_run_" << options.seed_run
                      << "_alpha_" << options.alpha
                      << "_beta_" << std::fixed << std::setprecision(10) << options.beta
                      << "exchange_offset" << options.replica_exchange_offset
                      << ".csv";
 
-    std::ofstream file(result_directory.str());
+    std::ofstream file(result_directory.str(), std::ios::app); // append mode to store multiple interaction results in same file
 
     if (!file.is_open())
     {
@@ -1812,15 +1810,31 @@ void result_handling_stitched_histogram(
         return;
     }
 
+    file << "{\n";
+    file << "  \"HistogramSeed_" << options.seed_histogram + int_id << "\": {\n";
+    file << "    \"RunSeed_" << options.seed_run << "\": {\n";
     for (size_t i = 0; i < interval_data.size(); ++i)
     {
         const auto &interval_map = interval_data[i];
-        for (const auto &[key, value] : interval_map)
+        for (auto iterator = interval_map.begin(); iterator != interval_map.end(); ++iterator)
         {
-            file << key << " : " << value << '\n';
+            int key = iterator->first;
+            double value = iterator->second;
+
+            // Formatting key-value pairs
+            file << "      \"" << key << "\": " << value;
+
+            // Add a comma unless it's the last element
+            if (std::next(iterator) != interval_map.end() || i < interval_data.size() - 1)
+            {
+                file << ",";
+            }
+            file << "\n";
         }
     }
-
+    file << "    }\n";
+    file << "  }\n";
+    file << "}\n";
     file.close();
 }
 

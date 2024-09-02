@@ -1466,6 +1466,50 @@ __global__ void print_finished_walker_ratio(double *d_factor, int num_walker_tot
     return;
 }
 
+double logSumExp(const std::vector<std::map<int, double>> &data)
+{
+    double maxVal = -std::numeric_limits<double>::infinity();
+
+    // Get the maximum value to rescale for numerical reason
+    for (const auto &data_map : data)
+    {
+        for (const auto &data_pair : data_map)
+        {
+            if (data_pair.second > maxVal)
+            {
+                maxVal = data_pair.second;
+            }
+        }
+    }
+
+    // Calculate sum of exp(values - maxVal)
+    double sumExp = 0.0;
+    for (const auto &data_map : data)
+    {
+        for (const auto &data_pair : data_map)
+        {
+            sumExp += std::exp(data_pair.second - maxVal);
+        }
+    }
+
+    // rescale by maxVal to retrieve original log sum exp without overflow issues
+    return maxVal + std::log(sumExp);
+}
+
+void rescaleMapValues(std::vector<std::map<int, double>> &data, double X, double Y)
+{
+    double offset = logSumExp(data);
+    double log2XY = std::log(2) * X * Y; // scale to match high temperature limit of partition function - correct like this for random bond??
+
+    for (auto &data_map : data)
+    {
+        for (auto &data_pair : data_map)
+        {
+            data_pair.second = data_pair.second + log2XY - offset;
+        }
+    }
+}
+
 void calc_energy(
     int blocks, int threads, const int boundary_type, signed char *lattice,
     signed char *interactions, int *d_energy, int *d_offset_lattice,
@@ -1656,7 +1700,8 @@ void cut_overlapping_histogram_parts(
 
 void result_handling_stitched_histogram(
     Options options, std::vector<double> h_logG,
-    std::vector<int> h_start, std::vector<int> h_end, int int_id)
+    std::vector<int> h_start, std::vector<int> h_end, int int_id,
+    int X, int Y)
 {
 
     int index_h_log_g = 0;
@@ -1711,8 +1756,12 @@ void result_handling_stitched_histogram(
             std::cout << "Found no matching key for intervals " << i << " and " << i + 1 << std::endl;
         }
     }
+
     rescale_intervals_for_concatenation(interval_data, stitching_keys);
+
     cut_overlapping_histogram_parts(interval_data, stitching_keys);
+
+    rescaleMapValues(interval_data, X, Y); // rescaling for high temperature interpretation of partition function
 
     // From here on only write to csv
     std::stringstream result_directory;

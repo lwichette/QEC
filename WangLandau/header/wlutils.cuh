@@ -75,6 +75,10 @@ void write_histograms(unsigned long long *d_H, std::string path_histograms, int 
 
 std::vector<signed char> read_histogram(std::string filename, std::vector<int> &E_min, std::vector<int> &E_max);
 
+double logSumExp(const std::vector<std::map<int, double>> &data);
+
+void rescaleMapValues(std::vector<std::map<int, double>> &data, double X, double Y);
+
 void read(std::vector<signed char> &lattice, std::string filename);
 
 void handleNewEnergyError(int *new_energies, int *new_energies_flag, char *histogram_file, int num_walkers_total);
@@ -85,7 +89,7 @@ void result_handling(Options options, std::vector<double> h_logG, std::vector<in
 
 void result_handling_stitched_histogram(
     Options options, std::vector<double> h_logG,
-    std::vector<int> h_start, std::vector<int> h_end, int int_id);
+    std::vector<int> h_start, std::vector<int> h_end, int int_id, int X, int Y);
 
 void rescale_intervals_for_concatenation(std::vector<std::map<int, double>> &interval_data, const std::vector<int> &stitching_keys);
 
@@ -111,6 +115,8 @@ __global__ void init_interactions(signed char *interactions, const int nx, const
 __global__ void calc_energy_periodic_boundary(signed char *lattice, signed char *interactions, int *d_energy, int *d_offset_lattice, const int nx, const int ny, const int num_lattices, const int walker_per_interactions);
 
 __global__ void calc_energy_open_boundary(signed char *lattice, signed char *interactions, int *d_energy, int *d_offset_lattice, const int nx, const int ny, const int num_lattices, const int walker_per_interactions);
+
+__global__ void calc_energy_cylinder(signed char *lattice, signed char *interactions, int *d_energy, int *d_offset_lattice, const int nx, const int ny, const int num_lattices, const int walker_per_interactions);
 
 __global__ void wang_landau_pre_run(
     signed char *d_lattice, signed char *d_interactions, int *d_energy,
@@ -178,10 +184,10 @@ __global__ void print_finished_walker_ratio(double *d_factor, int num_walker_tot
 
 __global__ void check_sums(int *d_cond_interactions, int num_intervals, int num_interactions);
 
-__device__ RBIM periodic_boundary_random_bond_ising(
-    signed char *d_lattice, signed char *d_interactions, int *d_energy, int *d_offset_lattice, unsigned long long *d_offset_iter,
-    curandStatePhilox4_32_10_t *st, const long long tid, const int nx, const int ny, const int interaction_offset);
+__device__ RBIM periodic_boundary_random_bond_ising(signed char *d_lattice, signed char *d_interactions, int *d_energy, int *d_offset_lattice, unsigned long long *d_offset_iter, curandStatePhilox4_32_10_t *st, const long long tid, const int nx, const int ny, const int interaction_offset);
 
 __device__ RBIM open_boundary_random_bond_ising(signed char *d_lattice, signed char *d_interactions, int *d_energy, int *d_offset_lattice, unsigned long long *d_offset_iter, curandStatePhilox4_32_10_t *st, const long long tid, const int nx, const int ny, const int interaction_offset);
 
-#endif // UTILS_H
+__device__ RBIM cylinder_random_bond_ising(signed char *d_lattice, signed char *d_interactions, int *d_energy, int *d_offset_lattice, unsigned long long *d_offset_iter, curandStatePhilox4_32_10_t *st, const long long tid, const int nx, const int ny, const int interaction_offset);
+
+#endif // WLUTILS_H

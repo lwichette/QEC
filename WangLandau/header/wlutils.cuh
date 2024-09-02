@@ -75,6 +75,10 @@ void write_histograms(unsigned long long *d_H, std::string path_histograms, int 
 
 std::vector<signed char> read_histogram(std::string filename, std::vector<int> &E_min, std::vector<int> &E_max);
 
+double logSumExp(const std::vector<std::map<int, double>> &data);
+
+void rescaleMapValues(std::vector<std::map<int, double>> &data, double X, double Y);
+
 void read(std::vector<signed char> &lattice, std::string filename);
 
 void handleNewEnergyError(int *new_energies, int *new_energies_flag, char *histogram_file, int num_walkers_total);
@@ -85,7 +89,7 @@ void result_handling(Options options, std::vector<double> h_logG, std::vector<in
 
 void result_handling_stitched_histogram(
     Options options, std::vector<double> h_logG,
-    std::vector<int> h_start, std::vector<int> h_end, int int_id);
+    std::vector<int> h_start, std::vector<int> h_end, int int_id, int X, int Y);
 
 void rescale_intervals_for_concatenation(std::vector<std::map<int, double>> &interval_data, const std::vector<int> &stitching_keys);
 

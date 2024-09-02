@@ -392,7 +392,7 @@ int main(int argc, char **argv)
 
                     std::vector<int> run_end(h_end_int.begin() + i * options.num_intervals, h_end_int.begin() + (i + 1) * options.num_intervals); // stores end energies of intervals of currently handled interaction
 
-                    result_handling_stitched_histogram(options, h_logG, run_start, run_end, i); // reduced result dump
+                    result_handling_stitched_histogram(options, h_logG, run_start, run_end, i, options.X, options.Y); // reduced result dump with X, Y needed for rescaling
                     // result_handling(options, h_logG, run_start, run_end, i); // extended result dump
                 }
             }

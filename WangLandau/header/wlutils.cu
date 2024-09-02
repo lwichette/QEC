@@ -1466,6 +1466,50 @@ __global__ void print_finished_walker_ratio(double *d_factor, int num_walker_tot
     return;
 }
 
+double logSumExp(const std::vector<std::map<int, double>> &data)
+{
+    double maxVal = -std::numeric_limits<double>::infinity();
+
+    // Get the maximum value to rescale for numerical reason
+    for (const auto &data_map : data)
+    {
+        for (const auto &data_pair : data_map)
+        {
+            if (data_pair.second > maxVal)
+            {
+                maxVal = data_pair.second;
+            }
+        }
+    }
+
+    // Calculate sum of exp(values - maxVal)
+    double sumExp = 0.0;
+    for (const auto &data_map : data)
+    {
+        for (const auto &data_pair : data_map)
+        {
+            sumExp += std::exp(data_pair.second - maxVal);
+        }
+    }
+
+    // rescale by maxVal to retrieve original log sum exp without overflow issues
+    return maxVal + std::log(sumExp);
+}
+
+void rescaleMapValues(std::vector<std::map<int, double>> &data, double X, double Y)
+{
+    double offset = logSumExp(data);
+    double log2XY = std::log(2) * X * Y; // scale to match high temperature limit of partition function - correct like this for random bond??
+
+    for (auto &data_map : data)
+    {
+        for (auto &data_pair : data_map)
+        {
+            data_pair.second = data_pair.second + log2XY - offset;
+        }
+    }
+}
+
 void calc_energy(
     int blocks, int threads, const int boundary_type, signed char *lattice,
     signed char *interactions, int *d_energy, int *d_offset_lattice,
@@ -1656,7 +1700,8 @@ void cut_overlapping_histogram_parts(
 
 void result_handling_stitched_histogram(
     Options options, std::vector<double> h_logG,
-    std::vector<int> h_start, std::vector<int> h_end, int int_id)
+    std::vector<int> h_start, std::vector<int> h_end, int int_id,
+    int X, int Y)
 {
 
     int index_h_log_g = 0;
@@ -1711,8 +1756,12 @@ void result_handling_stitched_histogram(
             std::cout << "Found no matching key for intervals " << i << " and " << i + 1 << std::endl;
         }
     }
+
     rescale_intervals_for_concatenation(interval_data, stitching_keys);
+
     cut_overlapping_histogram_parts(interval_data, stitching_keys);
+
+    rescaleMapValues(interval_data, X, Y); // rescaling for high temperature interpretation of partition function
 
     // From here on only write to csv
     std::stringstream result_directory;
@@ -1739,7 +1788,6 @@ void result_handling_stitched_histogram(
     result_directory << "results/" << boundary << "/prob_" << std::fixed << std::setprecision(6) << options.prob_interactions
                      << "/X_" << options.X
                      << "_Y_" << options.Y
-                     << "/seed_" << options.seed_histogram + int_id
                      << "/error_class_" << options.logical_error_type;
 
     create_directory(result_directory.str());
@@ -1749,13 +1797,12 @@ void result_handling_stitched_histogram(
                      << "_iterations_" << options.num_iterations
                      << "_overlap_" << options.overlap_decimal
                      << "_walkers_" << options.walker_per_interval
-                     << "_seed_run_" << options.seed_run
                      << "_alpha_" << options.alpha
                      << "_beta_" << std::fixed << std::setprecision(10) << options.beta
                      << "exchange_offset" << options.replica_exchange_offset
                      << ".csv";
 
-    std::ofstream file(result_directory.str());
+    std::ofstream file(result_directory.str(), std::ios::app); // append mode to store multiple interaction results in same file
 
     if (!file.is_open())
     {
@@ -1763,15 +1810,31 @@ void result_handling_stitched_histogram(
         return;
     }
 
+    file << "{\n";
+    file << "  \"HistogramSeed_" << options.seed_histogram + int_id << "\": {\n";
+    file << "    \"RunSeed_" << options.seed_run << "\": {\n";
     for (size_t i = 0; i < interval_data.size(); ++i)
     {
         const auto &interval_map = interval_data[i];
-        for (const auto &[key, value] : interval_map)
+        for (auto iterator = interval_map.begin(); iterator != interval_map.end(); ++iterator)
         {
-            file << key << " : " << value << '\n';
+            int key = iterator->first;
+            double value = iterator->second;
+
+            // Formatting key-value pairs
+            file << "      \"" << key << "\": " << value;
+
+            // Add a comma unless it's the last element
+            if (std::next(iterator) != interval_map.end() || i < interval_data.size() - 1)
+            {
+                file << ",";
+            }
+            file << "\n";
         }
     }
-
+    file << "    }\n";
+    file << "  }\n";
+    file << "}\n";
     file.close();
 }
 

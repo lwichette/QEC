@@ -1626,6 +1626,8 @@ int find_stitching_keys(const std::map<int, double> &current_interval, const std
                 double diff1 = (std::next(it1)->second - it1->second) / (std::next(it1)->first - it1->first);
                 double diff2 = (std::next(it2)->second - it2->second) / (std::next(it2)->first - it2->first);
 
+                // std::cout << "E = " << it1->first << " derivative = " << diff1 << std::endl; // sanity check
+
                 double diff_between_intervals = std::abs(diff1 - diff2);
                 if (diff_between_intervals < min_diff)
                 {
@@ -1735,6 +1737,34 @@ void result_handling_stitched_histogram(
             {
                 index_h_log_g += len_int;
             }
+        }
+    }
+
+    // Here follows rescaling by minimum in each interval to make it compatible with python script (for sanity checking only?)
+    // finding minimum per interval
+    std::vector<double> min_values(options.num_intervals, std::numeric_limits<double>::max());
+    for (int i = 0; i < options.num_intervals; i++)
+    {
+        for (const auto &key_value_pair : interval_data[i])
+        {
+            if (key_value_pair.second < min_values[i])
+            {
+                min_values[i] = key_value_pair.second;
+            }
+        }
+
+        // If no non-zero value was found, reset to 0 (or any other default)
+        if (min_values[i] == std::numeric_limits<double>::max())
+        {
+            min_values[i] = 0;
+        }
+    }
+    // rescaling by minimum
+    for (int i = 0; i < options.num_intervals; i++)
+    {
+        for (auto &key_value_pair : interval_data[i])
+        {
+            key_value_pair.second -= min_values[i]; // each interval has a zero value now
         }
     }
 

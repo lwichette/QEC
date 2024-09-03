@@ -1844,6 +1844,7 @@ void result_handling_stitched_histogram(
     file << "  \"histogram_seed\": \"" << (options.seed_histogram + int_id) << "\",\n";
     file << "  \"run_seed\": \"" << options.seed_run << "\",\n";
     file << "  \"results\": [\n";
+    file << std::fixed << std::setprecision(20);
     for (size_t i = 0; i < interval_data.size(); ++i)
     {
         const auto &interval_map = interval_data[i];

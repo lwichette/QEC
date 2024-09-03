@@ -28,7 +28,7 @@ time_limit=360  # Time limit in seconds
 
 for probability in 0.02 0.06 0.08 0.12
   do
-    for size in 6 10
+    for size in 4 6 10
     do
       xval=$size
       yval=$size

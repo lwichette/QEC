@@ -1830,7 +1830,7 @@ void result_handling_stitched_histogram(
                      << "_alpha_" << options.alpha
                      << "_beta_" << std::fixed << std::setprecision(10) << options.beta
                      << "exchange_offset" << options.replica_exchange_offset
-                     << ".csv";
+                     << ".txt";
 
     std::ofstream file(result_directory.str(), std::ios::app); // append mode to store multiple interaction results in same file
 
@@ -1841,8 +1841,9 @@ void result_handling_stitched_histogram(
     }
 
     file << "{\n";
-    file << "  \"HistogramSeed_" << options.seed_histogram + int_id << "\": {\n";
-    file << "    \"RunSeed_" << options.seed_run << "\": {\n";
+    file << "  \"histogram_seed\": \"" << (options.seed_histogram + int_id) << "\",\n";
+    file << "  \"run_seed\": \"" << options.seed_run << "\",\n";
+    file << "  \"results\": [\n";
     for (size_t i = 0; i < interval_data.size(); ++i)
     {
         const auto &interval_map = interval_data[i];
@@ -1862,8 +1863,7 @@ void result_handling_stitched_histogram(
             file << "\n";
         }
     }
-    file << "    }\n";
-    file << "  }\n";
+    file << "]\n";
     file << "}\n";
     file.close();
 }

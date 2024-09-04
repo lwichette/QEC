@@ -4,9 +4,9 @@ SECONDS=0
 
 alpha=0.8
 
-beta=0.0001
+beta=0.000001
 
-walker_wl=8
+walker_wl=5
 
 overlap_wl=0.25
 
@@ -26,9 +26,9 @@ iterations=1000
 
 time_limit=360  # Time limit in seconds
 
-for probability in 0.02 0.06 0.08 0.12
+for probability in 0.02 0.06 0.12
   do
-    for size in 4 6 10
+    for size in 4 6
     do
       xval=$size
       yval=$size

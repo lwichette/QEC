@@ -24,15 +24,15 @@ intervals_wl=10
 
 iterations=1000
 
-time_limit=360  # Time limit in seconds
+time_limit=600
 
-for probability in 0.02 0.06 0.12
+for probability in 0.06
   do
-    for size in 4 6
+    for size in 10
     do
       xval=$size
       yval=$size
-      for error_type in I X Y Z
+      for error_type in X
       do
         timeout $time_limit ./prerun_-10 -x $xval -y $yval -p $probability -n $iterations -l 100 -w 100 -s $seed_hist -i 20 -e "$error_type" -b $boundary_type -r $num_interactions
         if [ $? -eq 124 ]; then
@@ -44,6 +44,8 @@ for probability in 0.02 0.06 0.12
             echo "wl_-10 timed out after $time_limit seconds."
         fi
 
+        rm -rf ./init/*
+
         seed_run=$(($seed_run + 1))
 
         echo "Done with size $size, probability $probability, error type $error_type"
@@ -51,6 +53,5 @@ for probability in 0.02 0.06 0.12
     done
 done
 
-# Calculate and display the total runtime
 duration=$SECONDS
 echo "Total runtime: $((duration / 60)) minutes and $((duration % 60)) seconds."

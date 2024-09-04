@@ -197,18 +197,10 @@ void create_directory(std::string path)
     if (!std::filesystem::exists(path))
     {
         // Create directory
-        if (std::filesystem::create_directories(path))
-        {
-            // std::cout << "Successfully created directory: " << path << std::endl;
-        }
-        else
+        if (!std::filesystem::create_directories(path))
         {
             // std::cerr << "Failed to create directory: " << path << std::endl;
         }
-    }
-    else
-    {
-        // std::cout << "Directory already exists: " << path << std::endl;
     }
 
     return;
@@ -217,7 +209,7 @@ void create_directory(std::string path)
 void write_histograms(unsigned long long *h_histogram, std::string path_histograms, int len_histogram, int seed, int E_min)
 {
 
-    printf("Writing to %s ...\n", path_histograms.c_str());
+    // printf("Writing to %s ...\n", path_histograms.c_str());
 
     std::ofstream f;
     f.open(std::string(path_histograms + "/histogram.txt"));

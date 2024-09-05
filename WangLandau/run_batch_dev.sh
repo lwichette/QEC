@@ -29,7 +29,7 @@ iterations=1000
 
 time_limit=600
 
-for probability in 0.02
+for probability in 0.01
   do
     for size in 4
     do

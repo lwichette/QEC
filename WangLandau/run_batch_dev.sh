@@ -1,5 +1,8 @@
 #!/bin/bash
 
+LOGFILE="script.log"
+exec > >(tee -a "$LOGFILE") 2>&1
+
 SECONDS=0
 
 alpha=0.8
@@ -14,7 +17,7 @@ seed_hist=1
 
 seed_run=1000
 
-num_interactions=500
+num_interactions=2
 
 replica_exchange_steps=50
 
@@ -26,9 +29,9 @@ iterations=1000
 
 time_limit=600
 
-for probability in 0.06
+for probability in 0.02
   do
-    for size in 10
+    for size in 4
     do
       xval=$size
       yval=$size

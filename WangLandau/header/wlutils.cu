@@ -197,18 +197,10 @@ void create_directory(std::string path)
     if (!std::filesystem::exists(path))
     {
         // Create directory
-        if (std::filesystem::create_directories(path))
-        {
-            // std::cout << "Successfully created directory: " << path << std::endl;
-        }
-        else
+        if (!std::filesystem::create_directories(path))
         {
             // std::cerr << "Failed to create directory: " << path << std::endl;
         }
-    }
-    else
-    {
-        // std::cout << "Directory already exists: " << path << std::endl;
     }
 
     return;
@@ -217,7 +209,7 @@ void create_directory(std::string path)
 void write_histograms(unsigned long long *h_histogram, std::string path_histograms, int len_histogram, int seed, int E_min)
 {
 
-    printf("Writing to %s ...\n", path_histograms.c_str());
+    // printf("Writing to %s ...\n", path_histograms.c_str());
 
     std::ofstream f;
     f.open(std::string(path_histograms + "/histogram.txt"));
@@ -1700,12 +1692,8 @@ void cut_overlapping_histogram_parts(
     }
 }
 
-void result_handling_stitched_histogram(
-    Options options, std::vector<double> h_logG,
-    std::vector<int> h_start, std::vector<int> h_end, int int_id,
-    int X, int Y)
+std::vector<std::map<int, double>> get_logG_data(std::vector<double> h_logG, std::vector<int> h_start, std::vector<int> h_end, Options options)
 {
-
     int index_h_log_g = 0;
 
     // Store the results of the first walker for each interval as they are averaged already
@@ -1740,7 +1728,11 @@ void result_handling_stitched_histogram(
         }
     }
 
-    // Here follows rescaling by minimum in each interval to make it compatible with python script (for sanity checking only?)
+    return interval_data;
+}
+
+std::vector<std::map<int, double>> rescaleByMinimum(std::vector<std::map<int, double>> &interval_data, const Options options)
+{
     // finding minimum per interval
     std::vector<double> min_values(options.num_intervals, std::numeric_limits<double>::max());
     for (int i = 0; i < options.num_intervals; i++)
@@ -1759,6 +1751,7 @@ void result_handling_stitched_histogram(
             min_values[i] = 0;
         }
     }
+
     // rescaling by minimum
     for (int i = 0; i < options.num_intervals; i++)
     {
@@ -1768,7 +1761,11 @@ void result_handling_stitched_histogram(
         }
     }
 
-    // Calculate best stitching points
+    return interval_data;
+}
+
+std::vector<int> calculate_stitching_points(std::vector<std::map<int, double>> interval_data, Options options)
+{
     std::vector<int> stitching_keys;
     for (int i = 0; i < options.num_intervals - 1; i++)
     {
@@ -1787,12 +1784,11 @@ void result_handling_stitched_histogram(
         }
     }
 
-    rescale_intervals_for_concatenation(interval_data, stitching_keys);
+    return stitching_keys;
+}
 
-    cut_overlapping_histogram_parts(interval_data, stitching_keys);
-
-    rescaleMapValues(interval_data, X, Y); // rescaling for high temperature interpretation of partition function
-
+void write_results(std::vector<std::map<int, double>> rescaled_data, Options options, int int_id)
+{
     // From here on only write to csv
     std::stringstream result_directory;
 
@@ -1822,14 +1818,14 @@ void result_handling_stitched_histogram(
 
     create_directory(result_directory.str());
 
-    result_directory << "/StitchedHistogram_"
+    result_directory << "/StitchedHistogram"
                      << "_intervals_" << options.num_intervals
                      << "_iterations_" << options.num_iterations
                      << "_overlap_" << options.overlap_decimal
                      << "_walkers_" << options.walker_per_interval
                      << "_alpha_" << options.alpha
                      << "_beta_" << std::fixed << std::setprecision(10) << options.beta
-                     << "exchange_offset" << options.replica_exchange_offset
+                     << "_exchange_offset" << options.replica_exchange_offset
                      << ".txt";
 
     std::ofstream file(result_directory.str(), std::ios::app); // append mode to store multiple interaction results in same file
@@ -1845,9 +1841,9 @@ void result_handling_stitched_histogram(
     file << "  \"run_seed\": \"" << options.seed_run << "\",\n";
     file << "  \"results\": [\n";
     file << std::fixed << std::setprecision(20);
-    for (size_t i = 0; i < interval_data.size(); ++i)
+    for (size_t i = 0; i < rescaled_data.size(); ++i)
     {
-        const auto &interval_map = interval_data[i];
+        const auto &interval_map = rescaled_data[i];
         for (auto iterator = interval_map.begin(); iterator != interval_map.end(); ++iterator)
         {
             int key = iterator->first;
@@ -1857,7 +1853,7 @@ void result_handling_stitched_histogram(
             file << "      \"" << key << "\": " << value;
 
             // Add a comma unless it's the last element
-            if (std::next(iterator) != interval_map.end() || i < interval_data.size() - 1)
+            if (std::next(iterator) != interval_map.end() || i < rescaled_data.size() - 1)
             {
                 file << ",";
             }
@@ -1867,6 +1863,26 @@ void result_handling_stitched_histogram(
     file << "]\n";
     file << "}\n";
     file.close();
+}
+
+void result_handling_stitched_histogram(
+    Options options, std::vector<double> h_logG,
+    std::vector<int> h_start, std::vector<int> h_end, int int_id,
+    int X, int Y)
+{
+    std::vector<std::map<int, double>> interval_data = get_logG_data(h_logG, h_start, h_end, options);
+
+    std::vector<std::map<int, double>> rescaled_data = rescaleByMinimum(interval_data, options);
+
+    std::vector<int> stitching_keys = calculate_stitching_points(rescaled_data, options);
+
+    rescale_intervals_for_concatenation(rescaled_data, stitching_keys);
+
+    cut_overlapping_histogram_parts(rescaled_data, stitching_keys);
+
+    rescaleMapValues(rescaled_data, X, Y); // rescaling for high temperature interpretation of partition function
+
+    write_results(rescaled_data, options, int_id);
 }
 
 __global__ void check_sums(int *d_cond_interactions, int num_intervals, int num_interactions)

@@ -1577,6 +1577,8 @@ void result_handling(
 
     f_log_density.open(result_directory.str());
 
+    f_log_density << std::fixed << std::setprecision(10);
+
     int index_h_log_g = 0;
     if (f_log_density.is_open())
     {
@@ -1841,7 +1843,7 @@ void write_results(std::vector<std::map<int, double>> rescaled_data, Options opt
     file << "  \"histogram_seed\": \"" << (options.seed_histogram + int_id) << "\",\n";
     file << "  \"run_seed\": \"" << options.seed_run << "\",\n";
     file << "  \"results\": {\n";
-    file << std::fixed << std::setprecision(20);
+    file << std::fixed << std::setprecision(10);
     for (size_t i = 0; i < rescaled_data.size(); ++i)
     {
         const auto &interval_map = rescaled_data[i];

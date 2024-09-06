@@ -31,7 +31,7 @@ time_limit=660
 
 for probability in 0.01
   do
-    for size in 8
+    for size in 4
     do
       xval=$size
       yval=$size

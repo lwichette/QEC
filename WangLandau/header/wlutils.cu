@@ -1841,7 +1841,7 @@ void write_results(std::vector<std::map<int, double>> rescaled_data, Options opt
     file << "{\n";
     file << "  \"histogram_seed\": \"" << (options.seed_histogram + int_id) << "\",\n";
     file << "  \"run_seed\": \"" << options.seed_run << "\",\n";
-    file << "  \"results\": [\n";
+    file << "  \"results\": {\n";
     file << std::fixed << std::setprecision(10);
     for (size_t i = 0; i < rescaled_data.size(); ++i)
     {
@@ -1862,8 +1862,8 @@ void write_results(std::vector<std::map<int, double>> rescaled_data, Options opt
             file << "\n";
         }
     }
-    file << "]\n";
     file << "}\n";
+    file << "},\n";
     file.close();
 }
 

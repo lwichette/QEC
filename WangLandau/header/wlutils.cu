@@ -2203,13 +2203,11 @@ __device__ RBIM_eight_vertex eight_vertex_periodic_wl_step(
     int right_four_body_side_b = i * X + jnn;
     int right_four_body_up_r = (i - 1 < 0) ? (Y / 2 - 1) * X + jnn : (i - 1) * X + jnn;
     int right_four_body_down_r = inn * X + jnn;
-    // printf("i %d j %d : right_left_b %d right_side_b %d right_up_r %d right_down_r %d \n", i, j, i * X + j, right_four_body_side_b, right_four_body_up_r, right_four_body_down_r);
 
     // these indices are used for down four body interaction
     int down_four_body_left_r = i * X + j;
     int down_four_body_right_r = i * X + jnn;
     int down_four_body_down_b = inn * X + j;
-    // printf("i %d j %d : down_up_b %d down_down_b %d down_left_r %d down_right_r %d \n", i, j, i * X + j, inn * X + j, i * X + j, i * X + jnn);
 
     double energy_diff = 0;
     if (color == 0)

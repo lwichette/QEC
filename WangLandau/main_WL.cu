@@ -299,12 +299,11 @@ int main(int argc, char **argv)
         {
             int h_newEnergies[total_walker];
             int h_newEnergyFlag[total_walker];
-            CHECK_CUDA(cudaMemcpy(h_newEnergies, d_newEnergies, total_walker * sizeof(int), cudaMemcpyDeviceToHost));
-            CHECK_CUDA(cudaMemcpy(h_newEnergyFlag, d_foundNewEnergyFlag, total_walker * sizeof(int), cudaMemcpyDeviceToHost));
+            CHECK_CUDA(cudaMemcpy(h_newEnergies, d_newEnergies, total_walker * sizeof(*d_newEnergies), cudaMemcpyDeviceToHost));
+            CHECK_CUDA(cudaMemcpy(h_newEnergyFlag, d_foundNewEnergyFlag, total_walker * sizeof(*d_foundNewEnergyFlag), cudaMemcpyDeviceToHost));
 
             // TO DO: Adjust for several interactions
-            // handleNewEnergyError(h_newEnergies, h_newEnergyFlag, histogram_file,
-            // total_walker);
+            // handleNewEnergyError(h_newEnergies, h_newEnergyFlag, histogram_file, total_walker);
             std::cerr << "Error: Found new energy:" << std::endl;
             return -1;
         }
@@ -365,7 +364,7 @@ int main(int argc, char **argv)
         // results dump out: if a single interaction already finished
         if (min_cond_interactions == -1)
         {
-            CHECK_CUDA(cudaMemcpy(h_cond_interactions, d_cond_interactions, options.num_interactions * sizeof(int), cudaMemcpyDeviceToHost));
+            CHECK_CUDA(cudaMemcpy(h_cond_interactions, d_cond_interactions, options.num_interactions * sizeof(*d_cond_interactions), cudaMemcpyDeviceToHost));
 
             for (int i = 0; i < options.num_interactions; i++)
             {

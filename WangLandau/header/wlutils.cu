@@ -1051,7 +1051,7 @@ __global__ void check_histogram(
 
         average = average / len_reduced_energy_spectrum;
 
-        // printf("Walker %d in interval %d with min %lld alpha*average %2f and factor %.10f and d_cond %d \n", threadIdx.x, blockIdx.x, min, alpha * average, d_factor[tid], d_cond[blockId]);
+        // printf("Walker %d in interval %d with min %lld alpha*average %2f and factor %.10f and d_cond %d and end %d and start %d\n", threadIdx.x, blockIdx.x, min, alpha * average, d_factor[tid], d_cond[blockId], d_end[blockId], d_start[blockId]);
 
         if (min >= alpha * average)
         {
@@ -1361,6 +1361,7 @@ __global__ void wang_landau(
 
             if (result.new_energy > d_end[blockId] || result.new_energy < d_start[blockId])
             {
+
                 d_H[index_old] += 1;
                 d_logG[index_old] += log(factor[tid]);
             }

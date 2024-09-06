@@ -2211,7 +2211,16 @@ __device__ RBIM_eight_vertex eight_vertex_periodic_wl_step(
     int down_four_body_down_b = inn * X + j;
     // printf("i %d j %d : down_up_b %d down_down_b %d down_left_r %d down_right_r %d \n", i, j, i * X + j, inn * X + j, i * X + j, i * X + jnn);
 
-    double energy_diff = -2 * (d_lattice_b[offset_lattice + i * X + j] * (d_lattice_b[offset_lattice + inn * X + j] * d_interactions_b[offset_interactions_closed_on_sublattice + num_qubits / 2 + i * X + j] + d_lattice_b[offset_lattice + i * X + jnn] * d_interactions_b[offset_interactions_closed_on_sublattice + i * X + j]) + d_lattice_r[offset_lattice + i * X + j] * (d_lattice_r[offset_lattice + inn * X + j] * d_interactions_r[offset_interactions_closed_on_sublattice + num_qubits / 2 + i * X + j] + d_lattice_r[offset_lattice + i * X + jnn] * d_interactions_r[offset_interactions_closed_on_sublattice + i * X + j]) + d_interactions_four_body_right[offset_interactions_four_body + i * X + j] * (d_lattice_b[offset_lattice + i * X + j] * d_lattice_b[offset_lattice + right_four_body_side_b] * d_lattice_r[offset_lattice + right_four_body_up_r] * d_lattice_r[offset_lattice + right_four_body_down_r]) + d_interactions_four_body_down[offset_interactions_four_body + i * X + j] * (d_lattice_b[offset_lattice + i * X + j] * d_lattice_b[offset_lattice + down_four_body_down_b] * d_lattice_r[offset_lattice + down_four_body_left_r] * d_lattice_r[offset_lattice + down_four_body_right_r]));
+    double energy_diff = 0;
+    if (color == 0)
+    {
+        energy_diff = -2 * (d_lattice_b[offset_lattice + i * X + j] * (d_lattice_b[offset_lattice + inn * X + j] * d_interactions_b[offset_interactions_closed_on_sublattice + num_qubits / 2 + i * X + j] + d_lattice_b[offset_lattice + i * X + jnn] * d_interactions_b[offset_interactions_closed_on_sublattice + i * X + j]) + d_interactions_four_body_right[offset_interactions_four_body + i * X + j] * (d_lattice_b[offset_lattice + i * X + j] * d_lattice_b[offset_lattice + right_four_body_side_b] * d_lattice_r[offset_lattice + right_four_body_up_r] * d_lattice_r[offset_lattice + right_four_body_down_r]) + d_interactions_four_body_down[offset_interactions_four_body + i * X + j] * (d_lattice_b[offset_lattice + i * X + j] * d_lattice_b[offset_lattice + down_four_body_down_b] * d_lattice_r[offset_lattice + down_four_body_left_r] * d_lattice_r[offset_lattice + down_four_body_right_r]));
+    }
+    else
+    {
+        // here still missing to get from r indices i,j the ocrrect four body terms rooted on blue lattice
+        energy_diff = -2 * (d_lattice_r[offset_lattice + i * X + j] * (d_lattice_r[offset_lattice + inn * X + j] * d_interactions_r[offset_interactions_closed_on_sublattice + num_qubits / 2 + i * X + j] + d_lattice_r[offset_lattice + i * X + jnn] * d_interactions_r[offset_interactions_closed_on_sublattice + i * X + j]) + d_interactions_four_body_right[offset_interactions_four_body + i * X + j] * (d_lattice_b[offset_lattice + i * X + j] * d_lattice_b[offset_lattice + right_four_body_side_b] * d_lattice_r[offset_lattice + right_four_body_up_r] * d_lattice_r[offset_lattice + right_four_body_down_r]) + d_interactions_four_body_down[offset_interactions_four_body + i * X + j] * (d_lattice_b[offset_lattice + i * X + j] * d_lattice_b[offset_lattice + down_four_body_down_b] * d_lattice_r[offset_lattice + down_four_body_left_r] * d_lattice_r[offset_lattice + down_four_body_right_r]));
+    }
 
     double d_new_energy = d_energy[tid] + energy_diff;
 

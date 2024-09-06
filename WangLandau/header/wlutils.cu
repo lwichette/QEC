@@ -772,8 +772,8 @@ __global__ void wang_landau_pre_run(
 __global__ void wang_landau_pre_run_eight_vertex(
     signed char *d_lattice_b, signed char *d_lattice_r, double *d_interactions_b, double *d_interactions_r, double *d_interactions_right_four_body, double *d_interactions_down_four_body, double *d_energy, unsigned long long *d_H, unsigned long long *d_iter,
     int *d_offset_lattice, int *d_found_interval, signed char *d_store_lattice_b, signed char *d_store_lattice_r, const int E_min, const int E_max,
-    const int num_iterations, const int nx, const int ny, const int seed, const int len_interval, const int found_interval,
-    const int num_walker, const int num_interval, const int boundary_type, const int walker_per_interactions)
+    const int num_iterations, const int num_qubits, const int X, const int Y, const int seed, const int len_interval, const int found_interval,
+    const int num_walker, const int num_interval, const int boundary_type, const int walker_per_interaction)
 {
 
     long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
@@ -781,11 +781,11 @@ __global__ void wang_landau_pre_run_eight_vertex(
     if (tid >= num_walker)
         return;
 
-    const int int_id = tid / walker_per_interactions;
+    const int int_id = tid / walker_per_interaction;
 
-    const int offset_lattice = tid * nx * ny;
-    const int offset_interactions_closed_on_sublattice = int_id * 2 * nx * ny; // offset on interaction arrays acting closed on sublattices
-    const int offset_interactions_four_body = int_id * nx * ny;                // offset on four body interaction arrays
+    const int offset_lattice = tid * num_qubits / 2;
+    const int offset_interactions_closed_on_sublattice = int_id * num_qubits; // offset on interaction arrays acting closed on sublattices
+    const int offset_interactions_four_body = int_id * num_qubits / 2;        // offset on four body interaction arrays
 
     const int len_hist = E_max - E_min + 1;
 
@@ -795,45 +795,48 @@ __global__ void wang_landau_pre_run_eight_vertex(
     for (int it = 0; it < num_iterations; it++)
     {
 
-        // RBIM result = rbim_func_map[boundary_type](d_lattice, d_interactions, d_energy, d_offset_lattice, d_iter, &st, tid, nx, ny, interaction_offset);
+        // may want to hand the offsets to this function and not compzte them inside
+        RBIM_eight_vertex result = eight_vertex_periodic_wl_step(
+            d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, d_energy, d_offset_lattice, d_iter,
+            &st, tid, num_qubits, X, Y, num_walker, walker_per_interaction);
 
-        //     int d_new_energy = result.new_energy;
+        double d_new_energy = result.new_energy;
 
-        //     if (d_new_energy > E_max || d_new_energy < E_min)
-        //     {
-        //         printf("Iterator %d \n", it);
-        //         printf("Thread Id %lld \n", tid);
-        //         printf("Energy out of range %d \n", d_new_energy);
-        //         printf("Old energy %d \n", d_energy[tid]);
-        //         assert(0);
-        //         return;
-        //     }
-        //     else
-        //     {
-        //         int index_old = d_energy[tid] - E_min + int_id * len_hist;
-        //         int index_new = d_new_energy - E_min + int_id * len_hist;
+        if (d_new_energy > E_max || d_new_energy < E_min)
+        {
+            printf("Iterator %d \n", it);
+            printf("Thread Id %lld \n", tid);
+            printf("Energy out of range %d \n", d_new_energy);
+            printf("Old energy %d \n", d_energy[tid]);
+            assert(0);
+            return;
+        }
+        else
+        {
+            // int index_old = d_energy[tid] - E_min + int_id * len_hist;
+            // int index_new = d_new_energy - E_min + int_id * len_hist;
 
-        //         double prob = exp(static_cast<double>(d_H[index_old]) - static_cast<double>(d_H[index_new]));
+            // double prob = exp(static_cast<double>(d_H[index_old]) - static_cast<double>(d_H[index_new]));
 
-        //         if (curand_uniform(&st) < prob)
-        //         {
+            // if (curand_uniform(&st) < prob)
+            // {
 
-        //             d_lattice[offset_lattice + result.i * ny + result.j] *= -1;
-        //             d_energy[tid] = d_new_energy;
-        //             d_iter[tid] += 1;
+            //     d_lattice[offset_lattice + result.i * ny + result.j] *= -1;
+            //     d_energy[tid] = d_new_energy;
+            //     d_iter[tid] += 1;
 
-        //             atomicAdd(&d_H[index_new], 1);
+            //     atomicAdd(&d_H[index_new], 1);
 
-        //             if (found_interval == 0)
-        //             {
-        //                 store_lattice(d_lattice, d_energy, d_found_interval, d_store_lattice, E_min, nx, ny, tid, len_interval, num_interval, int_id);
-        //             }
-        //         }
-        //         else
-        //         {
-        //             atomicAdd(&d_H[index_old], 1);
-        //         }
-        //     }
+            //     if (found_interval == 0)
+            //     {
+            //         store_lattice(d_lattice, d_energy, d_found_interval, d_store_lattice, E_min, nx, ny, tid, len_interval, num_interval, int_id);
+            //     }
+            // }
+            // else
+            // {
+            //     atomicAdd(&d_H[index_old], 1);
+            // }
+        }
     }
 
     return;
@@ -2169,4 +2172,53 @@ __global__ void calc_energy_eight_vertex(double *energy_out, signed char *lattic
         energy_out[tid] = calc_energy_periodic_eight_vertex(lattice_b, lattice_r, interactions_b, interactions_r, interactions_four_body_right, interactions_four_body_down, num_qubits, X, Y, num_lattices_x_interaction);
         printf("lattice %lld energy %f \n", tid, energy_out[tid]);
     }
+}
+
+// gets called with a thread per walker
+__device__ RBIM_eight_vertex eight_vertex_periodic_wl_step(
+    signed char *d_lattice_b, signed char *d_lattice_r, double *d_interactions_b, double *d_interactions_r, double *d_interactions_four_body_right, double *d_interactions_four_body_down, double *d_energy, int *d_offset_lattice, unsigned long long *d_offset_iter,
+    curandStatePhilox4_32_10_t *st, const long long tid, const int num_qubits, const int X, const int Y, const int num_lattices, const int num_lattices_x_interaction)
+{
+    double randval = curand_uniform(st);
+    randval *= (num_qubits - 1 + 0.999999); // num qubits is spin count over both sublattices
+    int random_index = (int)trunc(randval);
+
+    d_offset_iter[tid] += 1;
+
+    const int int_id = tid / num_lattices_x_interaction;
+
+    const int offset_lattice = tid * num_qubits / 2;                          // offset on b r lattice arrays
+    const int offset_interactions_closed_on_sublattice = int_id * num_qubits; // offset on interaction arrays acting closed on sublattices
+    const int offset_interactions_four_body = int_id * num_qubits / 2;        // offset on four body interaction arrays
+
+    int color = random_index / (num_qubits / 2);   // which sublattice the spin gets flipped on. 0: b, 1: r
+    int i = (random_index % (num_qubits / 2)) / X; // row index on sublattice
+    int j = (random_index % (num_qubits / 2)) % X; // columns index on sublattice
+
+    // these neighbor indices are used for interactions closed under an Ising lattice
+    int inn = (i + 1 < Y / 2) ? i + 1 : 0; // down neighbor row index
+    int jnn = (j + 1 < X) ? j + 1 : 0;     // right neighbor column index
+
+    // these indices are used for right four body interaction
+    int right_four_body_side_b = i * X + jnn;
+    int right_four_body_up_r = (i - 1 < 0) ? (Y / 2 - 1) * X + jnn : (i - 1) * X + jnn;
+    int right_four_body_down_r = inn * X + jnn;
+    // printf("i %d j %d : right_left_b %d right_side_b %d right_up_r %d right_down_r %d \n", i, j, i * X + j, right_four_body_side_b, right_four_body_up_r, right_four_body_down_r);
+
+    // these indices are used for down four body interaction
+    int down_four_body_left_r = i * X + j;
+    int down_four_body_right_r = i * X + jnn;
+    int down_four_body_down_b = inn * X + j;
+    // printf("i %d j %d : down_up_b %d down_down_b %d down_left_r %d down_right_r %d \n", i, j, i * X + j, inn * X + j, i * X + j, i * X + jnn);
+
+    double energy_diff = -2 * (d_lattice_b[offset_lattice + i * X + j] * (d_lattice_b[offset_lattice + inn * X + j] * d_interactions_b[offset_interactions_closed_on_sublattice + num_qubits / 2 + i * X + j] + d_lattice_b[offset_lattice + i * X + jnn] * d_interactions_b[offset_interactions_closed_on_sublattice + i * X + j]) + d_lattice_r[offset_lattice + i * X + j] * (d_lattice_r[offset_lattice + inn * X + j] * d_interactions_r[offset_interactions_closed_on_sublattice + num_qubits / 2 + i * X + j] + d_lattice_r[offset_lattice + i * X + jnn] * d_interactions_r[offset_interactions_closed_on_sublattice + i * X + j]) + d_interactions_four_body_right[offset_interactions_four_body + i * X + j] * (d_lattice_b[offset_lattice + i * X + j] * d_lattice_b[offset_lattice + right_four_body_side_b] * d_lattice_r[offset_lattice + right_four_body_up_r] * d_lattice_r[offset_lattice + right_four_body_down_r]) + d_interactions_four_body_down[offset_interactions_four_body + i * X + j] * (d_lattice_b[offset_lattice + i * X + j] * d_lattice_b[offset_lattice + down_four_body_down_b] * d_lattice_r[offset_lattice + down_four_body_left_r] * d_lattice_r[offset_lattice + down_four_body_right_r]));
+
+    double d_new_energy = d_energy[tid] + energy_diff;
+
+    RBIM_eight_vertex rbim;
+    rbim.new_energy = d_new_energy;
+    rbim.i = i;
+    rbim.j = j;
+
+    return rbim;
 }

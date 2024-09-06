@@ -74,10 +74,7 @@
         "regex": "cpp",
         "shared_mutex": "cpp",
     },
-    {
-    	"editor.formatOnSave": true
-    },
-    {
-    	"clang-format.executable": "/home/dfki.uni-bremen.de/mbeuerle/User/mbeuerle/Code/qec"
-    }
+    "editor.formatOnSave": true,
+    "clang-format.executable": "/usr/bin/clang-format",
+    "files.trimTrailingWhitespace": true
 }

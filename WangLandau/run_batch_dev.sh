@@ -17,7 +17,7 @@ seed_hist=1
 
 seed_run=1000
 
-num_interactions=500
+num_interactions=2
 
 replica_exchange_steps=50
 
@@ -31,7 +31,7 @@ time_limit=660
 
 for probability in 0.01
   do
-    for size in 8
+    for size in 4
     do
       xval=$size
       yval=$size

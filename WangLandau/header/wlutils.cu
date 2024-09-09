@@ -198,10 +198,9 @@ void create_directory(std::string path)
     {
         // Create directory
         if (!std::filesystem::create_directories(path))
-            if (!std::filesystem::create_directories(path))
-            {
-                // std::cerr << "Failed to create directory: " << path << std::endl;
-            }
+        {
+            // std::cerr << "Failed to create directory: " << path << std::endl;
+        }
     }
 
     return;
@@ -1876,7 +1875,9 @@ void result_handling_stitched_histogram(
 {
     std::vector<std::map<int, double>> interval_data = get_logG_data(h_logG, h_start, h_end, options);
 
-    std::vector<std::map<int, double>> rescaled_data = rescaleByMinimum(interval_data, options);
+    // std::vector<std::map<int, double>> rescaled_data = rescaleByMinimum(interval_data, options);
+
+    std::vector<std::map<int, double>> rescaled_data = interval_data;
 
     std::vector<int> stitching_keys = calculate_stitching_points(rescaled_data, options);
 

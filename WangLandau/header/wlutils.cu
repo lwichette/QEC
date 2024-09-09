@@ -198,9 +198,10 @@ void create_directory(std::string path)
     {
         // Create directory
         if (!std::filesystem::create_directories(path))
-        {
-            // std::cerr << "Failed to create directory: " << path << std::endl;
-        }
+            if (!std::filesystem::create_directories(path))
+            {
+                // std::cerr << "Failed to create directory: " << path << std::endl;
+            }
     }
 
     return;
@@ -1842,13 +1843,8 @@ void write_results(std::vector<std::map<int, double>> rescaled_data, Options opt
     file << "{\n";
     file << "  \"histogram_seed\": \"" << (options.seed_histogram + int_id) << "\",\n";
     file << "  \"run_seed\": \"" << options.seed_run << "\",\n";
-<<<<<<< HEAD
-    file << "  \"results\": [\n";
-    file << std::fixed << std::setprecision(20);
-=======
     file << "  \"results\": {\n";
     file << std::fixed << std::setprecision(10);
->>>>>>> 26927f529e062dcabdfa57f6d8f0d1863a300861
     for (size_t i = 0; i < rescaled_data.size(); ++i)
     {
         const auto &interval_map = rescaled_data[i];

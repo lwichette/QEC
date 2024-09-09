@@ -198,10 +198,9 @@ void create_directory(std::string path)
     {
         // Create directory
         if (!std::filesystem::create_directories(path))
-            if (!std::filesystem::create_directories(path))
-            {
-                // std::cerr << "Failed to create directory: " << path << std::endl;
-            }
+        {
+            // std::cerr << "Failed to create directory: " << path << std::endl;
+        }
     }
 
     return;

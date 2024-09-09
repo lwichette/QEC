@@ -2201,35 +2201,54 @@ __device__ RBIM_eight_vertex eight_vertex_periodic_wl_step(
     int j_rn = (j + 1 < X) ? (j + 1) : 0;        // right neighbor column index
     int j_ln = (j - 1 >= 0) ? j - 1 : X - 1;     // left neighbor column index
 
-    // these indices are used for right four body interaction with root spin at left position
-    int right_four_body_term_right_version_side_b = i * X + j_rn;
-    int right_four_body_term_right_version_up_r = i_un * X + j_rn;
-    int right_four_body_term_right_version_down_r = i_dn * X + j_rn;
-
-    // these indices are used for right four body interaction with root spin at right position
-    int right_four_body_term_left_version_side_b = i * X + j_ln;
-    int right_four_body_term_left_version_up_r = i_un * X + j;
-    int right_four_body_term_left_version_down_r = i_dn * X + j;
-
-    // these indices are used for down four body interaction with root spin at up position
-    int down_four_body_term_down_version_left_r = i * X + j;
-    int down_four_body_term_down_version_right_r = i * X + j_rn;
-    int down_four_body_term_down_version_down_b = i_dn * X + j;
-
-    // these indices are used for down four body interaction with root spin at down position
-    int down_four_body_term_up_version_left_r = i_un * X + j;
-    int down_four_body_term_up_version_right_r = i_un * X + j_rn;
-    int down_four_body_term_up_version_up_b = i_un * X + j;
-
     double energy_diff = 0;
     if (color == 0)
     {
-        energy_diff = -2 * d_lattice_b[offset_lattice + i * X + j] * ((d_lattice_b[offset_lattice + i_un * X + j] * d_interactions_b[offset_interactions_closed_on_sublattice + num_qubits / 2 + i_un * X + j] + d_lattice_b[offset_lattice + i_dn * X + j] * d_interactions_b[offset_interactions_closed_on_sublattice + num_qubits / 2 + i * X + j] + d_lattice_b[offset_lattice + i * X + j_rn] * d_interactions_b[offset_interactions_closed_on_sublattice + i * X + j] + d_lattice_b[offset_lattice + i * X + j_ln] * d_interactions_b[offset_interactions_closed_on_sublattice + i * X + j_ln]) + d_interactions_four_body_right[offset_interactions_four_body + i * X + j] * (d_lattice_b[offset_lattice + right_four_body_term_right_version_side_b] * d_lattice_r[offset_lattice + right_four_body_term_right_version_up_r] * d_lattice_r[offset_lattice + right_four_body_term_right_version_down_r]) + d_interactions_four_body_down[offset_interactions_four_body + i * X + j] * (d_lattice_b[offset_lattice + down_four_body_term_down_version_down_b] * d_lattice_r[offset_lattice + down_four_body_term_down_version_left_r] * d_lattice_r[offset_lattice + down_four_body_term_down_version_right_r]) + d_interactions_four_body_right[offset_interactions_four_body + i * X + j_ln] * (d_lattice_b[offset_lattice + right_four_body_term_left_version_side_b] * d_lattice_r[offset_lattice + right_four_body_term_left_version_up_r] * d_lattice_r[offset_lattice + right_four_body_term_left_version_down_r]) + d_interactions_four_body_down[offset_interactions_four_body + i_un * X + j] * (d_lattice_b[offset_lattice + down_four_body_term_up_version_up_b] * d_lattice_r[offset_lattice + down_four_body_term_up_version_left_r] * d_lattice_r[offset_lattice + down_four_body_term_up_version_right_r]));
+        // these indices are used for right four body interaction (the one with blue spins on horizontal line and the right refers to storage of coupling strength labeled by blue spin at left end of the cross term) with root spin at left position
+        int right_four_body_term_right_version_side_b = i * X + j_rn;
+        int right_four_body_term_right_version_up_r = i_un * X + j_rn;
+        int right_four_body_term_right_version_down_r = i_dn * X + j_rn;
+
+        // these indices are used for right four body interaction (the one with blue spins on horizontal line) with root spin at right position
+        int right_four_body_term_left_version_side_b = i * X + j_ln;
+        int right_four_body_term_left_version_up_r = i_un * X + j;
+        int right_four_body_term_left_version_down_r = i_dn * X + j;
+
+        // these indices are used for down four body interaction (the one with blue spin on vertical line and the down refers to storage of coupling strength labeled by blue spin at up most end of the cross term) with root spin at up position
+        int down_four_body_term_down_version_left_r = i * X + j;
+        int down_four_body_term_down_version_right_r = i * X + j_rn;
+        int down_four_body_term_down_version_down_b = i_dn * X + j;
+
+        // these indices are used for down four body interaction (the one with blue spin on vertical line) with root spin at down position
+        int down_four_body_term_up_version_left_r = i_un * X + j;
+        int down_four_body_term_up_version_right_r = i_un * X + j_rn;
+        int down_four_body_term_up_version_up_b = i_un * X + j;
+
+        energy_diff = -2 * d_lattice_b[offset_lattice + i * X + j] * (d_lattice_b[offset_lattice + i_un * X + j] * d_interactions_b[offset_interactions_closed_on_sublattice + num_qubits / 2 + i_un * X + j] + d_lattice_b[offset_lattice + i_dn * X + j] * d_interactions_b[offset_interactions_closed_on_sublattice + num_qubits / 2 + i * X + j] + d_lattice_b[offset_lattice + i * X + j_rn] * d_interactions_b[offset_interactions_closed_on_sublattice + i * X + j] + d_lattice_b[offset_lattice + i * X + j_ln] * d_interactions_b[offset_interactions_closed_on_sublattice + i * X + j_ln] + d_interactions_four_body_right[offset_interactions_four_body + i * X + j] * (d_lattice_b[offset_lattice + right_four_body_term_right_version_side_b] * d_lattice_r[offset_lattice + right_four_body_term_right_version_up_r] * d_lattice_r[offset_lattice + right_four_body_term_right_version_down_r]) + d_interactions_four_body_down[offset_interactions_four_body + i * X + j] * (d_lattice_b[offset_lattice + down_four_body_term_down_version_down_b] * d_lattice_r[offset_lattice + down_four_body_term_down_version_left_r] * d_lattice_r[offset_lattice + down_four_body_term_down_version_right_r]) + d_interactions_four_body_right[offset_interactions_four_body + right_four_body_term_left_version_side_b] * (d_lattice_b[offset_lattice + right_four_body_term_left_version_side_b] * d_lattice_r[offset_lattice + right_four_body_term_left_version_up_r] * d_lattice_r[offset_lattice + right_four_body_term_left_version_down_r]) + d_interactions_four_body_down[offset_interactions_four_body + down_four_body_term_up_version_up_b] * (d_lattice_b[offset_lattice + down_four_body_term_up_version_up_b] * d_lattice_r[offset_lattice + down_four_body_term_up_version_left_r] * d_lattice_r[offset_lattice + down_four_body_term_up_version_right_r]));
     }
     else
     {
-        // wip four body terms
-        energy_diff = -2 * (d_lattice_r[offset_lattice + i * X + j] * (d_lattice_r[offset_lattice + i_dn * X + j] * d_interactions_r[offset_interactions_closed_on_sublattice + num_qubits / 2 + i * X + j] + d_lattice_r[offset_lattice + i * X + j_rn] * d_interactions_r[offset_interactions_closed_on_sublattice + i * X + j]) + d_interactions_four_body_right[offset_interactions_four_body + i * X + j] * (d_lattice_b[offset_lattice + i * X + j] * d_lattice_b[offset_lattice + right_four_body_term_right_version_side_b] * d_lattice_r[offset_lattice + right_four_body_term_right_version_up_r] * d_lattice_r[offset_lattice + right_four_body_term_right_version_down_r]) + d_interactions_four_body_down[offset_interactions_four_body + i * X + j] * (d_lattice_b[offset_lattice + i * X + j] * d_lattice_b[offset_lattice + down_four_body_term_down_version_down_b] * d_lattice_r[offset_lattice + down_four_body_term_down_version_left_r] * d_lattice_r[offset_lattice + down_four_body_term_down_version_right_r]));
+        // these indices are used for right four body interaction (the one with blue spins on horizontal line and the right refers to storage of coupling strength labeled by blue spin at left end of the cross term) with red root spin at up position
+        int right_four_body_term_up_version_left_b = i_dn * X + j_ln; // roots the coupling strength
+        int right_four_body_term_up_version_right_b = i_dn * X + j;
+        int right_four_body_term_up_version_down_r = i_dn * X + j;
+
+        // these indices are used for right four body interaction (the one with blue spins on horizontal line) with red root spin at down position
+        int right_four_body_term_down_version_left_b = i * X + j_ln; // roots the coupling strength
+        int right_four_body_term_down_version_right_b = i * X + j;
+        int right_four_body_term_down_version_up_r = i_un * X + j;
+
+        // these indices are used for down four body interaction (the one with blue spin on vertical line and the down refers to storage of coupling strength labeled by blue spin at up most end of the cross term) with red root spin at left position
+        int down_four_body_term_left_version_right_r = i * X + j_rn;
+        int down_four_body_term_left_version_up_b = i * X + j; // roots the coupling strength
+        int down_four_body_term_left_version_down_b = i_dn * X + j;
+
+        // these indices are used for down four body interaction (the one with blue spin on vertical line) with red root spin at right position
+        int down_four_body_term_right_version_left_r = i * X + j_ln;
+        int down_four_body_term_right_version_up_b = i * X + j_ln; // roots the coupling strength
+        int down_four_body_term_right_version_down_b = i_dn * X + j_ln;
+
+        energy_diff = -2 * d_lattice_r[offset_lattice + i * X + j] * (d_lattice_r[offset_lattice + i_un * X + j] * d_interactions_r[offset_interactions_closed_on_sublattice + num_qubits / 2 + i_un * X + j] + d_lattice_r[offset_lattice + i_dn * X + j] * d_interactions_r[offset_interactions_closed_on_sublattice + num_qubits / 2 + i * X + j] + d_lattice_r[offset_lattice + i * X + j_rn] * d_interactions_r[offset_interactions_closed_on_sublattice + i * X + j] + d_lattice_r[offset_lattice + i * X + j_ln] * d_interactions_r[offset_interactions_closed_on_sublattice + i * X + j_ln] + d_interactions_four_body_right[offset_interactions_four_body + right_four_body_term_up_version_left_b] * (d_lattice_b[offset_lattice + right_four_body_term_up_version_left_b] * d_lattice_b[offset_lattice + right_four_body_term_up_version_right_b] * d_lattice_r[offset_lattice + right_four_body_term_up_version_down_r]) + d_interactions_four_body_right[offset_interactions_four_body + right_four_body_term_down_version_left_b] * (d_lattice_b[offset_lattice + right_four_body_term_down_version_left_b] * d_lattice_b[offset_lattice + right_four_body_term_down_version_right_b] * d_lattice_r[offset_lattice + right_four_body_term_down_version_up_r]) + d_interactions_four_body_down[offset_interactions_four_body + down_four_body_term_left_version_up_b] * (d_lattice_b[offset_lattice + down_four_body_term_left_version_up_b] * d_lattice_b[offset_lattice + down_four_body_term_left_version_down_b] * d_lattice_r[offset_lattice + down_four_body_term_left_version_right_r]) + d_interactions_four_body_down[offset_interactions_four_body + down_four_body_term_right_version_up_b] * (d_lattice_b[offset_lattice + down_four_body_term_right_version_up_b] * d_lattice_b[offset_lattice + down_four_body_term_right_version_down_b] * d_lattice_r[offset_lattice + down_four_body_term_right_version_left_r]));
     }
 
     double d_new_energy = d_energy[tid] + energy_diff;

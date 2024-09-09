@@ -198,9 +198,10 @@ void create_directory(std::string path)
     {
         // Create directory
         if (!std::filesystem::create_directories(path))
-        {
-            // std::cerr << "Failed to create directory: " << path << std::endl;
-        }
+            if (!std::filesystem::create_directories(path))
+            {
+                // std::cerr << "Failed to create directory: " << path << std::endl;
+            }
     }
 
     return;
@@ -466,7 +467,7 @@ __global__ void init_lattice(signed char *lattice, float *d_probs, const int nx,
     return;
 }
 
-__global__ void init_interactions(signed char *interactions, const int nx, const int ny, const int num_lattices, const int seed, const double prob, const char logical_error_type)
+__global__ void init_interactionsOld(signed char *interactions, const int nx, const int ny, const int num_lattices, const int seed, const double prob, const char logical_error_type)
 {
 
     long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
@@ -536,7 +537,7 @@ __global__ void init_interactions(signed char *interactions, const int nx, const
 // Test of changing init_interactions to swap up and left bonds. We want a column of left bonds and a row of up bonds
 
 // When considering different error classes, we want to add a row of flipped vertical bonds, or a column of flipped horizontal bonds, or both
-__global__ void init_interactions_Linnea(signed char *interactions, const int nx, const int ny, const int num_lattices, const int seed, const double prob, const char logical_error_type)
+__global__ void init_interactions(signed char *interactions, const int nx, const int ny, const int num_lattices, const int seed, const double prob, const char logical_error_type)
 {
 
     long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;

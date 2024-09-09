@@ -781,14 +781,6 @@ __global__ void wang_landau_pre_run_eight_vertex(
     if (tid >= num_walker)
         return;
 
-    const int int_id = tid / walker_per_interaction;
-
-    const int offset_lattice = tid * num_qubits / 2;
-    const int offset_interactions_closed_on_sublattice = int_id * num_qubits; // offset on interaction arrays acting closed on sublattices
-    const int offset_interactions_four_body = int_id * num_qubits / 2;        // offset on four body interaction arrays
-
-    const int len_hist = E_max - E_min + 1;
-
     curandStatePhilox4_32_10_t st;
     curand_init(seed, tid, d_iter[tid], &st);
 
@@ -813,29 +805,49 @@ __global__ void wang_landau_pre_run_eight_vertex(
         }
         else
         {
-            // int index_old = d_energy[tid] - E_min + int_id * len_hist;
-            // int index_new = d_new_energy - E_min + int_id * len_hist;
 
-            // double prob = exp(static_cast<double>(d_H[index_old]) - static_cast<double>(d_H[index_new]));
+            const int int_id = tid / walker_per_interaction;
+            const int len_hist = E_max - E_min + 1;
 
-            // if (curand_uniform(&st) < prob)
-            // {
+            const int offset_lattice = tid * X * Y / 2;
+            const int int_id = tid / walker_per_interaction;
+            // const int interaction_offset = int_id * 2 * nx * ny;
 
-            //     d_lattice[offset_lattice + result.i * ny + result.j] *= -1;
-            //     d_energy[tid] = d_new_energy;
-            //     d_iter[tid] += 1;
+            int index_old = static_cast<int>(d_energy[tid] - E_min) + int_id * len_hist; // energy diff is double valued but binning is invoked by integer cast
+            int index_new = static_cast<int>(d_new_energy - E_min) + int_id * len_hist;
 
-            //     atomicAdd(&d_H[index_new], 1);
+            double prob = exp(static_cast<double>(d_H[index_old]) - static_cast<double>(d_H[index_new]));
 
-            //     if (found_interval == 0)
-            //     {
-            //         store_lattice(d_lattice, d_energy, d_found_interval, d_store_lattice, E_min, nx, ny, tid, len_interval, num_interval, int_id);
-            //     }
-            // }
-            // else
-            // {
-            //     atomicAdd(&d_H[index_old], 1);
-            // }
+            if (curand_uniform(&st) < prob)
+            {
+                if (result.color)
+                { // red lattice spin flip
+                    d_lattice_r[offset_lattice + result.i * X + result.j] *= -1;
+                    if (found_interval == 0)
+                    {
+                        // store_lattice(d_lattice_r, d_energy, d_found_interval, d_store_lattice, E_min, X, Y / 2, tid, len_interval, num_interval, int_id);
+                    }
+                    else
+                    {
+                        atomicAdd(&d_H[index_old], 1);
+                    }
+                }
+                else // blue lattice spin flip
+                {
+                    d_lattice_b[offset_lattice + result.i * X + result.j] *= -1;
+                    if (found_interval == 0)
+                    {
+                        // store_lattice(d_lattice_b, d_energy, d_found_interval, d_store_lattice, E_min, X, Y / 2, tid, len_interval, num_interval, int_id);
+                    }
+                    else
+                    {
+                        atomicAdd(&d_H[index_old], 1);
+                    }
+                }
+                d_energy[tid] = d_new_energy;
+                d_iter[tid] += 1;
+                atomicAdd(&d_H[index_new], 1);
+            }
         }
     }
 

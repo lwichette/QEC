@@ -66,6 +66,7 @@ typedef struct
     double new_energy;
     int i;
     int j;
+    bool color;
 } RBIM_eight_vertex;
 
 void parse_args(int argc, char *argv[], Options *options);

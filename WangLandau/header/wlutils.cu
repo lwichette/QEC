@@ -2191,9 +2191,9 @@ __device__ RBIM_eight_vertex eight_vertex_periodic_wl_step(
     const int offset_interactions_closed_on_sublattice = int_id * num_qubits; // offset on interaction arrays acting closed on sublattices
     const int offset_interactions_four_body = int_id * num_qubits / 2;        // offset on four body interaction arrays
 
-    int color = random_index / (num_qubits / 2);   // which sublattice the spin gets flipped on. 0: b, 1: r
-    int i = (random_index % (num_qubits / 2)) / X; // row index on sublattice
-    int j = (random_index % (num_qubits / 2)) % X; // columns index on sublattice
+    bool color = (random_index / (num_qubits / 2)) % 2; // which sublattice the spin gets flipped on. 0: b, 1: r
+    int i = (random_index % (num_qubits / 2)) / X;      // row index on sublattice
+    int j = (random_index % (num_qubits / 2)) % X;      // columns index on sublattice
 
     // these neighbor indices are used for interactions closed under an Ising lattice
     int i_dn = (i + 1 < Y / 2) ? (i + 1) : 0;    // down neighbor row index
@@ -2202,7 +2202,7 @@ __device__ RBIM_eight_vertex eight_vertex_periodic_wl_step(
     int j_ln = (j - 1 >= 0) ? j - 1 : X - 1;     // left neighbor column index
 
     double energy_diff = 0;
-    if (color == 0)
+    if (!color) // color is blue
     {
         // these indices are used for right four body interaction (the one with blue spins on horizontal line and the right refers to storage of coupling strength labeled by blue spin at left end of the cross term) with root spin at left position
         int right_four_body_term_right_version_side_b = i * X + j_rn;
@@ -2226,7 +2226,7 @@ __device__ RBIM_eight_vertex eight_vertex_periodic_wl_step(
 
         energy_diff = -2 * d_lattice_b[offset_lattice + i * X + j] * (d_lattice_b[offset_lattice + i_un * X + j] * d_interactions_b[offset_interactions_closed_on_sublattice + num_qubits / 2 + i_un * X + j] + d_lattice_b[offset_lattice + i_dn * X + j] * d_interactions_b[offset_interactions_closed_on_sublattice + num_qubits / 2 + i * X + j] + d_lattice_b[offset_lattice + i * X + j_rn] * d_interactions_b[offset_interactions_closed_on_sublattice + i * X + j] + d_lattice_b[offset_lattice + i * X + j_ln] * d_interactions_b[offset_interactions_closed_on_sublattice + i * X + j_ln] + d_interactions_four_body_right[offset_interactions_four_body + i * X + j] * (d_lattice_b[offset_lattice + right_four_body_term_right_version_side_b] * d_lattice_r[offset_lattice + right_four_body_term_right_version_up_r] * d_lattice_r[offset_lattice + right_four_body_term_right_version_down_r]) + d_interactions_four_body_down[offset_interactions_four_body + i * X + j] * (d_lattice_b[offset_lattice + down_four_body_term_down_version_down_b] * d_lattice_r[offset_lattice + down_four_body_term_down_version_left_r] * d_lattice_r[offset_lattice + down_four_body_term_down_version_right_r]) + d_interactions_four_body_right[offset_interactions_four_body + right_four_body_term_left_version_side_b] * (d_lattice_b[offset_lattice + right_four_body_term_left_version_side_b] * d_lattice_r[offset_lattice + right_four_body_term_left_version_up_r] * d_lattice_r[offset_lattice + right_four_body_term_left_version_down_r]) + d_interactions_four_body_down[offset_interactions_four_body + down_four_body_term_up_version_up_b] * (d_lattice_b[offset_lattice + down_four_body_term_up_version_up_b] * d_lattice_r[offset_lattice + down_four_body_term_up_version_left_r] * d_lattice_r[offset_lattice + down_four_body_term_up_version_right_r]));
     }
-    else
+    else // color is red
     {
         // these indices are used for right four body interaction (the one with blue spins on horizontal line and the right refers to storage of coupling strength labeled by blue spin at left end of the cross term) with red root spin at up position
         int right_four_body_term_up_version_left_b = i_dn * X + j_ln; // roots the coupling strength
@@ -2257,6 +2257,6 @@ __device__ RBIM_eight_vertex eight_vertex_periodic_wl_step(
     rbim.new_energy = d_new_energy;
     rbim.i = i;
     rbim.j = j;
-
+    rbim.color = color;
     return rbim;
 }

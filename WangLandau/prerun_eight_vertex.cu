@@ -30,7 +30,7 @@ int main(int argc, char **argv)
 
     int num_intervals_per_interaction = 1;
 
-    char logical_error_type = 'I';
+    // char logical_error_type = 'I';
 
     int boundary_type = 0;
 
@@ -52,12 +52,11 @@ int main(int argc, char **argv)
             {"num_walker_total", required_argument, 0, 'w'},
             {"seed", required_argument, 0, 's'},
             {"num_intervals", required_argument, 0, 'i'},
-            {"logical_error", required_argument, 0, 'e'},
             {"boundary", required_argument, 0, 'b'},
             {"replicas", required_argument, 0, 'r'},
             {0, 0, 0, 0}};
 
-        och = getopt_long(argc, argv, "x:y:f:g:h:n:l:w:s:i:e:b:r:", long_options, &option_index);
+        och = getopt_long(argc, argv, "x:y:f:g:h:n:l:w:s:i:b:r:", long_options, &option_index);
 
         if (och == -1)
             break;
@@ -94,9 +93,6 @@ int main(int argc, char **argv)
             break;
         case 'i':
             num_intervals_per_interaction = atoi(optarg);
-            break;
-        case 'e':
-            logical_error_type = *optarg;
             break;
         case 'b':
             boundary_type = atoi(optarg);
@@ -238,7 +234,6 @@ int main(int argc, char **argv)
     CHECK_CUDA(cudaMalloc(&d_probs, total_walker * sizeof(*d_probs)));
     CHECK_CUDA(cudaMemset(d_probs, 0, total_walker * sizeof(*d_probs)));
 
-    // for testing only single lattice
     double *d_energy;
     CHECK_CUDA(cudaMalloc(&d_energy, total_walker * sizeof(*d_energy)));
 
@@ -246,7 +241,7 @@ int main(int argc, char **argv)
     CHECK_CUDA(cudaMalloc(&d_store_lattice_b, total_intervals * X * Y / 2 * sizeof(*d_store_lattice_b)));
     CHECK_CUDA(cudaMalloc(&d_store_lattice_r, total_intervals * X * Y / 2 * sizeof(*d_store_lattice_r)));
 
-    int *d_found_interval; // signaler to identify intervals where configs where found inside
+    int *d_found_interval; // signaler to identify intervals where configs were found at
     CHECK_CUDA(cudaMalloc(&d_found_interval, total_intervals * sizeof(*d_found_interval)));
     CHECK_CUDA(cudaMemset(d_found_interval, 0, total_intervals * sizeof(*d_found_interval)));
 
@@ -301,27 +296,26 @@ int main(int argc, char **argv)
         }
     }
 
-    calc_energy_eight_vertex<<<blocks_total_walker_x_thread, max_threads_per_block>>>(d_energy, d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, num_qubits, X, Y, total_walker, walker_per_interaction);
+    calc_energy_eight_vertex<<<blocks_total_intervals_x_thread, max_threads_per_block>>>(d_interval_energies, d_store_lattice_b, d_store_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, num_qubits, X, Y, total_intervals, num_intervals_per_interaction);
     cudaDeviceSynchronize();
 
-    std::string boundary;
+    std::vector<double> h_interval_energies(total_intervals);
+    std::vector<double> h_interactions_b(X * Y * num_interactions);
+    std::vector<double> h_interactions_r(X * Y * num_interactions);
+    std::vector<double> h_interactions_four_body_right(X * Y / 2 * num_interactions);
+    std::vector<double> h_interactions_four_body_down(X * Y / 2 * num_interactions);
+    std::vector<signed char> h_store_lattice_b(X * Y / 2 * total_intervals);
+    std::vector<signed char> h_store_lattice_r(X * Y / 2 * total_intervals);
+    std::vector<unsigned long long> h_H(len_total_histogram);
 
-    if (boundary_type == 0)
-    {
-        boundary = "periodic";
-    }
-    else if (boundary_type == 1)
-    {
-        boundary = "open";
-    }
-    else if (boundary_type == 2)
-    {
-        boundary = "cylinder";
-    }
-    else
-    {
-        boundary = "unknown"; // Handle any unexpected boundary_type values
-    }
+    CHECK_CUDA(cudaMemcpy(h_interval_energies.data(), d_interval_energies, total_intervals * sizeof(*d_energy), cudaMemcpyDeviceToHost));
+    CHECK_CUDA(cudaMemcpy(h_interactions_b.data(), d_interactions_b, X * Y * num_interactions * sizeof(*d_interactions_b), cudaMemcpyDeviceToHost));
+    CHECK_CUDA(cudaMemcpy(h_interactions_r.data(), d_interactions_r, X * Y * num_interactions * sizeof(*d_interactions_r), cudaMemcpyDeviceToHost));
+    CHECK_CUDA(cudaMemcpy(h_interactions_four_body_right.data(), d_interactions_right_four_body, X * Y / 2 * num_interactions * sizeof(*d_interactions_right_four_body), cudaMemcpyDeviceToHost));
+    CHECK_CUDA(cudaMemcpy(h_interactions_four_body_down.data(), d_interactions_down_four_body, X * Y / 2 * num_interactions * sizeof(*d_interactions_down_four_body), cudaMemcpyDeviceToHost));
+    CHECK_CUDA(cudaMemcpy(h_store_lattice_b.data(), d_store_lattice_b, X * Y / 2 * total_intervals * sizeof(*d_store_lattice_b), cudaMemcpyDeviceToHost));
+    CHECK_CUDA(cudaMemcpy(h_store_lattice_r.data(), d_store_lattice_r, X * Y / 2 * total_intervals * sizeof(*d_store_lattice_r), cudaMemcpyDeviceToHost));
+    CHECK_CUDA(cudaMemcpy(h_H.data(), d_H, len_total_histogram * sizeof(*d_H), cudaMemcpyDeviceToHost));
 
     return 0;
 }

@@ -798,8 +798,8 @@ __global__ void wang_landau_pre_run_eight_vertex(
         {
             printf("Iterator %d \n", it);
             printf("Thread Id %lld \n", tid);
-            printf("Energy out of range %d \n", d_new_energy);
-            printf("Old energy %d \n", d_energy[tid]);
+            printf("Energy out of range %f \n", d_new_energy);
+            printf("Old energy %f \n", d_energy[tid]);
             assert(0);
             return;
         }
@@ -2207,7 +2207,7 @@ __global__ void calc_energy_eight_vertex(double *energy_out, signed char *lattic
     if (tid < num_lattices)
     {
         energy_out[tid] = calc_energy_periodic_eight_vertex(lattice_b, lattice_r, interactions_b, interactions_r, interactions_four_body_right, interactions_four_body_down, num_qubits, X, Y, num_lattices_x_interaction);
-        printf("lattice %lld energy %f \n", tid, energy_out[tid]);
+        // printf("lattice %lld energy %f \n", tid, energy_out[tid]);
     }
 }
 

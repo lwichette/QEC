@@ -73,9 +73,87 @@ void parse_args(int argc, char *argv[], Options *options);
 
 IntervalResult generate_intervals(const int E_min, const int E_max, int num_intervals, int num_walker, float overlap_decimal);
 
-void writeToFile(const std::string &filename, const signed char *data, int nx_w, int ny);
+template <typename T>
+inline void writeToFile(const std::string &filename, const T *data, int nx_w, int ny)
+{
+    std::ofstream file(filename);
+    if (file.is_open())
+    {
+        for (int i = 0; i < nx_w; i++)
+        {
+            for (int j = 0; j < ny; j++)
+            {
+                file << static_cast<int>(data[i * ny + j]) << " ";
+            }
+            file << std::endl;
+        }
+    }
+    else
+    {
+        std::cerr << "Error opening file: " << filename << std::endl;
+    }
+    file.close();
 
-void write(signed char *array_host, const std::string &filename, long nx, long ny, int num_lattices, bool lattice, const int *energies = NULL);
+    return;
+}
+
+template <>
+inline void writeToFile<double>(const std::string &filename, const double *data, int nx_w, int ny)
+{
+    std::ofstream file(filename);
+    if (file.is_open())
+    {
+        file << std::fixed << std::setprecision(10);
+        for (int i = 0; i < nx_w; i++)
+        {
+            for (int j = 0; j < ny; j++)
+            {
+                file << data[i * ny + j] << " ";
+            }
+            file << std::endl;
+        }
+    }
+    else
+    {
+        std::cerr << "Error opening file: " << filename << std::endl;
+    }
+    file.close();
+
+    return;
+}
+
+void write(signed char *array_host, const std::string &filename, long nx, long ny, int num_lattices, bool lattice, const int *energies = NULL); // non eight vertex write with int energies
+
+template <typename T>
+inline void write(
+    T *array_host, const std::string &filename, long num_rows, long num_cols,
+    int num_lattices, bool is_lattice, const double *energies = NULL)
+{
+    if (num_lattices == 1)
+    {
+        writeToFile(filename + ".txt", array_host, num_rows, num_cols);
+    }
+    else
+    {
+        for (int l = 0; l < num_lattices; l++)
+        {
+            int offset = l * num_rows * num_cols;
+
+            if (energies)
+            {
+                if (energies[l] == 0 && array_host[offset] == 0)
+                {
+                    continue;
+                }
+            }
+
+            std::string file_suffix = (!energies) ? std::to_string(l) : std::to_string(energies[l]);
+            writeToFile(filename + "_energy_" + file_suffix + ".txt", array_host + offset, num_rows, num_cols);
+        }
+    }
+
+    return;
+}
 
 void create_directory(std::string path);
 

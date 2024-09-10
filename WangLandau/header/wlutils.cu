@@ -135,29 +135,6 @@ IntervalResult generate_intervals(const int E_min, const int E_max, int num_inte
     return interval_result;
 }
 
-void writeToFile(const std::string &filename, const signed char *data, int nx_w, int ny)
-{
-    std::ofstream file(filename);
-    if (file.is_open())
-    {
-        for (int i = 0; i < nx_w; i++)
-        {
-            for (int j = 0; j < ny; j++)
-            {
-                file << static_cast<int>(data[i * ny + j]) << " ";
-            }
-            file << std::endl;
-        }
-    }
-    else
-    {
-        std::cerr << "Error opening file: " << filename << std::endl;
-    }
-    file.close();
-
-    return;
-}
-
 void write(
     signed char *array_host, const std::string &filename, long nx, long ny,
     int num_lattices, bool lattice, const int *energies)

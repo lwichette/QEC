@@ -317,5 +317,28 @@ int main(int argc, char **argv)
     CHECK_CUDA(cudaMemcpy(h_store_lattice_r.data(), d_store_lattice_r, X * Y / 2 * total_intervals * sizeof(*d_store_lattice_r), cudaMemcpyDeviceToHost));
     CHECK_CUDA(cudaMemcpy(h_H.data(), d_H, len_total_histogram * sizeof(*d_H), cudaMemcpyDeviceToHost));
 
+    for (int i = 0; i < num_interactions; i++)
+    {
+        std::string path = "init/eight_vertex/periodic/prob_X_" + std::to_string(prob_x_err) + "__prob_Y_" + std::to_string(prob_y_err) + "__prob_Z_" + std::to_string(prob_z_err) + "/X_" + std::to_string(X) + "_Y_" + std::to_string(Y) + "/seed_" + std::to_string(seed + i) + "/error_class_I";
+
+        int offset_interactions = i * X * Y;               // for interactions closed on a single colored sublattice
+        int offset_four_body_interactions = i * X * Y / 2; // for interactions closed on a single colored sublattice
+        int offset_lattice = i * num_intervals_per_interaction * X * Y / 2;
+        int offset_energies = i * num_intervals_per_interaction;
+
+        create_directory(path + "/interactions");
+        create_directory(path + "/lattice");
+        create_directory(path + "/histogram");
+
+        write(h_interactions_b.data() + offset_interactions, path + "/interactions/interactions_b", Y, X, 1, false);
+        write(h_interactions_r.data() + offset_interactions, path + "/interactions/interactions_r", Y, X, 1, false);
+        write(h_interactions_four_body_right.data() + offset_four_body_interactions, path + "/interactions/interactions_four_body_right", Y / 2, X, 1, false);
+        write(h_interactions_four_body_down.data() + offset_four_body_interactions, path + "/interactions/interactions_four_body_down", Y / 2, X, 1, false);
+        // write(h_store_lattice.data() + offset_lattice, path + "/lattice/lattice", X, Y, num_intervals, true, h_interval_energies.data() + offset_energies);
+        // write_histograms(h_H.data() + i * len_histogram, path + "/histogram/", (E_max - E_min + 1), seed, E_min);
+    }
+
+    // printf("Finished prerun for Lattice %d x %d, boundary condition %s, probability %f, error type %c and %d interactions \n", X, Y, boundary.c_str(), prob_interactions, logical_error_type, num_interactions);
+
     return 0;
 }

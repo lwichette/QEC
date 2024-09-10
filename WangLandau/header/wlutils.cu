@@ -771,7 +771,7 @@ __global__ void wang_landau_pre_run(
 
 __global__ void wang_landau_pre_run_eight_vertex(
     signed char *d_lattice_b, signed char *d_lattice_r, double *d_interactions_b, double *d_interactions_r, double *d_interactions_right_four_body, double *d_interactions_down_four_body, double *d_energy, unsigned long long *d_H, unsigned long long *d_iter,
-    int *d_offset_lattice, int *d_found_interval, signed char *d_store_lattice_b, signed char *d_store_lattice_r, const int E_min, const int E_max,
+    int *d_found_interval, signed char *d_store_lattice_b, signed char *d_store_lattice_r, const int E_min, const int E_max,
     const int num_iterations, const int num_qubits, const int X, const int Y, const int seed, const int len_interval, const int found_interval,
     const int num_walker, const int num_interval, const int boundary_type, const int walker_per_interaction)
 {
@@ -789,7 +789,7 @@ __global__ void wang_landau_pre_run_eight_vertex(
 
         // may want to hand the offsets to this function and not compzte them inside
         RBIM_eight_vertex result = eight_vertex_periodic_wl_step(
-            d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, d_energy, d_offset_lattice, d_iter,
+            d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, d_energy, d_iter,
             &st, tid, num_qubits, X, Y, num_walker, walker_per_interaction);
 
         double d_new_energy = result.new_energy;
@@ -2213,7 +2213,7 @@ __global__ void calc_energy_eight_vertex(double *energy_out, signed char *lattic
 
 // gets called with a thread per walker
 __device__ RBIM_eight_vertex eight_vertex_periodic_wl_step(
-    signed char *d_lattice_b, signed char *d_lattice_r, double *d_interactions_b, double *d_interactions_r, double *d_interactions_four_body_right, double *d_interactions_four_body_down, double *d_energy, int *d_offset_lattice, unsigned long long *d_offset_iter,
+    signed char *d_lattice_b, signed char *d_lattice_r, double *d_interactions_b, double *d_interactions_r, double *d_interactions_four_body_right, double *d_interactions_four_body_down, double *d_energy, unsigned long long *d_offset_iter,
     curandStatePhilox4_32_10_t *st, const long long tid, const int num_qubits, const int X, const int Y, const int num_lattices, const int num_lattices_x_interaction)
 {
     double randval = curand_uniform(st);

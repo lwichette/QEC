@@ -334,8 +334,9 @@ int main(int argc, char **argv)
         write(h_interactions_r.data() + offset_interactions, path + "/interactions/interactions_r", Y, X, 1, false);
         write(h_interactions_four_body_right.data() + offset_four_body_interactions, path + "/interactions/interactions_four_body_right", Y / 2, X, 1, false);
         write(h_interactions_four_body_down.data() + offset_four_body_interactions, path + "/interactions/interactions_four_body_down", Y / 2, X, 1, false);
-        // write(h_store_lattice.data() + offset_lattice, path + "/lattice/lattice", X, Y, num_intervals, true, h_interval_energies.data() + offset_energies);
-        // write_histograms(h_H.data() + i * len_histogram, path + "/histogram/", (E_max - E_min + 1), seed, E_min);
+        write(h_store_lattice_b.data() + offset_lattice, path + "/lattice/lattice_b", Y / 2, X, num_intervals_per_interaction, true, h_interval_energies.data() + offset_energies);
+        write(h_store_lattice_r.data() + offset_lattice, path + "/lattice/lattice_r", Y / 2, X, num_intervals_per_interaction, true, h_interval_energies.data() + offset_energies);
+        write_histograms(h_H.data() + i * len_histogram, path + "/histogram/", (E_max - E_min + 1), seed, E_min);
     }
 
     // printf("Finished prerun for Lattice %d x %d, boundary condition %s, probability %f, error type %c and %d interactions \n", X, Y, boundary.c_str(), prob_interactions, logical_error_type, num_interactions);

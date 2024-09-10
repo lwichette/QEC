@@ -805,13 +805,8 @@ __global__ void wang_landau_pre_run_eight_vertex(
         }
         else
         {
-
-            const int int_id = tid / walker_per_interaction;
             const int len_hist = E_max - E_min + 1;
-
-            const int offset_lattice = tid * X * Y / 2;
             const int int_id = tid / walker_per_interaction;
-            // const int interaction_offset = int_id * 2 * nx * ny;
 
             int index_old = static_cast<int>(d_energy[tid] - E_min) + int_id * len_hist; // energy diff is double valued but binning is invoked by integer cast
             int index_new = static_cast<int>(d_new_energy - E_min) + int_id * len_hist;
@@ -820,33 +815,29 @@ __global__ void wang_landau_pre_run_eight_vertex(
 
             if (curand_uniform(&st) < prob)
             {
+                const int offset_lattice = tid * X * Y / 2;
                 if (result.color)
                 { // red lattice spin flip
                     d_lattice_r[offset_lattice + result.i * X + result.j] *= -1;
-                    if (found_interval == 0)
-                    {
-                        // store_lattice(d_lattice_r, d_energy, d_found_interval, d_store_lattice, E_min, X, Y / 2, tid, len_interval, num_interval, int_id);
-                    }
-                    else
-                    {
-                        atomicAdd(&d_H[index_old], 1);
-                    }
                 }
                 else // blue lattice spin flip
                 {
                     d_lattice_b[offset_lattice + result.i * X + result.j] *= -1;
-                    if (found_interval == 0)
-                    {
-                        // store_lattice(d_lattice_b, d_energy, d_found_interval, d_store_lattice, E_min, X, Y / 2, tid, len_interval, num_interval, int_id);
-                    }
-                    else
-                    {
-                        atomicAdd(&d_H[index_old], 1);
-                    }
                 }
                 d_energy[tid] = d_new_energy;
                 d_iter[tid] += 1;
                 atomicAdd(&d_H[index_new], 1);
+                if (found_interval == 0)
+                {
+                    // IMPORTANT: order of calling the store functions is necessary in order of the color parameter : 1st color false -> 2nd color true
+                    // color parameter here does not have to coincide with the actual color it only remembers that a second color must still be processed.
+                    store_lattice(d_lattice_r, d_energy, d_found_interval, d_store_lattice_r, E_min, X, Y / 2, tid, len_interval, num_interval, int_id, false);
+                    store_lattice(d_lattice_b, d_energy, d_found_interval, d_store_lattice_b, E_min, X, Y / 2, tid, len_interval, num_interval, int_id, true);
+                }
+            }
+            else
+            {
+                atomicAdd(&d_H[index_old], 1);
             }
         }
     }
@@ -954,6 +945,40 @@ __device__ void store_lattice(
 
     if (atomicCAS(&d_found_interval[int_id * num_interval + interval_index], 0, 1) != 0)
         return;
+
+    for (int i = 0; i < nx; i++)
+    {
+        for (int j = 0; j < ny; j++)
+        {
+            d_store_lattice[int_id * num_interval * nx * ny + interval_index * nx * ny + i * ny + j] = d_lattice[tid * nx * ny + i * ny + j];
+        }
+    }
+
+    return;
+}
+
+__device__ void store_lattice(
+    signed char *d_lattice, double *d_energy, int *d_found_interval, signed char *d_store_lattice,
+    const int E_min, const int nx, const int ny, const long long tid, const int len_interval,
+    const int num_interval, const int int_id, bool color)
+{
+
+    int interval_index = ((d_energy[tid] - E_min) / len_interval < num_interval) ? (d_energy[tid] - E_min) / len_interval : num_interval - 1;
+
+    if (color)
+    {
+        // Perform atomicCAS if color is true
+        if (atomicCAS(&d_found_interval[int_id * num_interval + interval_index], 0, 1) != 0)
+            return; // If CAS failed, interval was already claimed
+    }
+    else
+    {
+        // For color == false, just check if the value is already 1
+        if (d_found_interval[int_id * num_interval + interval_index] == 1)
+        {
+            return; // Return if the interval is already claimed
+        }
+    }
 
     for (int i = 0; i < nx; i++)
     {

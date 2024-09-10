@@ -174,7 +174,17 @@ __global__ void calc_average_log_g(
     int num_interactions, long long *d_offset_shared_logG,
     int *d_cond_interactions);
 
-__device__ void store_lattice(signed char *d_lattice, int *d_energy, int *d_found_interval, signed char *d_store_lattice, const int E_min, const int nx, const int ny, const long long tid, const int len_interval, const int num_intervals, const int int_id);
+// Overload for int type (no color argument)
+__device__ void store_lattice(
+    signed char *d_lattice, int *d_energy, int *d_found_interval, signed char *d_store_lattice,
+    const int E_min, const int nx, const int ny, const long long tid, const int len_interval,
+    const int num_interval, const int int_id);
+
+// Overload for double type (with color argument)
+__device__ void store_lattice(
+    signed char *d_lattice, double *d_energy, int *d_found_interval, signed char *d_store_lattice,
+    const int E_min, const int nx, const int ny, const long long tid, const int len_interval,
+    const int num_interval, const int int_id, bool color);
 
 __global__ void init_indices(int *d_indices, int total_walker);
 

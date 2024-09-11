@@ -13,7 +13,7 @@ int main(int argc, char **argv)
 
     cudaDeviceProp prop;
     cudaGetDeviceProperties(&prop, 0); // Assuming device 0
-    int max_threads_per_block = prop.maxThreadsPerBlock;
+    int max_threads_per_block = 128;
 
     int X, Y;
 
@@ -141,8 +141,17 @@ int main(int argc, char **argv)
     double J_Y = std::log((prob_i_err * prob_z_err) / (prob_x_err * prob_y_err)) / 4;
     double J_Z = std::log((prob_i_err * prob_y_err) / (prob_x_err * prob_z_err)) / 4;
 
-    std::cout << "J params for the run:" << std::endl;
-    std::cout << "J_I = " << J_I << "J_X = " << J_X << "J_Y = " << J_Y << "J_Z = " << J_Z << std::endl;
+    // Find the maximum absolute value of J_I, J_X, J_Y, J_Z to bound the energy range
+    double max_J = std::max({std::abs(J_I), std::abs(J_X), std::abs(J_Y), std::abs(J_Z)});
+
+    // Rescale the values
+    J_I /= max_J;
+    J_X /= max_J;
+    J_Y /= max_J;
+    J_Z /= max_J;
+
+    std::cout << "J params rescaled by absolute max = " << max_J << ":" << std::endl;
+    std::cout << "J_I = " << J_I << " J_X = " << J_X << " J_Y = " << J_Y << " J_Z = " << J_Z << std::endl;
 
     // declaration of Pauli error over grid of qubits
     int *d_pauli_errors;
@@ -207,7 +216,7 @@ int main(int argc, char **argv)
 
     double factor = std::exp(1);
 
-    const int E_min = -3 * X * Y; // derived from 2 decoupled Ising lattices with dim (X, Y/2) -> 2*(-2)*(X*Y/2) and additionally two four body interactions rooted on spins of one lattice: -2*(X*Y/2)
+    const int E_min = -3 * X * Y + 1; // derived from 2 decoupled Ising lattices with dim (X, Y/2) -> 2*(-2)*(X*Y/2) and additionally two four body interactions rooted on spins of one lattice: -2*(X*Y/2)
     const int E_max = -E_min;
 
     IntervalResult interval_result = generate_intervals(E_min, E_max, num_intervals_per_interaction, 1, 1.0f);
@@ -281,11 +290,7 @@ int main(int argc, char **argv)
 
     for (int i = 0; i < num_wl_loops; i++)
     {
-
-        wang_landau_pre_run_eight_vertex<<<blocks_total_walker_x_thread, max_threads_per_block>>>(d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body,
-                                                                                                  d_interactions_down_four_body, d_energy, d_H, d_iter, d_found_interval, d_store_lattice_b,
-                                                                                                  d_store_lattice_r, E_min, E_max, num_iterations, num_qubits, X, Y, seed, interval_result.len_interval,
-                                                                                                  found_interval, total_walker, num_intervals_per_interaction, boundary_type, walker_per_interaction);
+        wang_landau_pre_run_eight_vertex<<<blocks_total_walker_x_thread, max_threads_per_block>>>(d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, d_energy, d_H, d_iter, d_found_interval, d_store_lattice_b, d_store_lattice_r, E_min, E_max, num_iterations, num_qubits, X, Y, seed, interval_result.len_interval, found_interval, total_walker, num_intervals_per_interaction, boundary_type, walker_per_interaction);
         cudaDeviceSynchronize();
 
         if (found_interval == 0)

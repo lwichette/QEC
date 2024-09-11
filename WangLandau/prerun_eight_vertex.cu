@@ -211,12 +211,13 @@ int main(int argc, char **argv)
     CHECK_CUDA(cudaMalloc(&d_lattice_b, total_walker * num_qubits / 2 * sizeof(*d_lattice_b)));
     CHECK_CUDA(cudaMalloc(&d_lattice_r, total_walker * num_qubits / 2 * sizeof(*d_lattice_r)));
     // // init lattices for testing with spin up
-    // CHECK_CUDA(cudaMemset(d_lattice_b, 1, num_walker * X * Y/2 * sizeof(*d_lattice_b)));
-    // CHECK_CUDA(cudaMemset(d_lattice_r, 1, num_walker * X * Y/2 * sizeof(*d_lattice_r)));
+    CHECK_CUDA(cudaMemset(d_lattice_b, 1, total_walker * X * Y / 2 * sizeof(*d_lattice_b)));
+    CHECK_CUDA(cudaMemset(d_lattice_r, 1, total_walker * X * Y / 2 * sizeof(*d_lattice_r)));
 
     double factor = std::exp(1);
 
-    const int E_min = -3 * X * Y; // derived from 2 decoupled Ising lattices with dim (X, Y/2) -> 2*(-2)*(X*Y/2) and additionally two four body interactions rooted on spins of one lattice: -2*(X*Y/2)
+    // const int E_min = -3 * X * Y; // derived from 2 decoupled Ising lattices with dim (X, Y/2) -> 2*(-2)*(X*Y/2) and additionally two four body interactions rooted on spins of one lattice: -2*(X*Y/2)
+    const int E_min = -5 * X * Y;
     const int E_max = -E_min;
 
     IntervalResult interval_result = generate_intervals(E_min, E_max, num_intervals_per_interaction, 1, 1.0f);
@@ -278,8 +279,8 @@ int main(int argc, char **argv)
     init_interactions_eight_vertex<<<blocks_qubit_x_thread, max_threads_per_block>>>(d_interactions_x, d_interactions_y, d_interactions_z, num_qubits, num_interactions, X, Y, d_interactions_r, d_interactions_b, d_interactions_down_four_body, d_interactions_right_four_body);
     cudaDeviceSynchronize();
 
-    init_lattice<<<blocks_spins_single_color_x_thread, max_threads_per_block>>>(d_lattice_b, d_probs, X, Y / 2, total_walker, seed - 2);
-    init_lattice<<<blocks_spins_single_color_x_thread, max_threads_per_block>>>(d_lattice_r, d_probs, X, Y / 2, total_walker, seed - 1);
+    // init_lattice<<<blocks_spins_single_color_x_thread, max_threads_per_block>>>(d_lattice_b, d_probs, X, Y / 2, total_walker, seed - 2);
+    // init_lattice<<<blocks_spins_single_color_x_thread, max_threads_per_block>>>(d_lattice_r, d_probs, X, Y / 2, total_walker, seed - 1);
     init_offsets_lattice<<<blocks_total_walker_x_thread, max_threads_per_block>>>(d_offset_lattice_per_walker, X, Y / 2, total_walker);
     init_offsets_lattice<<<blocks_total_walker_x_thread, max_threads_per_block>>>(d_offset_lattice_per_interval, X, Y / 2, total_intervals);
     cudaDeviceSynchronize();
@@ -325,6 +326,8 @@ int main(int argc, char **argv)
         write(test_lattice_b.data() + offset_lattice, path + "/lattice/lattice_b", Y / 2, X, walker_per_interaction, true, test_energies.data() + offset_energies);
         write(test_lattice_r.data() + offset_lattice, path + "/lattice/lattice_r", Y / 2, X, walker_per_interaction, true, test_energies.data() + offset_energies);
     }
+    test_eight_vertex_periodic_wl_step<<<blocks_total_walker_x_thread, max_threads_per_block>>>(d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, d_energy, d_iter, num_qubits, X, Y, total_walker, walker_per_interaction);
+    cudaDeviceSynchronize();
     return 0;
     //-------------------------
 

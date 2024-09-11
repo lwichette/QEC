@@ -771,10 +771,10 @@ __global__ void wang_landau_pre_run_eight_vertex(
 
         double d_new_energy = result.new_energy;
 
-        if (tid == 0)
-        {
-            printf("tid: %lld newE: %f oldE: %f \n", tid, d_new_energy, d_energy[tid]);
-        }
+        // if (tid == 0)
+        // {
+        //     printf("tid: %lld newE: %f oldE: %f \n", tid, d_new_energy, d_energy[tid]);
+        // }
 
         if (d_new_energy > E_max || d_new_energy < E_min)
         {
@@ -2161,22 +2161,23 @@ __device__ double calc_energy_periodic_eight_vertex(signed char *lattice_b, sign
         int j = l % X; // column index
 
         // these neighbor indices are used for interactions closed under an Ising lattice
-        int inn = (i + 1 < Y / 2) ? i + 1 : 0; // down neighbor row index
-        int jnn = (j + 1 < X) ? j + 1 : 0;     // right neighbor column index
+        int i_dn = (i + 1 < Y / 2) ? i + 1 : 0;          // down neighbor row index
+        int i_un = (i - 1 >= 0) ? (i - 1) : (Y / 2 - 1); // up neighbor row index
+        int j_rn = (j + 1 < X) ? j + 1 : 0;              // right neighbor column index
 
         // these indices are used for right four body interaction
-        int right_four_body_side_b = i * X + jnn;
-        int right_four_body_up_r = (i - 1 < 0) ? (Y / 2 - 1) * X + jnn : (i - 1) * X + jnn;
-        int right_four_body_down_r = inn * X + jnn;
+        int right_four_body_side_b = i * X + j_rn;
+        int right_four_body_up_r = i_un * X + j_rn;
+        int right_four_body_down_r = i * X + j_rn;
         // printf("i %d j %d : right_left_b %d right_side_b %d right_up_r %d right_down_r %d \n", i, j, i * X + j, right_four_body_side_b, right_four_body_up_r, right_four_body_down_r);
 
         // these indices are used for down four body interaction
         int down_four_body_left_r = i * X + j;
-        int down_four_body_right_r = i * X + jnn;
-        int down_four_body_down_b = inn * X + j;
-        // printf("i %d j %d : down_up_b %d down_down_b %d down_left_r %d down_right_r %d \n", i, j, i * X + j, inn * X + j, i * X + j, i * X + jnn);
+        int down_four_body_right_r = i * X + j_rn;
+        int down_four_body_down_b = i_dn * X + j;
+        // printf("i %d j %d : down_up_b %d down_down_b %d down_left_r %d down_right_r %d \n", i, j, i * X + j, i_dn * X + j, i * X + j, i * X + j_rn);
 
-        energy += lattice_b[offset_lattice + i * X + j] * (lattice_b[offset_lattice + inn * X + j] * interactions_b[offset_interactions_closed_on_sublattice + num_qubits / 2 + i * X + j] + lattice_b[offset_lattice + i * X + jnn] * interactions_b[offset_interactions_closed_on_sublattice + i * X + j]) + lattice_r[offset_lattice + i * X + j] * (lattice_r[offset_lattice + inn * X + j] * interactions_r[offset_interactions_closed_on_sublattice + num_qubits / 2 + i * X + j] + lattice_r[offset_lattice + i * X + jnn] * interactions_r[offset_interactions_closed_on_sublattice + i * X + j]) + interactions_four_body_right[offset_interactions_four_body + i * X + j] * (lattice_b[offset_lattice + i * X + j] * lattice_b[offset_lattice + right_four_body_side_b] * lattice_r[offset_lattice + right_four_body_up_r] * lattice_r[offset_lattice + right_four_body_down_r]) + interactions_four_body_down[offset_interactions_four_body + i * X + j] * (lattice_b[offset_lattice + i * X + j] * lattice_b[offset_lattice + down_four_body_down_b] * lattice_r[offset_lattice + down_four_body_left_r] * lattice_r[offset_lattice + down_four_body_right_r]);
+        energy += lattice_b[offset_lattice + i * X + j] * (lattice_b[offset_lattice + i_dn * X + j] * interactions_b[offset_interactions_closed_on_sublattice + num_qubits / 2 + i * X + j] + lattice_b[offset_lattice + i * X + j_rn] * interactions_b[offset_interactions_closed_on_sublattice + i * X + j]) + lattice_r[offset_lattice + i * X + j] * (lattice_r[offset_lattice + i_dn * X + j] * interactions_r[offset_interactions_closed_on_sublattice + num_qubits / 2 + i * X + j] + lattice_r[offset_lattice + i * X + j_rn] * interactions_r[offset_interactions_closed_on_sublattice + i * X + j]) + interactions_four_body_right[offset_interactions_four_body + i * X + j] * (lattice_b[offset_lattice + i * X + j] * lattice_b[offset_lattice + right_four_body_side_b] * lattice_r[offset_lattice + right_four_body_up_r] * lattice_r[offset_lattice + right_four_body_down_r]) + interactions_four_body_down[offset_interactions_four_body + i * X + j] * (lattice_b[offset_lattice + i * X + j] * lattice_b[offset_lattice + down_four_body_down_b] * lattice_r[offset_lattice + down_four_body_left_r] * lattice_r[offset_lattice + down_four_body_right_r]);
     }
 
     return energy;
@@ -2188,7 +2189,7 @@ __global__ void calc_energy_eight_vertex(double *energy_out, signed char *lattic
     if (tid < num_lattices)
     {
         energy_out[tid] = calc_energy_periodic_eight_vertex(lattice_b, lattice_r, interactions_b, interactions_r, interactions_four_body_right, interactions_four_body_down, num_qubits, X, Y, num_lattices_x_interaction);
-        printf("lattice %lld energy %.10f \n", tid, energy_out[tid]);
+        // printf("lattice %lld energy %.10f \n", tid, energy_out[tid]);
     }
 }
 
@@ -2218,8 +2219,6 @@ __device__ RBIM_eight_vertex eight_vertex_periodic_wl_step(
     int i_un = (i - 1 >= 0) ? i - 1 : Y / 2 - 1; // up neighbor row index
     int j_rn = (j + 1 < X) ? (j + 1) : 0;        // right neighbor column index
     int j_ln = (j - 1 >= 0) ? j - 1 : X - 1;     // left neighbor column index
-
-    printf("i=%d j=%d i_dn=%d i_un=%d  j_rn=%d j_ln=%d \n", i, j, i_dn, i_un, j_rn, j_ln);
 
     double energy_diff = 0;
     if (!color) // color is blue
@@ -2268,10 +2267,39 @@ __device__ RBIM_eight_vertex eight_vertex_periodic_wl_step(
         int down_four_body_term_right_version_up_b = i * X + j_ln; // roots the coupling strength
         int down_four_body_term_right_version_down_b = i_dn * X + j_ln;
 
-        energy_diff = -2 * d_lattice_r[offset_lattice + i * X + j] * (d_lattice_r[offset_lattice + i_un * X + j] * d_interactions_r[offset_interactions_closed_on_sublattice + num_qubits / 2 + i_un * X + j] + d_lattice_r[offset_lattice + i_dn * X + j] * d_interactions_r[offset_interactions_closed_on_sublattice + num_qubits / 2 + i * X + j] + d_lattice_r[offset_lattice + i * X + j_rn] * d_interactions_r[offset_interactions_closed_on_sublattice + i * X + j] + d_lattice_r[offset_lattice + i * X + j_ln] * d_interactions_r[offset_interactions_closed_on_sublattice + i * X + j_ln] + d_interactions_four_body_right[offset_interactions_four_body + right_four_body_term_up_version_left_b] * (d_lattice_b[offset_lattice + right_four_body_term_up_version_left_b] * d_lattice_b[offset_lattice + right_four_body_term_up_version_right_b] * d_lattice_r[offset_lattice + right_four_body_term_up_version_down_r]) + d_interactions_four_body_right[offset_interactions_four_body + right_four_body_term_down_version_left_b] * (d_lattice_b[offset_lattice + right_four_body_term_down_version_left_b] * d_lattice_b[offset_lattice + right_four_body_term_down_version_right_b] * d_lattice_r[offset_lattice + right_four_body_term_down_version_up_r]) + d_interactions_four_body_down[offset_interactions_four_body + down_four_body_term_left_version_up_b] * (d_lattice_b[offset_lattice + down_four_body_term_left_version_up_b] * d_lattice_b[offset_lattice + down_four_body_term_left_version_down_b] * d_lattice_r[offset_lattice + down_four_body_term_left_version_right_r]) + d_interactions_four_body_down[offset_interactions_four_body + down_four_body_term_right_version_up_b] * (d_lattice_b[offset_lattice + down_four_body_term_right_version_up_b] * d_lattice_b[offset_lattice + down_four_body_term_right_version_down_b] * d_lattice_r[offset_lattice + down_four_body_term_right_version_left_r]));
+        double E_up = d_lattice_r[offset_lattice + i * X + j] * (d_lattice_r[offset_lattice + i_un * X + j] * d_interactions_r[offset_interactions_closed_on_sublattice + num_qubits / 2 + i_un * X + j]);
+        double E_down = d_lattice_r[offset_lattice + i * X + j] * (d_lattice_r[offset_lattice + i_dn * X + j] * d_interactions_r[offset_interactions_closed_on_sublattice + num_qubits / 2 + i * X + j]);
+        double E_right = d_lattice_r[offset_lattice + i * X + j] * (d_lattice_r[offset_lattice + i * X + j_rn] * d_interactions_r[offset_interactions_closed_on_sublattice + i * X + j]);
+        double E_left = d_lattice_r[offset_lattice + i * X + j] * (d_lattice_r[offset_lattice + i * X + j_ln] * d_interactions_r[offset_interactions_closed_on_sublattice + i * X + j_ln]);
+        double E_right_four_body_up_version = d_lattice_r[offset_lattice + i * X + j] * (d_interactions_four_body_right[offset_interactions_four_body + right_four_body_term_up_version_left_b] * (d_lattice_b[offset_lattice + right_four_body_term_up_version_left_b] * d_lattice_b[offset_lattice + right_four_body_term_up_version_right_b] * d_lattice_r[offset_lattice + right_four_body_term_up_version_down_r]));
+        double E_right_four_body_down_version = d_lattice_r[offset_lattice + i * X + j] * (d_interactions_four_body_right[offset_interactions_four_body + right_four_body_term_down_version_left_b] * (d_lattice_b[offset_lattice + right_four_body_term_down_version_left_b] * d_lattice_b[offset_lattice + right_four_body_term_down_version_right_b] * d_lattice_r[offset_lattice + right_four_body_term_down_version_up_r]));
+        double E_down_four_body_left_version = d_lattice_r[offset_lattice + i * X + j] * (d_interactions_four_body_down[offset_interactions_four_body + down_four_body_term_right_version_up_b] * (d_lattice_b[offset_lattice + down_four_body_term_right_version_up_b] * d_lattice_b[offset_lattice + down_four_body_term_right_version_down_b] * d_lattice_r[offset_lattice + down_four_body_term_right_version_left_r]));
+        double E_down_four_body_right_version = d_lattice_r[offset_lattice + i * X + j] * (d_interactions_four_body_down[offset_interactions_four_body + down_four_body_term_left_version_up_b] * (d_lattice_b[offset_lattice + down_four_body_term_left_version_up_b] * d_lattice_b[offset_lattice + down_four_body_term_left_version_down_b] * d_lattice_r[offset_lattice + down_four_body_term_left_version_right_r]));
+
+        energy_diff = -2 * (E_up + E_down + E_right + E_left + E_right_four_body_down_version + E_right_four_body_up_version + E_down_four_body_left_version + E_down_four_body_right_version);
+        // energy_diff = -2 * d_lattice_r[offset_lattice + i * X + j] * (d_lattice_r[offset_lattice + i_un * X + j] * d_interactions_r[offset_interactions_closed_on_sublattice + num_qubits / 2 + i_un * X + j] + d_lattice_r[offset_lattice + i_dn * X + j] * d_interactions_r[offset_interactions_closed_on_sublattice + num_qubits / 2 + i * X + j] + d_lattice_r[offset_lattice + i * X + j_rn] * d_interactions_r[offset_interactions_closed_on_sublattice + i * X + j] + d_lattice_r[offset_lattice + i * X + j_ln] * d_interactions_r[offset_interactions_closed_on_sublattice + i * X + j_ln] + d_interactions_four_body_right[offset_interactions_four_body + right_four_body_term_up_version_left_b] * (d_lattice_b[offset_lattice + right_four_body_term_up_version_left_b] * d_lattice_b[offset_lattice + right_four_body_term_up_version_right_b] * d_lattice_r[offset_lattice + right_four_body_term_up_version_down_r]) + d_interactions_four_body_right[offset_interactions_four_body + right_four_body_term_down_version_left_b] * (d_lattice_b[offset_lattice + right_four_body_term_down_version_left_b] * d_lattice_b[offset_lattice + right_four_body_term_down_version_right_b] * d_lattice_r[offset_lattice + right_four_body_term_down_version_up_r]) + d_interactions_four_body_down[offset_interactions_four_body + down_four_body_term_left_version_up_b] * (d_lattice_b[offset_lattice + down_four_body_term_left_version_up_b] * d_lattice_b[offset_lattice + down_four_body_term_left_version_down_b] * d_lattice_r[offset_lattice + down_four_body_term_left_version_right_r]) + d_interactions_four_body_down[offset_interactions_four_body + down_four_body_term_right_version_up_b] * (d_lattice_b[offset_lattice + down_four_body_term_right_version_up_b] * d_lattice_b[offset_lattice + down_four_body_term_right_version_down_b] * d_lattice_r[offset_lattice + down_four_body_term_right_version_left_r]));
+
+        // if (tid == 0)
+        // {
+        // printf("E_up=%.6f E_down=%.6f E_right=%.6f E_left=%.6f E_right_four_body_up_version=%.6f E_right_four_body_down_version=%.6f E_down_four_body_left_version=%.6f E_down_four_body_right_version=%.6f \n", E_up, E_down, E_right, E_left, E_right_four_body_up_version, E_right_four_body_down_version, E_down_four_body_left_version, E_down_four_body_right_version);
+        // printf("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d \n", d_lattice_r[offset_lattice + i * X + j], d_lattice_r[offset_lattice + i_un * X + j], d_lattice_r[offset_lattice + i_dn * X + j], d_lattice_r[offset_lattice + i * X + j_rn], d_lattice_r[offset_lattice + i * X + j_ln], d_lattice_b[offset_lattice + right_four_body_term_up_version_left_b], d_lattice_b[offset_lattice + right_four_body_term_up_version_right_b], d_lattice_r[offset_lattice + right_four_body_term_up_version_down_r], d_lattice_b[offset_lattice + right_four_body_term_down_version_left_b], d_lattice_b[offset_lattice + right_four_body_term_down_version_right_b], d_lattice_r[offset_lattice + right_four_body_term_down_version_up_r], d_lattice_b[offset_lattice + down_four_body_term_left_version_up_b], d_lattice_b[offset_lattice + down_four_body_term_left_version_down_b], d_lattice_r[offset_lattice + down_four_body_term_left_version_right_r], d_lattice_b[offset_lattice + down_four_body_term_right_version_up_b], d_lattice_b[offset_lattice + down_four_body_term_right_version_down_b], d_lattice_r[offset_lattice + down_four_body_term_right_version_left_r]);
+        // // print indices for spin and interactions
+        // printf("spin neighbor indices:\n");
+        // printf("color=%d i=%d j=%d i_dn=%d i_un=%d j_rn=%d j_ln=%d \n", color, i, j, i_dn, i_un, j_rn, j_ln);
+        // printf("right_four_body_term_up_version_left_b=%d right_four_body_term_up_version_right_b=%d right_four_body_term_up_version_down_r=%d\n", right_four_body_term_up_version_left_b, right_four_body_term_up_version_right_b, right_four_body_term_up_version_down_r);
+        // printf("right_four_body_term_down_version_left_b=%d right_four_body_term_down_version_right_b=%d right_four_body_term_down_version_up_r=%d \n", right_four_body_term_down_version_left_b, right_four_body_term_down_version_right_b, right_four_body_term_down_version_up_r);
+        // printf("down_four_body_term_left_version_right_r=%d down_four_body_term_left_version_up_b=%d down_four_body_term_left_version_down_b=%d \n", down_four_body_term_left_version_right_r, down_four_body_term_left_version_up_b, down_four_body_term_left_version_down_b);
+        // printf("down_four_body_term_right_version_left_r=%d down_four_body_term_right_version_up_b=%d down_four_body_term_right_version_down_b=%d \n", down_four_body_term_right_version_left_r, down_four_body_term_right_version_up_b, down_four_body_term_right_version_down_b);
+        // printf("interaction indices:\n");
+        // printf("interactions_r: u_inter=%d d_inter=%d l_inter=%d right_inter=%d\n", offset_interactions_closed_on_sublattice + num_qubits / 2 + i_un * X + j, offset_interactions_closed_on_sublattice + num_qubits / 2 + i * X + j, offset_interactions_closed_on_sublattice + i * X + j_ln, offset_interactions_closed_on_sublattice + i * X + j);
+        // printf("blue spins on horizontal line four body interactions: root_spin_up_inter=%d root_spin_down_inter=%d \n", offset_interactions_four_body + right_four_body_term_up_version_left_b, offset_interactions_four_body + right_four_body_term_down_version_left_b);
+        // printf("blue spins on vertical line four body interactions: root_spin_left_inter=%d root_spin_right_inter=%d \n", offset_interactions_four_body + down_four_body_term_left_version_up_b, offset_interactions_four_body + down_four_body_term_right_version_up_b);
+        // }
     }
 
     double d_new_energy = d_energy[tid] + energy_diff;
+
+    // printf("tid=%lld new energy=%.6f energy diff: %.6f\n", tid, d_new_energy, energy_diff);
 
     RBIM_eight_vertex rbim;
     rbim.new_energy = d_new_energy;

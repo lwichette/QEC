@@ -771,11 +771,6 @@ __global__ void wang_landau_pre_run_eight_vertex(
 
         double d_new_energy = result.new_energy;
 
-        // if (tid == 0)
-        // {
-        //     printf("tid: %lld newE: %f oldE: %f \n", tid, d_new_energy, d_energy[tid]);
-        // }
-
         if (d_new_energy > E_max || d_new_energy < E_min)
         {
             printf("Iterator %d \n", it);
@@ -2226,12 +2221,12 @@ __device__ RBIM_eight_vertex eight_vertex_periodic_wl_step(
         // these indices are used for right four body interaction (the one with blue spins on horizontal line and the right refers to storage of coupling strength labeled by blue spin at left end of the cross term) with root spin at left position
         int right_four_body_term_right_version_side_b = i * X + j_rn;
         int right_four_body_term_right_version_up_r = i_un * X + j_rn;
-        int right_four_body_term_right_version_down_r = i_dn * X + j_rn;
+        int right_four_body_term_right_version_down_r = i * X + j_rn;
 
         // these indices are used for right four body interaction (the one with blue spins on horizontal line) with root spin at right position
         int right_four_body_term_left_version_side_b = i * X + j_ln;
         int right_four_body_term_left_version_up_r = i_un * X + j;
-        int right_four_body_term_left_version_down_r = i_dn * X + j;
+        int right_four_body_term_left_version_down_r = i * X + j;
 
         // these indices are used for down four body interaction (the one with blue spin on vertical line and the down refers to storage of coupling strength labeled by blue spin at up most end of the cross term) with root spin at up position
         int down_four_body_term_down_version_left_r = i * X + j;
@@ -2277,6 +2272,7 @@ __device__ RBIM_eight_vertex eight_vertex_periodic_wl_step(
         double E_down_four_body_right_version = d_lattice_r[offset_lattice + i * X + j] * (d_interactions_four_body_down[offset_interactions_four_body + down_four_body_term_left_version_up_b] * (d_lattice_b[offset_lattice + down_four_body_term_left_version_up_b] * d_lattice_b[offset_lattice + down_four_body_term_left_version_down_b] * d_lattice_r[offset_lattice + down_four_body_term_left_version_right_r]));
 
         energy_diff = -2 * (E_up + E_down + E_right + E_left + E_right_four_body_down_version + E_right_four_body_up_version + E_down_four_body_left_version + E_down_four_body_right_version);
+
         // energy_diff = -2 * d_lattice_r[offset_lattice + i * X + j] * (d_lattice_r[offset_lattice + i_un * X + j] * d_interactions_r[offset_interactions_closed_on_sublattice + num_qubits / 2 + i_un * X + j] + d_lattice_r[offset_lattice + i_dn * X + j] * d_interactions_r[offset_interactions_closed_on_sublattice + num_qubits / 2 + i * X + j] + d_lattice_r[offset_lattice + i * X + j_rn] * d_interactions_r[offset_interactions_closed_on_sublattice + i * X + j] + d_lattice_r[offset_lattice + i * X + j_ln] * d_interactions_r[offset_interactions_closed_on_sublattice + i * X + j_ln] + d_interactions_four_body_right[offset_interactions_four_body + right_four_body_term_up_version_left_b] * (d_lattice_b[offset_lattice + right_four_body_term_up_version_left_b] * d_lattice_b[offset_lattice + right_four_body_term_up_version_right_b] * d_lattice_r[offset_lattice + right_four_body_term_up_version_down_r]) + d_interactions_four_body_right[offset_interactions_four_body + right_four_body_term_down_version_left_b] * (d_lattice_b[offset_lattice + right_four_body_term_down_version_left_b] * d_lattice_b[offset_lattice + right_four_body_term_down_version_right_b] * d_lattice_r[offset_lattice + right_four_body_term_down_version_up_r]) + d_interactions_four_body_down[offset_interactions_four_body + down_four_body_term_left_version_up_b] * (d_lattice_b[offset_lattice + down_four_body_term_left_version_up_b] * d_lattice_b[offset_lattice + down_four_body_term_left_version_down_b] * d_lattice_r[offset_lattice + down_four_body_term_left_version_right_r]) + d_interactions_four_body_down[offset_interactions_four_body + down_four_body_term_right_version_up_b] * (d_lattice_b[offset_lattice + down_four_body_term_right_version_up_b] * d_lattice_b[offset_lattice + down_four_body_term_right_version_down_b] * d_lattice_r[offset_lattice + down_four_body_term_right_version_left_r]));
 
         // if (tid == 0)
@@ -2299,7 +2295,7 @@ __device__ RBIM_eight_vertex eight_vertex_periodic_wl_step(
 
     double d_new_energy = d_energy[tid] + energy_diff;
 
-    // printf("tid=%lld new energy=%.6f energy diff: %.6f\n", tid, d_new_energy, energy_diff);
+    // printf("walker idx = %lld old energy = %.6f new energy = %.6f energy diff = %.6f\n", tid, d_energy[tid], d_new_energy, energy_diff);
 
     RBIM_eight_vertex rbim;
     rbim.new_energy = d_new_energy;

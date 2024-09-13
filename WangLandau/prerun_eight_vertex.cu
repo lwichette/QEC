@@ -38,6 +38,8 @@ int main(int argc, char **argv)
 
     int num_interactions = 1;
 
+    int histogram_scale = 1;
+
     while (1)
     {
         int option_index = 0;
@@ -54,9 +56,10 @@ int main(int argc, char **argv)
             {"num_intervals", required_argument, 0, 'i'},
             {"boundary", required_argument, 0, 'b'},
             {"replicas", required_argument, 0, 'r'},
+            {"hist_scale", required_argument, 0, 'q'},
             {0, 0, 0, 0}};
 
-        och = getopt_long(argc, argv, "x:y:f:g:h:n:l:w:s:i:b:r:", long_options, &option_index);
+        och = getopt_long(argc, argv, "x:y:f:g:h:n:l:w:s:i:b:r:q:", long_options, &option_index);
 
         if (och == -1)
             break;
@@ -105,6 +108,9 @@ int main(int argc, char **argv)
         case 'r':
             num_interactions = atoi(optarg);
             break;
+        case 'q':
+            histogram_scale = atoi(optarg);
+            break;
         case '?':
             exit(EXIT_FAILURE);
 
@@ -142,15 +148,15 @@ int main(int argc, char **argv)
     double J_Z = std::log((prob_i_err * prob_y_err) / (prob_x_err * prob_z_err)) / 4;
 
     // Find the maximum absolute value of J_I, J_X, J_Y, J_Z to bound the energy range
-    double max_J = std::max({std::abs(J_I), std::abs(J_X), std::abs(J_Y), std::abs(J_Z)});
+    double max_J = std::max({std::abs(J_X), std::abs(J_Y), std::abs(J_Z)});
 
     // Rescale the values
-    J_I /= max_J;
-    J_X /= max_J;
-    J_Y /= max_J;
-    J_Z /= max_J;
+    J_I *= (histogram_scale / max_J);
+    J_X *= (histogram_scale / max_J);
+    J_Y *= (histogram_scale / max_J);
+    J_Z *= (histogram_scale / max_J);
 
-    std::cout << "J params rescaled by absolute max = " << max_J << ":" << std::endl;
+    std::cout << "J params rescaled by hist_scale/ absolute max of J_i = " << histogram_scale / max_J << ":" << std::endl;
     std::cout << "J_I = " << J_I << " J_X = " << J_X << " J_Y = " << J_Y << " J_Z = " << J_Z << std::endl;
 
     // declaration of Pauli error over grid of qubits
@@ -216,7 +222,7 @@ int main(int argc, char **argv)
 
     double factor = std::exp(1);
 
-    const int E_min = -3 * X * Y; // derived from 2 decoupled Ising lattices with dim (X, Y/2) -> 2*(-2)*(X*Y/2) and additionally two four body interactions rooted on spins of one lattice: -2*(X*Y/2)
+    const int E_min = -3 * histogram_scale * X * Y; // derived from 2 decoupled Ising lattices with dim (X, Y/2) -> 2*(-2)*(X*Y/2) and additionally two four body interactions rooted on spins of one lattice: -2*(X*Y/2)
     const int E_max = -E_min;
 
     IntervalResult interval_result = generate_intervals(E_min, E_max, num_intervals_per_interaction, 1, 1.0f);
@@ -353,13 +359,13 @@ int main(int argc, char **argv)
         assert(test_energies_wl.size() == total_walker);
         for (int idx = 0; idx < total_walker; idx++)
         {
-            if (std::abs(test_energies_wl[idx] - test_energies[idx]) > 0.01)
+            // printf("result_condition: %d \n ", std::abs(test_energies_wl[idx] - test_energies[idx]) > 0.0001);
+            // printf("result_condition: %d \n ", std::abs(test_energies[idx] - test_energies[idx]) > 0.0001);
+            if (std::abs(test_energies_wl[idx] - test_energies[idx]) > 0.000001)
             {
-                std::cout << "iteration: " << i << " walker idx: " << idx << " calc energy: " << test_energies[idx] << " wl calc energy: " << test_energies_wl[idx] << std::endl;
-                std::cout.flush();
-                // return 0;
+                std::cerr << "Assertion failed for iteration: " << i << " walker idx: " << idx << " calc energy: " << test_energies[idx] << " wl calc energy: " << test_energies_wl[idx] << " Diff: " << std::abs(test_energies_wl[idx] - test_energies[idx]) << std::endl;
             }
-            // assert(std::abs(test_energies_wl[idx] - test_energies[idx]) > 0.01);
+            // // assert(std::abs(test_energies_wl[idx] - test_energies[idx]) > 0.01);
         }
         //-----------
 

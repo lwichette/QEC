@@ -801,9 +801,17 @@ __global__ void wang_landau_pre_run_eight_vertex(
                 {
                     d_lattice_b[offset_lattice + result.i * X + result.j] *= -1;
                 }
+                // if (tid == 0)
+                // {
+                //     printf("new index %d double new index: %.6f before H %lld ", index_new, (d_new_energy - E_min) + int_id * len_hist, d_H[index_new]);
+                // }
                 d_energy[tid] = d_new_energy;
                 d_iter[tid] += 1;
                 atomicAdd(&d_H[index_new], 1);
+                // if (tid == 0)
+                // {
+                //     printf("after H %lld \n", d_H[index_new]);
+                // }
                 if (found_interval == 0)
                 {
                     // IMPORTANT: order of calling the store functions is necessary in order of the color parameter : 1st color false -> 2nd color true

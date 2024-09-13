@@ -802,17 +802,23 @@ __global__ void wang_landau_pre_run_eight_vertex(
                 {
                     d_lattice_b[offset_lattice + result.i * X + result.j] *= -1;
                 }
+                // // TEST BLOCK
+                // // ------
                 // if (tid == 0)
                 // {
-                //     printf("new index %d double new index: %.6f before H %lld ", index_new, (d_new_energy - E_min) + int_id * len_hist, d_H[index_new]);
+                //     printf("new index %d double new index: %.6f = newE %.6f - Emin %d before H %lld ", index_new, (d_new_energy - E_min) + int_id * len_hist, d_new_energy, E_min, d_H[index_new]);
                 // }
+                // // ------
                 d_energy[tid] = d_new_energy;
                 d_iter[tid] += 1;
                 atomicAdd(&d_H[index_new], 1);
+                // // TEST BLOCK
+                // // ------
                 // if (tid == 0)
                 // {
                 //     printf("after H %lld \n", d_H[index_new]);
                 // }
+                // // ------
                 if (found_interval == 0)
                 {
                     // IMPORTANT: order of calling the store functions is necessary in order of the color parameter : 1st color false -> 2nd color true
@@ -2049,14 +2055,14 @@ __global__ void generate_pauli_errors(int *pauli_errors, const int num_qubits, c
         int i = idx % num_qubits / X; // row index of qubit
         int j = idx % num_qubits % X; // column index of qubit
 
-        // TEST BLOCK
-        // ------
-        int before_commutator_pauli = 0;
-        if (pauli_errors[idx] != 0)
-        {
-            before_commutator_pauli = pauli_errors[idx];
-        }
-        // ------
+        // // TEST BLOCK
+        // // ------
+        // int before_commutator_pauli = 0;
+        // if (pauli_errors[idx] != 0)
+        // {
+        //     before_commutator_pauli = pauli_errors[idx];
+        // }
+        // // ------
 
         // here goes error chain application
         if (i == 0)
@@ -2081,13 +2087,13 @@ __global__ void generate_pauli_errors(int *pauli_errors, const int num_qubits, c
                 pauli_errors[idx] = commutator(3, pauli_errors[idx]); // z commutator with Pauli on qubit
             }
         }
-        // TEST BLOCK
-        // ------
-        if (before_commutator_pauli != pauli_errors[idx])
-        {
-            printf("interaction %d walker %lld i %d j %d pauli before %d pauli after % d\n", interaction_id, idx % num_qubits, i, j, before_commutator_pauli, pauli_errors[idx]);
-        }
-        // ------
+        // // TEST BLOCK
+        // // ------
+        // if (before_commutator_pauli != pauli_errors[idx])
+        // {
+        //     printf("interaction %d walker %lld i %d j %d pauli before %d pauli after % d\n", interaction_id, idx % num_qubits, i, j, before_commutator_pauli, pauli_errors[idx]);
+        // }
+        // // ------
     }
 }
 

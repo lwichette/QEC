@@ -2066,7 +2066,7 @@ __global__ void generate_pauli_errors(int *pauli_errors, const int num_qubits, c
                 pauli_errors[idx] = commutator(3, pauli_errors[idx]); // z commutator with Pauli on qubit
             }
         }
-        if (j == 0)
+        if (j == 0 && i % 2 == 0) // IMPORTANT the row condition here is included as error chain shall go down a single column of qubits and not do a zigzag - this must be edited when changing from Y-Y/2 in input
         {
             if (x_vertical_error)
             {

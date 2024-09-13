@@ -2016,7 +2016,7 @@ void check_interactions_finished(
     cudaFree(d_temp_storage);
 }
 
-__global__ void generate_pauli_errors(int *pauli_errors, const int num_qubits, const int num_interactions, const unsigned long seed, const double p_I, const double p_X, const double p_Y, const double p_Z, const bool x_horizontal_error, const bool x_vertical_error, const bool z_horizontal_error, const bool z_vertical_error)
+__global__ void generate_pauli_errors(int *pauli_errors, const int num_qubits, const int X, const int num_interactions, const unsigned long seed, const double p_I, const double p_X, const double p_Y, const double p_Z, const bool x_horizontal_error, const bool x_vertical_error, const bool z_horizontal_error, const bool z_vertical_error)
 {
     unsigned long long idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx < num_qubits * num_interactions)
@@ -2042,7 +2042,59 @@ __global__ void generate_pauli_errors(int *pauli_errors, const int num_qubits, c
         }
         // printf("idx %lld error: %d \n", idx, pauli_errors[idx]);
 
-        // here goes addition of error chains by action of non scalar commutator
+        int i = idx % num_qubits / X; // row index of qubit
+        int j = idx % num_qubits % X; // column index of qubit
+
+        // here goes error chain application
+        if (i == 0)
+        {
+            if (x_horizontal_error)
+            {
+                pauli_errors[idx] = commutator(1, pauli_errors[idx]); // x commutator with Pauli on qubit
+            }
+            if (z_horizontal_error)
+            {
+                pauli_errors[idx] = commutator(3, pauli_errors[idx]); // z commutator with Pauli on qubit
+            }
+        }
+        if (j == 0)
+        {
+            if (x_vertical_error)
+            {
+                pauli_errors[idx] = commutator(1, pauli_errors[idx]); // x commutator with Pauli on qubit
+            }
+            if (z_vertical_error)
+            {
+                pauli_errors[idx] = commutator(3, pauli_errors[idx]); // z commutator with Pauli on qubit
+            }
+        }
+    }
+}
+
+__device__ int commutator(int pauli1, int pauli2)
+{
+    // images of pauli2 under commutator with I: 0
+    int mapping0[] = {0, 1, 2, 3}; // 0: I, 1: X, 2: Y, 3: Z
+
+    // images of pauli2 under commutator with x: 1
+    int mapping1[] = {1, 0, 3, 2}; // 0: I, 1: X, 2: Y, 3: Z
+
+    // images of pauli2 under commutator with y: 2
+    int mapping2[] = {2, 3, 0, 1}; // 0: I, 1: X, 2: Y, 3: Z
+
+    // images of pauli2 under commutator with z: 3
+    int mapping3[] = {3, 2, 1, 0}; // 0: I, 1: X, 2: Y, 3: Z
+
+    int *mapping[] = {mapping0, mapping1, mapping2, mapping3};
+
+    // Return the mapped value
+    if (pauli1 >= 0 && pauli1 < 4 && pauli2 >= 0 && pauli2 < 4)
+    {
+        return mapping[pauli1][pauli2];
+    }
+    else
+    {
+        return -1;
     }
 }
 
@@ -2054,7 +2106,7 @@ __device__ int scalar_commutator(int pauli1, int pauli2)
     if ((pauli1 == 0 || pauli2 == 0) || pauli1 == pauli2)
         return 1;
     else
-        return -1; // Other cases
+        return -1;
 }
 
 __global__ void get_interaction_from_commutator(int *pauli_errors, double *int_X, double *int_Y, double *int_Z, const int num_qubits, const int num_interactions, double J_X, double J_Y, double J_Z)

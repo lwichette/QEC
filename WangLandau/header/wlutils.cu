@@ -2021,8 +2021,9 @@ __global__ void generate_pauli_errors(int *pauli_errors, const int num_qubits, c
     unsigned long long idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx < num_qubits * num_interactions)
     {
+        int interaction_id = idx / num_qubits;
         curandState state;
-        curand_init(seed, idx, 0, &state);
+        curand_init(seed + interaction_id, idx, 0, &state);
         double rand_val = curand_uniform(&state); // between 0 and 1 here
         if (rand_val < p_I)
         {
@@ -2040,10 +2041,16 @@ __global__ void generate_pauli_errors(int *pauli_errors, const int num_qubits, c
         {
             pauli_errors[idx] = 3; // Z
         }
-        // printf("idx %lld error: %d \n", idx, pauli_errors[idx]);
 
         int i = idx % num_qubits / X; // row index of qubit
         int j = idx % num_qubits % X; // column index of qubit
+
+        int signaler = 0;
+        if (pauli_errors[idx] != 0)
+        {
+            printf("Before: interaction %d walker %lld i %d j %d pauli %d\n", interaction_id, idx % num_qubits, i, j, pauli_errors[idx]);
+            signaler = 1;
+        }
 
         // here goes error chain application
         if (i == 0)
@@ -2067,6 +2074,11 @@ __global__ void generate_pauli_errors(int *pauli_errors, const int num_qubits, c
             {
                 pauli_errors[idx] = commutator(3, pauli_errors[idx]); // z commutator with Pauli on qubit
             }
+        }
+        if (signaler != 0)
+        {
+            printf("After: interaction %d walker %lld i %d j %d pauli %d\n", interaction_id, idx % num_qubits, i, j, pauli_errors[idx]);
+            signaler = 1;
         }
     }
 }

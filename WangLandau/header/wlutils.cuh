@@ -278,7 +278,7 @@ __global__ void replica_exchange(
 
 __global__ void print_finished_walker_ratio(double *d_factor, int num_walker_total, const double exp_beta, double *d_finished_walkers_ratio);
 
-__global__ void generate_pauli_errors(int *pauli_errors, const int num_qubits, const int num_interactions, unsigned long seed, double p_I, double p_X, double p_Y, double p_Z);
+__global__ void generate_pauli_errors(int *pauli_errors, const int num_qubits, const int X, const int num_interactions, const unsigned long seed, const double p_I, const double p_X, const double p_Y, const double p_Z, const bool x_horizontal_error, const bool x_vertical_error, const bool z_horizontal_error, const bool z_vertical_error);
 
 __global__ void get_interaction_from_commutator(int *pauli_errors, double *int_X, double *int_Y, double *int_Z, const int num_qubits, const int num_interactions, double J_X, double J_Y, double J_Z);
 
@@ -312,5 +312,7 @@ __device__ RBIM cylinder_random_bond_ising(signed char *d_lattice, signed char *
 __device__ RBIM_eight_vertex eight_vertex_periodic_wl_step(
     signed char *d_lattice_b, signed char *d_lattice_r, double *d_interactions_b, double *d_interactions_r, double *d_interactions_four_body_right, double *d_interactions_four_body_down, double *d_energy, unsigned long long *d_offset_iter,
     curandStatePhilox4_32_10_t *st, const long long tid, const int num_qubits, const int X, const int Y, const int num_lattices, const int num_lattices_x_interaction);
+
+__device__ int commutator(int pauli1, int pauli2);
 
 #endif // WLUTILS_H

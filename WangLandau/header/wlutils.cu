@@ -772,11 +772,6 @@ __global__ void wang_landau_pre_run_eight_vertex(
 
         double d_new_energy = result.new_energy;
 
-        // if (tid == 0)
-        // {
-        //     printf("tid: %lld newE: %f oldE: %f \n", tid, d_new_energy, d_energy[tid]);
-        // }
-
         if (d_new_energy > E_max || d_new_energy < E_min)
         {
             printf("Iterator %d \n", it);
@@ -807,9 +802,17 @@ __global__ void wang_landau_pre_run_eight_vertex(
                 {
                     d_lattice_b[offset_lattice + result.i * X + result.j] *= -1;
                 }
+                // if (tid == 0)
+                // {
+                //     printf("new index %d double new index: %.6f before H %lld ", index_new, (d_new_energy - E_min) + int_id * len_hist, d_H[index_new]);
+                // }
                 d_energy[tid] = d_new_energy;
                 d_iter[tid] += 1;
                 atomicAdd(&d_H[index_new], 1);
+                // if (tid == 0)
+                // {
+                //     printf("after H %lld \n", d_H[index_new]);
+                // }
                 if (found_interval == 0)
                 {
                     // IMPORTANT: order of calling the store functions is necessary in order of the color parameter : 1st color false -> 2nd color true
@@ -2017,13 +2020,14 @@ void check_interactions_finished(
     cudaFree(d_temp_storage);
 }
 
-__global__ void generate_pauli_errors(int *pauli_errors, const int num_qubits, const int num_interactions, unsigned long seed, double p_I, double p_X, double p_Y, double p_Z)
+__global__ void generate_pauli_errors(int *pauli_errors, const int num_qubits, const int X, const int num_interactions, const unsigned long seed, const double p_I, const double p_X, const double p_Y, const double p_Z, const bool x_horizontal_error, const bool x_vertical_error, const bool z_horizontal_error, const bool z_vertical_error)
 {
     unsigned long long idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx < num_qubits * num_interactions)
     {
+        int interaction_id = idx / num_qubits;
         curandState state;
-        curand_init(seed, idx, 0, &state);
+        curand_init(seed + interaction_id, idx, 0, &state);
         double rand_val = curand_uniform(&state); // between 0 and 1 here
         if (rand_val < p_I)
         {
@@ -2041,7 +2045,76 @@ __global__ void generate_pauli_errors(int *pauli_errors, const int num_qubits, c
         {
             pauli_errors[idx] = 3; // Z
         }
-        // printf("idx %lld error: %d \n", idx, pauli_errors[idx]);
+
+        int i = idx % num_qubits / X; // row index of qubit
+        int j = idx % num_qubits % X; // column index of qubit
+
+        // TEST BLOCK
+        // ------
+        int before_commutator_pauli = 0;
+        if (pauli_errors[idx] != 0)
+        {
+            before_commutator_pauli = pauli_errors[idx];
+        }
+        // ------
+
+        // here goes error chain application
+        if (i == 0)
+        {
+            if (x_horizontal_error)
+            {
+                pauli_errors[idx] = commutator(1, pauli_errors[idx]); // x commutator with Pauli on qubit
+            }
+            if (z_horizontal_error)
+            {
+                pauli_errors[idx] = commutator(3, pauli_errors[idx]); // z commutator with Pauli on qubit
+            }
+        }
+        if (j == 0 && i % 2 == 0) // IMPORTANT the row condition here is included as error chain shall go down a single column of qubits and not do a zigzag - this must be edited when changing from Y-Y/2 in input
+        {
+            if (x_vertical_error)
+            {
+                pauli_errors[idx] = commutator(1, pauli_errors[idx]); // x commutator with Pauli on qubit
+            }
+            if (z_vertical_error)
+            {
+                pauli_errors[idx] = commutator(3, pauli_errors[idx]); // z commutator with Pauli on qubit
+            }
+        }
+        // TEST BLOCK
+        // ------
+        if (before_commutator_pauli != pauli_errors[idx])
+        {
+            printf("interaction %d walker %lld i %d j %d pauli before %d pauli after % d\n", interaction_id, idx % num_qubits, i, j, before_commutator_pauli, pauli_errors[idx]);
+        }
+        // ------
+    }
+}
+
+__device__ int commutator(int pauli1, int pauli2)
+{
+    // images of pauli2 under commutator with I: 0
+    int mapping0[] = {0, 1, 2, 3}; // 0: I, 1: X, 2: Y, 3: Z
+
+    // images of pauli2 under commutator with x: 1
+    int mapping1[] = {1, 0, 3, 2}; // 0: I, 1: X, 2: Y, 3: Z
+
+    // images of pauli2 under commutator with y: 2
+    int mapping2[] = {2, 3, 0, 1}; // 0: I, 1: X, 2: Y, 3: Z
+
+    // images of pauli2 under commutator with z: 3
+    int mapping3[] = {3, 2, 1, 0}; // 0: I, 1: X, 2: Y, 3: Z
+
+    int *mapping[] = {mapping0, mapping1, mapping2, mapping3};
+
+    // Return the mapped value
+    if (pauli1 >= 0 && pauli1 < 4 && pauli2 >= 0 && pauli2 < 4)
+    {
+        return mapping[pauli1][pauli2];
+    }
+    else
+    {
+        return -1;
     }
 }
 
@@ -2053,7 +2126,7 @@ __device__ int scalar_commutator(int pauli1, int pauli2)
     if ((pauli1 == 0 || pauli2 == 0) || pauli1 == pauli2)
         return 1;
     else
-        return -1; // Other cases
+        return -1;
 }
 
 __global__ void get_interaction_from_commutator(int *pauli_errors, double *int_X, double *int_Y, double *int_Z, const int num_qubits, const int num_interactions, double J_X, double J_Y, double J_Z)
@@ -2230,12 +2303,12 @@ __device__ RBIM_eight_vertex eight_vertex_periodic_wl_step(
         // these indices are used for right four body interaction (the one with blue spins on horizontal line and the right refers to storage of coupling strength labeled by blue spin at left end of the cross term) with root spin at left position
         int right_four_body_term_right_version_side_b = i * X + j_rn;
         int right_four_body_term_right_version_up_r = i_un * X + j_rn;
-        int right_four_body_term_right_version_down_r = i_dn * X + j_rn;
+        int right_four_body_term_right_version_down_r = i * X + j_rn;
 
         // these indices are used for right four body interaction (the one with blue spins on horizontal line) with root spin at right position
         int right_four_body_term_left_version_side_b = i * X + j_ln;
         int right_four_body_term_left_version_up_r = i_un * X + j;
-        int right_four_body_term_left_version_down_r = i_dn * X + j;
+        int right_four_body_term_left_version_down_r = i * X + j;
 
         // these indices are used for down four body interaction (the one with blue spin on vertical line and the down refers to storage of coupling strength labeled by blue spin at up most end of the cross term) with root spin at up position
         int down_four_body_term_down_version_left_r = i * X + j;
@@ -2281,6 +2354,7 @@ __device__ RBIM_eight_vertex eight_vertex_periodic_wl_step(
         double E_down_four_body_right_version = d_lattice_r[offset_lattice + i * X + j] * (d_interactions_four_body_down[offset_interactions_four_body + down_four_body_term_left_version_up_b] * (d_lattice_b[offset_lattice + down_four_body_term_left_version_up_b] * d_lattice_b[offset_lattice + down_four_body_term_left_version_down_b] * d_lattice_r[offset_lattice + down_four_body_term_left_version_right_r]));
 
         energy_diff = -2 * (E_up + E_down + E_right + E_left + E_right_four_body_down_version + E_right_four_body_up_version + E_down_four_body_left_version + E_down_four_body_right_version);
+
         // energy_diff = -2 * d_lattice_r[offset_lattice + i * X + j] * (d_lattice_r[offset_lattice + i_un * X + j] * d_interactions_r[offset_interactions_closed_on_sublattice + num_qubits / 2 + i_un * X + j] + d_lattice_r[offset_lattice + i_dn * X + j] * d_interactions_r[offset_interactions_closed_on_sublattice + num_qubits / 2 + i * X + j] + d_lattice_r[offset_lattice + i * X + j_rn] * d_interactions_r[offset_interactions_closed_on_sublattice + i * X + j] + d_lattice_r[offset_lattice + i * X + j_ln] * d_interactions_r[offset_interactions_closed_on_sublattice + i * X + j_ln] + d_interactions_four_body_right[offset_interactions_four_body + right_four_body_term_up_version_left_b] * (d_lattice_b[offset_lattice + right_four_body_term_up_version_left_b] * d_lattice_b[offset_lattice + right_four_body_term_up_version_right_b] * d_lattice_r[offset_lattice + right_four_body_term_up_version_down_r]) + d_interactions_four_body_right[offset_interactions_four_body + right_four_body_term_down_version_left_b] * (d_lattice_b[offset_lattice + right_four_body_term_down_version_left_b] * d_lattice_b[offset_lattice + right_four_body_term_down_version_right_b] * d_lattice_r[offset_lattice + right_four_body_term_down_version_up_r]) + d_interactions_four_body_down[offset_interactions_four_body + down_four_body_term_left_version_up_b] * (d_lattice_b[offset_lattice + down_four_body_term_left_version_up_b] * d_lattice_b[offset_lattice + down_four_body_term_left_version_down_b] * d_lattice_r[offset_lattice + down_four_body_term_left_version_right_r]) + d_interactions_four_body_down[offset_interactions_four_body + down_four_body_term_right_version_up_b] * (d_lattice_b[offset_lattice + down_four_body_term_right_version_up_b] * d_lattice_b[offset_lattice + down_four_body_term_right_version_down_b] * d_lattice_r[offset_lattice + down_four_body_term_right_version_left_r]));
 
         // if (tid == 0)
@@ -2303,7 +2377,7 @@ __device__ RBIM_eight_vertex eight_vertex_periodic_wl_step(
 
     double d_new_energy = d_energy[tid] + energy_diff;
 
-    // printf("tid=%lld new energy=%.6f energy diff: %.6f\n", tid, d_new_energy, energy_diff);
+    // printf("walker idx = %lld old energy = %.6f new energy = %.6f energy diff = %.6f\n", tid, d_energy[tid], d_new_energy, energy_diff);
 
     RBIM_eight_vertex rbim;
     rbim.new_energy = d_new_energy;

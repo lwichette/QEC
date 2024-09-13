@@ -65,7 +65,7 @@ xval=4
 
 yval=8
 
-timeout $time_limit ./prerun_eight_vertex_-10 -x $xval -y $yval --prob_x $prob_x --prob_y $prob_y --prob_z $prob_z --nit 1 --nl 10000 -w 128 --seed $seed_hist --num_intervals 20  --hist_scale 1 --replicas $num_interactions --x_horizontal_error $x_horizontal_error  --x_vertical_error $x_vertical_error  --z_horizontal_error $z_horizontal_error --z_vertical_error $z_vertical_error
+timeout $time_limit ./prerun_eight_vertex_-10 -x $xval -y $yval --prob_x $prob_x --prob_y $prob_y --prob_z $prob_z --nit 1000 --nl 100 -w 128 --seed $seed_hist --num_intervals 20  --hist_scale 1 --replicas $num_interactions --x_horizontal_error $x_horizontal_error  --x_vertical_error $x_vertical_error  --z_horizontal_error $z_horizontal_error --z_vertical_error $z_vertical_error
 if [ $? -eq 124 ]; then
     echo "prerun timed out after $time_limit seconds."
 fi

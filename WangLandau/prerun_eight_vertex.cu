@@ -30,7 +30,10 @@ int main(int argc, char **argv)
 
     int num_intervals_per_interaction = 1;
 
-    // char logical_error_type = 'I';
+    bool x_horizontal_error = false;
+    bool x_vertical_error = false;
+    bool z_horizontal_error = false;
+    bool z_vertical_error = false;
 
     int boundary_type = 0;
 
@@ -54,12 +57,16 @@ int main(int argc, char **argv)
             {"num_walker_total", required_argument, 0, 'w'},
             {"seed", required_argument, 0, 's'},
             {"num_intervals", required_argument, 0, 'i'},
+            {"x_horizontal_error", required_argument, 0, 'c'},
+            {"x_vertical_error", required_argument, 0, 'd'},
+            {"z_horizontal_error", required_argument, 0, 'o'},
+            {"z_vertical_error", required_argument, 0, 'p'},
             {"boundary", required_argument, 0, 'b'},
             {"replicas", required_argument, 0, 'r'},
             {"hist_scale", required_argument, 0, 'q'},
             {0, 0, 0, 0}};
 
-        och = getopt_long(argc, argv, "x:y:f:g:h:n:l:w:s:i:b:r:q:", long_options, &option_index);
+        och = getopt_long(argc, argv, "x:y:f:g:h:n:l:w:s:i:c:d:o:p:b:r:q:", long_options, &option_index);
 
         if (och == -1)
             break;
@@ -96,6 +103,18 @@ int main(int argc, char **argv)
             break;
         case 'i':
             num_intervals_per_interaction = atoi(optarg);
+            break;
+        case 'c':
+            x_horizontal_error = std::atoi(optarg) != 0;
+            break;
+        case 'd':
+            x_vertical_error = std::atoi(optarg) != 0;
+            break;
+        case 'o':
+            z_horizontal_error = std::atoi(optarg) != 0;
+            break;
+        case 'p':
+            z_vertical_error = std::atoi(optarg) != 0;
             break;
         case 'b':
             boundary_type = atoi(optarg);
@@ -275,7 +294,7 @@ int main(int argc, char **argv)
 
     // General question about when to use offset in curand_init
 
-    generate_pauli_errors<<<blocks_qubit_x_thread, max_threads_per_block>>>(d_pauli_errors, num_qubits, num_interactions, seed, prob_i_err, prob_x_err, prob_y_err, prob_z_err);
+    generate_pauli_errors<<<blocks_qubit_x_thread, max_threads_per_block>>>(d_pauli_errors, num_qubits, num_interactions, seed, prob_i_err, prob_x_err, prob_y_err, prob_z_err, x_horizontal_error, x_vertical_error, z_horizontal_error, z_vertical_error);
     cudaDeviceSynchronize();
 
     get_interaction_from_commutator<<<blocks_qubit_x_thread, max_threads_per_block>>>(d_pauli_errors, d_interactions_x, d_interactions_y, d_interactions_z, num_qubits, num_interactions, J_X, J_Y, J_Z);

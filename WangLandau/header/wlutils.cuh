@@ -278,7 +278,7 @@ __global__ void replica_exchange(
 
 __global__ void print_finished_walker_ratio(double *d_factor, int num_walker_total, const double exp_beta, double *d_finished_walkers_ratio);
 
-__global__ void generate_pauli_errors(int *pauli_errors, const int num_qubits, const int num_interactions, unsigned long seed, double p_I, double p_X, double p_Y, double p_Z);
+__global__ void generate_pauli_errors(int *pauli_errors, const int num_qubits, const int num_interactions, const unsigned long seed, const double p_I, const double p_X, const double p_Y, const double p_Z, const bool x_horizontal_error, const bool x_vertical_error, const bool z_horizontal_error, const bool z_vertical_error);
 
 __global__ void get_interaction_from_commutator(int *pauli_errors, double *int_X, double *int_Y, double *int_Z, const int num_qubits, const int num_interactions, double J_X, double J_Y, double J_Z);
 

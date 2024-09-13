@@ -1,2 +1,2 @@
-results/**/StitchedHistogram*.csv filter=lfs diff=lfs merge=lfs -text
-results/**/StitchedHistogram*.txt filter=lfs diff=lfs merge=lfs -text
+results/**/*.csv filter=lfs diff=lfs merge=lfs -text
+results/**/*.txt filter=lfs diff=lfs merge=lfs -text

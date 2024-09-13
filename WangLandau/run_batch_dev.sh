@@ -9,7 +9,7 @@ alpha=0.8
 
 beta=0.000001
 
-walker_wl=5
+walker_wl=8
 
 overlap_wl=0.25
 
@@ -17,7 +17,7 @@ seed_hist=1
 
 seed_run=1000
 
-num_interactions=2
+num_interactions=250
 
 replica_exchange_steps=50
 
@@ -27,20 +27,18 @@ intervals_wl=10
 
 iterations=1000
 
-time_limit=660
+time_limit=820
 
-for probability in 0.01
+for probability in 0.08 0.1 0.12
   do
-    for size in 8
+    for size in 4 6
     do
       xval=$size
       yval=$size
-      for error_type in X Y Z
+      for error_type in X Y Z I
       do
-        timeout $time_limit ./prerun_-10 -x $xval -y $yval -p $probability -n $iterations -l 100 -w 100 -s $seed_hist -i 20 -e "$error_type" -b $boundary_type -r $num_interactions
-        if [ $? -eq 124 ]; then
-            echo "prerun timed out after $time_limit seconds."
-        fi
+        ./prerun_-10 -x $xval -y $yval -p $probability -n $iterations -l 100 -w 100 -s $seed_hist -i 20 -e "$error_type" -b $boundary_type -r $num_interactions
+
 
         timeout $time_limit ./wl_-10 -x $xval -y $yval -n $iterations -p $probability -a $alpha -b $beta -i $intervals_wl -w $walker_wl -o $overlap_wl -s $seed_run -e "$error_type" -t $boundary_type -h $seed_hist -r $num_interactions -c $replica_exchange_steps
         if [ $? -eq 124 ]; then

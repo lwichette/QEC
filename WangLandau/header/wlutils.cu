@@ -750,7 +750,6 @@ __global__ void wang_landau_pre_run(
 
                 d_lattice[offset_lattice + result.i * ny + result.j] *= -1;
                 d_energy[tid] = d_new_energy;
-                d_iter[tid] += 1;
 
                 atomicAdd(&d_H[index_new], 1);
 
@@ -763,6 +762,7 @@ __global__ void wang_landau_pre_run(
             {
                 atomicAdd(&d_H[index_old], 1);
             }
+            d_iter[tid] += 1;
         }
     }
 
@@ -1417,8 +1417,8 @@ __global__ void wang_landau(
                 {
                     d_lattice[d_offset_lattice[tid] + result.i * ny + result.j] *= -1;
                     d_energy[tid] = result.new_energy;
-                    d_offset_iter[tid] += 1;
                 }
+                d_offset_iter[tid] += 1;
             }
         }
     }

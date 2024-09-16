@@ -166,14 +166,21 @@ int main(int argc, char **argv)
     double J_Y = std::log((prob_i_err * prob_y_err) / (prob_x_err * prob_z_err)) / 4;
     double J_Z = std::log((prob_i_err * prob_z_err) / (prob_x_err * prob_y_err)) / 4;
 
-    // Find the maximum absolute value of J_I, J_X, J_Y, J_Z to bound the energy range
+    // Find the maximum absolute value of J_X, J_Y, J_Z to bound the energy range
     double max_J = std::max({std::abs(J_X), std::abs(J_Y), std::abs(J_Z)});
 
-    // Rescale the values
+    // Rescale the J values
     J_I *= (histogram_scale / max_J);
     J_X *= (histogram_scale / max_J);
     J_Y *= (histogram_scale / max_J);
     J_Z *= (histogram_scale / max_J);
+
+    // // TEST BLOCK
+    // // -----------
+    // J_X = 1;
+    // J_Y = 0;
+    // J_Z = 0;
+    // // -----------
 
     std::cout << "J params rescaled by hist_scale/ absolute max of J_i = " << histogram_scale / max_J << ":" << std::endl;
     std::cout << "J_I = " << J_I << " J_X = " << J_X << " J_Y = " << J_Y << " J_Z = " << J_Z << std::endl;
@@ -292,7 +299,7 @@ int main(int argc, char **argv)
     int blocks_total_walker_x_thread = (total_walker + max_threads_per_block - 1) / max_threads_per_block;
     int blocks_total_intervals_x_thread = (total_intervals + max_threads_per_block - 1) / max_threads_per_block;
 
-    generate_pauli_errors<<<blocks_qubit_x_thread, max_threads_per_block>>>(d_pauli_errors, num_qubits, X, num_interactions, seed, prob_i_err, prob_x_err, prob_y_err, prob_z_err, x_horizontal_error, x_vertical_error, z_horizontal_error, z_vertical_error);
+    generate_pauli_errors<<<blocks_qubit_x_thread, max_threads_per_block>>>(d_pauli_errors, num_qubits, X, num_interactions, seed - 1, prob_i_err, prob_x_err, prob_y_err, prob_z_err, x_horizontal_error, x_vertical_error, z_horizontal_error, z_vertical_error);
     cudaDeviceSynchronize();
 
     get_interaction_from_commutator<<<blocks_qubit_x_thread, max_threads_per_block>>>(d_pauli_errors, d_interactions_x, d_interactions_y, d_interactions_z, num_qubits, num_interactions, J_X, J_Y, J_Z);
@@ -302,7 +309,7 @@ int main(int argc, char **argv)
     cudaDeviceSynchronize();
 
     init_lattice<<<blocks_spins_single_color_x_thread, max_threads_per_block>>>(d_lattice_b, d_probs, X, Y / 2, total_walker, seed - 2);
-    init_lattice<<<blocks_spins_single_color_x_thread, max_threads_per_block>>>(d_lattice_r, d_probs, X, Y / 2, total_walker, seed - 1);
+    init_lattice<<<blocks_spins_single_color_x_thread, max_threads_per_block>>>(d_lattice_r, d_probs, X, Y / 2, total_walker, seed - 3);
     init_offsets_lattice<<<blocks_total_walker_x_thread, max_threads_per_block>>>(d_offset_lattice_per_walker, X, Y / 2, total_walker);
     init_offsets_lattice<<<blocks_total_walker_x_thread, max_threads_per_block>>>(d_offset_lattice_per_interval, X, Y / 2, total_intervals);
     cudaDeviceSynchronize();

@@ -728,7 +728,6 @@ __global__ void wang_landau_pre_run(
 
                 d_lattice[offset_lattice + result.i * ny + result.j] *= -1;
                 d_energy[tid] = d_new_energy;
-                d_iter[tid] += 1;
 
                 atomicAdd(&d_H[index_new], 1);
 
@@ -741,6 +740,7 @@ __global__ void wang_landau_pre_run(
             {
                 atomicAdd(&d_H[index_old], 1);
             }
+            d_iter[tid] += 1;
         }
     }
 
@@ -786,8 +786,29 @@ __global__ void wang_landau_pre_run_eight_vertex(
             const int len_hist = E_max - E_min + 1;
             const int int_id = tid / walker_per_interaction;
 
-            int index_old = static_cast<int>(d_energy[tid] - E_min) + int_id * len_hist; // energy diff is double valued but binning is invoked by integer cast
-            int index_new = static_cast<int>(d_new_energy - E_min) + int_id * len_hist;
+            // if (static_cast<int>(d_new_energy) % 2 == 1 && tid == 0)
+            // {
+            //     printf("old E before: %.10f ", d_energy[tid]);
+            // }
+
+            const int old_energy_int = static_cast<int>(round(d_energy[tid]));
+            const int new_energy_int = static_cast<int>(round(d_new_energy));
+
+            // if (static_cast<int>(d_new_energy) % 2 == 1 && tid == 0)
+            // {
+            //     printf("old E after: %d \n", old_energy_int);
+            // }
+
+            int index_old = old_energy_int - E_min + int_id * len_hist; // energy diff is double valued but binning is invoked by integer cast
+            int index_new = new_energy_int - E_min + int_id * len_hist;
+
+            // // // TEST BLOCK
+            // // // ------
+            // if (static_cast<int>(d_new_energy) % 2 == 1)
+            // {
+            //     printf("new index: %d double new index: %.10f newE: %.10f Emin: %d \n", index_new, (d_new_energy - E_min) + int_id * len_hist, d_new_energy, E_min);
+            // }
+            // // // ------
 
             double prob = exp(static_cast<double>(d_H[index_old]) - static_cast<double>(d_H[index_new]));
 
@@ -802,23 +823,8 @@ __global__ void wang_landau_pre_run_eight_vertex(
                 {
                     d_lattice_b[offset_lattice + result.i * X + result.j] *= -1;
                 }
-                // // TEST BLOCK
-                // // ------
-                // if (tid == 0)
-                // {
-                //     printf("new index %d double new index: %.6f = newE %.6f - Emin %d before H %lld ", index_new, (d_new_energy - E_min) + int_id * len_hist, d_new_energy, E_min, d_H[index_new]);
-                // }
-                // // ------
                 d_energy[tid] = d_new_energy;
-                d_iter[tid] += 1;
                 atomicAdd(&d_H[index_new], 1);
-                // // TEST BLOCK
-                // // ------
-                // if (tid == 0)
-                // {
-                //     printf("after H %lld \n", d_H[index_new]);
-                // }
-                // // ------
                 if (found_interval == 0)
                 {
                     // IMPORTANT: order of calling the store functions is necessary in order of the color parameter : 1st color false -> 2nd color true
@@ -831,6 +837,7 @@ __global__ void wang_landau_pre_run_eight_vertex(
             {
                 atomicAdd(&d_H[index_old], 1);
             }
+            d_iter[tid] += 1;
         }
     }
 

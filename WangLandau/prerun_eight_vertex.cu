@@ -6,14 +6,11 @@ int main(int argc, char **argv)
 {
     /*
     IMPORTANT:
-    X, Y sepcifies grid of qubits not Ising spins.
-    X is qubits per row and Y rows of grid such that Y must be even!
-    This is motivated by grid example down below. The Y is not equal to qubits per column but Y/2 is! To have equal amount of qubits per column, this must be even.
+    X, Y sepcify Ising spin lattice dims.
+    X is spins per row and Y spins per column!
     */
 
-    cudaDeviceProp prop;
-    cudaGetDeviceProperties(&prop, 0); // Assuming device 0
-    int max_threads_per_block = 128;
+    int threads_per_block = 128;
 
     int X, Y;
 
@@ -149,13 +146,7 @@ int main(int argc, char **argv)
         prob_i_err = 1 - (prob_x_err + prob_y_err + prob_z_err);
     }
 
-    if (Y % 2 != 0)
-    {
-        fprintf(stderr, "Error: Invalid value for Y. Must be even.\n");
-        exit(EXIT_FAILURE);
-    }
-
-    unsigned long long num_qubits = X * Y; // which is equivalent to amount of interactions, i.e. add further Ising spins for open boundary but dimensionality of physical system remains unchanged
+    unsigned long long num_qubits = 2 * X * Y; // which is equivalent to amount of interactions, i.e. add further Ising spins for open boundary but dimensionality of active system remains unchanged
 
     int total_walker = num_interactions * walker_per_interaction;
     int total_intervals = num_interactions * num_intervals_per_interaction;
@@ -196,19 +187,18 @@ int main(int argc, char **argv)
     CHECK_CUDA(cudaMalloc(&d_interactions_z, num_interactions * num_qubits * sizeof(*d_interactions_z)));
 
     /*
-    declaration of interaction arrays which should be inititalized in same ordering as done in pure bit flip implementation.
+    interaction arrays inititalized in same ordering as done in pure bit flip implementation.
     o are qubits and their respictive error stored in d_pauli.
     b are ising spins with closed interactions determined by |[X,E]|
     r are ising spins with closed interactions determined by |[Z,E]|
-    Four body terms are not depicted.
     right interaction of b (1,0) ising spin is d_interactions_x(2,1) (here may be at boundary periodically closed to get interaction from first in row)
     right interaction of r (1,0) ising spin is d_interactions_z(3,0)
     down interaction of b (1,0) ising spin is d_interactions_x(3,0)
     down interaction of r (1,0) ising spin is d_interactions_z(4,0) (here may be at boundary periodically closed to get interaction from first in column)
     (b and r are used as lattices are colored blue or red here)
 
-    Example X=3, Y=6:
-            X (measured in o's)
+    Example X=3, Y=3:
+            X                       (X and Y measured in ising spins per row/column)
 
         o-b-o-b-o-b
         | | | | | |
@@ -233,22 +223,22 @@ int main(int argc, char **argv)
                 r                           b
     */
     double *d_interactions_r, *d_interactions_b, *d_interactions_down_four_body, *d_interactions_right_four_body; // single set of interaction arrays for all walkers to share
-    CHECK_CUDA(cudaMalloc(&d_interactions_r, num_interactions * X * Y * sizeof(*d_interactions_r)));
-    CHECK_CUDA(cudaMalloc(&d_interactions_b, num_interactions * X * Y * sizeof(*d_interactions_b)));
-    CHECK_CUDA(cudaMalloc(&d_interactions_down_four_body, num_interactions * X * Y / 2 * sizeof(*d_interactions_down_four_body)));
-    CHECK_CUDA(cudaMalloc(&d_interactions_right_four_body, num_interactions * X * Y / 2 * sizeof(*d_interactions_right_four_body)));
+    CHECK_CUDA(cudaMalloc(&d_interactions_r, num_interactions * 2 * X * Y * sizeof(*d_interactions_r)));
+    CHECK_CUDA(cudaMalloc(&d_interactions_b, num_interactions * 2 * X * Y * sizeof(*d_interactions_b)));
+    CHECK_CUDA(cudaMalloc(&d_interactions_down_four_body, num_interactions * X * Y * sizeof(*d_interactions_down_four_body)));
+    CHECK_CUDA(cudaMalloc(&d_interactions_right_four_body, num_interactions * X * Y * sizeof(*d_interactions_right_four_body)));
 
     // declare b and r lattice
     signed char *d_lattice_r, *d_lattice_b;
-    CHECK_CUDA(cudaMalloc(&d_lattice_b, total_walker * num_qubits / 2 * sizeof(*d_lattice_b)));
-    CHECK_CUDA(cudaMalloc(&d_lattice_r, total_walker * num_qubits / 2 * sizeof(*d_lattice_r)));
+    CHECK_CUDA(cudaMalloc(&d_lattice_b, total_walker * X * Y * sizeof(*d_lattice_b)));
+    CHECK_CUDA(cudaMalloc(&d_lattice_r, total_walker * X * Y * sizeof(*d_lattice_r)));
     // // init lattices for testing with spin up
-    // CHECK_CUDA(cudaMemset(d_lattice_b, 1, total_walker * X * Y / 2 * sizeof(*d_lattice_b)));
-    // CHECK_CUDA(cudaMemset(d_lattice_r, 1, total_walker * X * Y / 2 * sizeof(*d_lattice_r)));
+    // CHECK_CUDA(cudaMemset(d_lattice_b, 1, total_walker * X * Y * sizeof(*d_lattice_b)));
+    // CHECK_CUDA(cudaMemset(d_lattice_r, 1, total_walker * X * Y * sizeof(*d_lattice_r)));
 
     double factor = std::exp(1);
 
-    const int E_min = -3 * histogram_scale * X * Y; // derived from 2 decoupled Ising lattices with dim (X, Y/2) -> 2*(-2)*(X*Y/2) and additionally two four body interactions rooted on spins of one lattice: -2*(X*Y/2)
+    const int E_min = -6 * histogram_scale * X * Y; // derived from 2 decoupled Ising lattices with dim (X, Y) -> 2 * (-2) * (X * Y) and additionally two four body interactions rooted on spins of one lattice: -2 * (X * Y)
     const int E_max = -E_min;
 
     IntervalResult interval_result = generate_intervals(E_min, E_max, num_intervals_per_interaction, 1, 1.0f);
@@ -279,8 +269,8 @@ int main(int argc, char **argv)
     CHECK_CUDA(cudaMalloc(&d_energy, total_walker * sizeof(*d_energy)));
 
     signed char *d_store_lattice_b, *d_store_lattice_r; // to store found configs for given energy range
-    CHECK_CUDA(cudaMalloc(&d_store_lattice_b, total_intervals * X * Y / 2 * sizeof(*d_store_lattice_b)));
-    CHECK_CUDA(cudaMalloc(&d_store_lattice_r, total_intervals * X * Y / 2 * sizeof(*d_store_lattice_r)));
+    CHECK_CUDA(cudaMalloc(&d_store_lattice_b, total_intervals * X * Y * sizeof(*d_store_lattice_b)));
+    CHECK_CUDA(cudaMalloc(&d_store_lattice_r, total_intervals * X * Y * sizeof(*d_store_lattice_r)));
 
     int *d_found_interval; // signaler to identify intervals where configs were found at
     CHECK_CUDA(cudaMalloc(&d_found_interval, total_intervals * sizeof(*d_found_interval)));
@@ -294,59 +284,59 @@ int main(int argc, char **argv)
     CHECK_CUDA(cudaMalloc(&d_offset_lattice_per_walker, total_walker * sizeof(*d_offset_lattice_per_walker)));
     CHECK_CUDA(cudaMalloc(&d_offset_lattice_per_interval, total_intervals * sizeof(*d_offset_lattice_per_interval)));
 
-    int blocks_qubit_x_thread = (num_interactions * num_qubits + max_threads_per_block - 1) / max_threads_per_block;
-    int blocks_spins_single_color_x_thread = (total_walker * num_qubits / 2 + max_threads_per_block - 1) / max_threads_per_block;
-    int blocks_total_walker_x_thread = (total_walker + max_threads_per_block - 1) / max_threads_per_block;
-    int blocks_total_intervals_x_thread = (total_intervals + max_threads_per_block - 1) / max_threads_per_block;
+    int blocks_qubit_x_thread = (num_interactions * num_qubits + threads_per_block - 1) / threads_per_block;
+    int blocks_spins_single_color_x_thread = (total_walker * num_qubits / 2 + threads_per_block - 1) / threads_per_block;
+    int blocks_total_walker_x_thread = (total_walker + threads_per_block - 1) / threads_per_block;
+    int blocks_total_intervals_x_thread = (total_intervals + threads_per_block - 1) / threads_per_block;
 
-    generate_pauli_errors<<<blocks_qubit_x_thread, max_threads_per_block>>>(d_pauli_errors, num_qubits, X, num_interactions, seed - 1, prob_i_err, prob_x_err, prob_y_err, prob_z_err, x_horizontal_error, x_vertical_error, z_horizontal_error, z_vertical_error);
+    generate_pauli_errors<<<blocks_qubit_x_thread, threads_per_block>>>(d_pauli_errors, num_qubits, X, num_interactions, seed - 1, prob_i_err, prob_x_err, prob_y_err, prob_z_err, x_horizontal_error, x_vertical_error, z_horizontal_error, z_vertical_error);
     cudaDeviceSynchronize();
 
-    get_interaction_from_commutator<<<blocks_qubit_x_thread, max_threads_per_block>>>(d_pauli_errors, d_interactions_x, d_interactions_y, d_interactions_z, num_qubits, num_interactions, J_X, J_Y, J_Z);
+    get_interaction_from_commutator<<<blocks_qubit_x_thread, threads_per_block>>>(d_pauli_errors, d_interactions_x, d_interactions_y, d_interactions_z, num_qubits, num_interactions, J_X, J_Y, J_Z);
     cudaDeviceSynchronize();
 
-    init_interactions_eight_vertex<<<blocks_qubit_x_thread, max_threads_per_block>>>(d_interactions_x, d_interactions_y, d_interactions_z, num_qubits, num_interactions, X, Y, d_interactions_r, d_interactions_b, d_interactions_down_four_body, d_interactions_right_four_body);
+    init_interactions_eight_vertex<<<blocks_qubit_x_thread, threads_per_block>>>(d_interactions_x, d_interactions_y, d_interactions_z, num_qubits, num_interactions, X, 2 * Y, d_interactions_r, d_interactions_b, d_interactions_down_four_body, d_interactions_right_four_body);
     cudaDeviceSynchronize();
 
-    init_lattice<<<blocks_spins_single_color_x_thread, max_threads_per_block>>>(d_lattice_b, d_probs, X, Y / 2, total_walker, seed - 2);
-    init_lattice<<<blocks_spins_single_color_x_thread, max_threads_per_block>>>(d_lattice_r, d_probs, X, Y / 2, total_walker, seed - 3);
-    init_offsets_lattice<<<blocks_total_walker_x_thread, max_threads_per_block>>>(d_offset_lattice_per_walker, X, Y / 2, total_walker);
-    init_offsets_lattice<<<blocks_total_walker_x_thread, max_threads_per_block>>>(d_offset_lattice_per_interval, X, Y / 2, total_intervals);
+    init_lattice<<<blocks_spins_single_color_x_thread, threads_per_block>>>(d_lattice_b, d_probs, X, Y, total_walker, seed - 2);
+    init_lattice<<<blocks_spins_single_color_x_thread, threads_per_block>>>(d_lattice_r, d_probs, X, Y, total_walker, seed - 3);
+    init_offsets_lattice<<<blocks_total_walker_x_thread, threads_per_block>>>(d_offset_lattice_per_walker, X, Y, total_walker);
+    init_offsets_lattice<<<blocks_total_walker_x_thread, threads_per_block>>>(d_offset_lattice_per_interval, X, Y, total_intervals);
     cudaDeviceSynchronize();
 
-    calc_energy_eight_vertex<<<blocks_total_walker_x_thread, max_threads_per_block>>>(d_energy, d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, num_qubits, X, Y, total_walker, walker_per_interaction);
+    calc_energy_eight_vertex<<<blocks_total_walker_x_thread, threads_per_block>>>(d_energy, d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, num_qubits, X, 2 * Y, total_walker, walker_per_interaction);
     cudaDeviceSynchronize();
 
     // //-------------------------
     // // TEST BLOCK
     std::vector<double> test_energies(total_walker);
     std::vector<double> test_energies_wl(total_walker);
-    std::vector<double> test_interactions_b(X * Y * num_interactions);
-    std::vector<double> test_interactions_r(X * Y * num_interactions);
-    std::vector<double> test_interactions_four_body_right(X * Y / 2 * num_interactions);
-    std::vector<double> test_interactions_four_body_down(X * Y / 2 * num_interactions);
-    std::vector<signed char> test_lattice_b(X * Y / 2 * total_walker);
-    std::vector<signed char> test_lattice_r(X * Y / 2 * total_walker);
+    std::vector<double> test_interactions_b(2 * X * Y * num_interactions);
+    std::vector<double> test_interactions_r(2 * X * Y * num_interactions);
+    std::vector<double> test_interactions_four_body_right(X * Y * num_interactions);
+    std::vector<double> test_interactions_four_body_down(X * Y * num_interactions);
+    std::vector<signed char> test_lattice_b(X * Y * total_walker);
+    std::vector<signed char> test_lattice_r(X * Y * total_walker);
 
     // CHECK_CUDA(cudaMemcpy(test_energies.data(), d_energy, total_walker * sizeof(*d_energy), cudaMemcpyDeviceToHost));
-    // CHECK_CUDA(cudaMemcpy(test_interactions_b.data(), d_interactions_b, X * Y * num_interactions * sizeof(*d_interactions_b), cudaMemcpyDeviceToHost));
-    // CHECK_CUDA(cudaMemcpy(test_interactions_r.data(), d_interactions_r, X * Y * num_interactions * sizeof(*d_interactions_r), cudaMemcpyDeviceToHost));
-    // CHECK_CUDA(cudaMemcpy(test_interactions_four_body_right.data(), d_interactions_right_four_body, X * Y / 2 * num_interactions * sizeof(*d_interactions_right_four_body), cudaMemcpyDeviceToHost));
-    // CHECK_CUDA(cudaMemcpy(test_interactions_four_body_down.data(), d_interactions_down_four_body, X * Y / 2 * num_interactions * sizeof(*d_interactions_down_four_body), cudaMemcpyDeviceToHost));
-    // CHECK_CUDA(cudaMemcpy(test_lattice_b.data(), d_lattice_b, X * Y / 2 * total_walker * sizeof(*d_lattice_b), cudaMemcpyDeviceToHost));
-    // CHECK_CUDA(cudaMemcpy(test_lattice_r.data(), d_lattice_r, X * Y / 2 * total_walker * sizeof(*d_lattice_r), cudaMemcpyDeviceToHost));
+    // CHECK_CUDA(cudaMemcpy(test_interactions_b.data(), d_interactions_b, 2 * X * Y * num_interactions * sizeof(*d_interactions_b), cudaMemcpyDeviceToHost));
+    // CHECK_CUDA(cudaMemcpy(test_interactions_r.data(), d_interactions_r, 2 * X * Y * num_interactions * sizeof(*d_interactions_r), cudaMemcpyDeviceToHost));
+    // CHECK_CUDA(cudaMemcpy(test_interactions_four_body_right.data(), d_interactions_right_four_body, X * Y * num_interactions * sizeof(*d_interactions_right_four_body), cudaMemcpyDeviceToHost));
+    // CHECK_CUDA(cudaMemcpy(test_interactions_four_body_down.data(), d_interactions_down_four_body, X * Y * num_interactions * sizeof(*d_interactions_down_four_body), cudaMemcpyDeviceToHost));
+    // CHECK_CUDA(cudaMemcpy(test_lattice_b.data(), d_lattice_b, X * Y * total_walker * sizeof(*d_lattice_b), cudaMemcpyDeviceToHost));
+    // CHECK_CUDA(cudaMemcpy(test_lattice_r.data(), d_lattice_r, X * Y * total_walker * sizeof(*d_lattice_r), cudaMemcpyDeviceToHost));
 
     // std::string path = "test/eight_vertex/periodic/prob_X_" + std::to_string(prob_x_err) + "__prob_Y_" + std::to_string(prob_y_err) + "__prob_Z_" + std::to_string(prob_z_err) + "/X_" + std::to_string(X) + "_Y_" + std::to_string(Y);
     // create_directory(path + "/interactions");
     // create_directory(path + "/lattices");
-    // write(test_lattice_b.data(), path + "/lattice/lattice_b", Y / 2, X, total_walker, true);
-    // write(test_lattice_r.data(), path + "/lattice/lattice_b", Y / 2, X, total_walker, true);
-    // write(test_interactions_b.data(), path + "/interactions/interactions_b", Y, X, num_interactions, false);
-    // write(test_interactions_r.data(), path + "/interactions/interactions_r", Y, X, num_interactions, false);
-    // write(test_interactions_four_body_right.data(), path + "/interactions/interactions_four_body_right", Y / 2, X, num_interactions, false);
-    // write(test_interactions_four_body_down.data(), path + "/interactions/interactions_four_body_down", Y / 2, X, num_interactions, false);
+    // write(test_lattice_b.data(), path + "/lattice/lattice_b", Y, X, total_walker, true);
+    // write(test_lattice_r.data(), path + "/lattice/lattice_b", Y, X, total_walker, true);
+    // write(test_interactions_b.data(), path + "/interactions/interactions_b", 2 * Y, X, num_interactions, false);
+    // write(test_interactions_r.data(), path + "/interactions/interactions_r", 2 * Y, X, num_interactions, false);
+    // write(test_interactions_four_body_right.data(), path + "/interactions/interactions_four_body_right", Y, X, num_interactions, false);
+    // write(test_interactions_four_body_down.data(), path + "/interactions/interactions_four_body_down", Y, X, num_interactions, false);
     //
-    // test_eight_vertex_periodic_wl_step<<<blocks_total_walker_x_thread, max_threads_per_block>>>(d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, d_energy, d_iter, num_qubits, X, Y, total_walker, walker_per_interaction);
+    // test_eight_vertex_periodic_wl_step<<<blocks_total_walker_x_thread, threads_per_block>>>(d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, d_energy, d_iter, num_qubits, X, 2 * Y, total_walker, walker_per_interaction);
     // cudaDeviceSynchronize();
     // CHECK_CUDA(cudaMemcpy(test_energies.data(), d_energy, total_walker * sizeof(*d_energy), cudaMemcpyDeviceToHost));
     // std::cout << "Before iterations:" << std::endl;
@@ -360,13 +350,13 @@ int main(int argc, char **argv)
 
     for (int i = 0; i < num_wl_loops; i++)
     {
-        wang_landau_pre_run_eight_vertex<<<blocks_total_walker_x_thread, max_threads_per_block>>>(d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, d_energy, d_H, d_iter, d_found_interval, d_store_lattice_b, d_store_lattice_r, E_min, E_max, num_iterations, num_qubits, X, Y, seed, interval_result.len_interval, found_interval, total_walker, num_intervals_per_interaction, boundary_type, walker_per_interaction);
+        wang_landau_pre_run_eight_vertex<<<blocks_total_walker_x_thread, threads_per_block>>>(d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, d_energy, d_H, d_iter, d_found_interval, d_store_lattice_b, d_store_lattice_r, E_min, E_max, num_iterations, num_qubits, X, 2 * Y, seed, interval_result.len_interval, found_interval, total_walker, num_intervals_per_interaction, boundary_type, walker_per_interaction);
         cudaDeviceSynchronize();
 
         // TEST BLOCK
         //-----------
         CHECK_CUDA(cudaMemcpy(test_energies_wl.data(), d_energy, total_walker * sizeof(*d_energy), cudaMemcpyDeviceToHost)); // get energies from wl step with energy diff calc
-        calc_energy_eight_vertex<<<blocks_total_walker_x_thread, max_threads_per_block>>>(d_energy, d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, num_qubits, X, Y, total_walker, walker_per_interaction);
+        calc_energy_eight_vertex<<<blocks_total_walker_x_thread, threads_per_block>>>(d_energy, d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, num_qubits, X, 2 * Y, total_walker, walker_per_interaction);
         cudaDeviceSynchronize();
         CHECK_CUDA(cudaMemcpy(test_energies.data(), d_energy, total_walker * sizeof(*d_energy), cudaMemcpyDeviceToHost)); // get energies from calc energy function
         for (int idx = 0; idx < total_walker; idx++)
@@ -390,50 +380,50 @@ int main(int argc, char **argv)
         }
     }
 
-    calc_energy_eight_vertex<<<blocks_total_intervals_x_thread, max_threads_per_block>>>(d_interval_energies, d_store_lattice_b, d_store_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, num_qubits, X, Y, total_intervals, num_intervals_per_interaction);
+    calc_energy_eight_vertex<<<blocks_total_intervals_x_thread, threads_per_block>>>(d_interval_energies, d_store_lattice_b, d_store_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, num_qubits, X, 2 * Y, total_intervals, num_intervals_per_interaction);
     cudaDeviceSynchronize();
 
     std::vector<double> h_interval_energies(total_intervals);
-    std::vector<double> h_interactions_b(X * Y * num_interactions);
-    std::vector<double> h_interactions_r(X * Y * num_interactions);
-    std::vector<double> h_interactions_four_body_right(X * Y / 2 * num_interactions);
-    std::vector<double> h_interactions_four_body_down(X * Y / 2 * num_interactions);
-    std::vector<signed char> h_store_lattice_b(X * Y / 2 * total_intervals);
-    std::vector<signed char> h_store_lattice_r(X * Y / 2 * total_intervals);
+    std::vector<double> h_interactions_b(2 * X * Y * num_interactions);
+    std::vector<double> h_interactions_r(2 * X * Y * num_interactions);
+    std::vector<double> h_interactions_four_body_right(X * Y * num_interactions);
+    std::vector<double> h_interactions_four_body_down(X * Y * num_interactions);
+    std::vector<signed char> h_store_lattice_b(X * Y * total_intervals);
+    std::vector<signed char> h_store_lattice_r(X * Y * total_intervals);
     std::vector<unsigned long long> h_H(len_total_histogram);
 
     CHECK_CUDA(cudaMemcpy(h_interval_energies.data(), d_interval_energies, total_intervals * sizeof(*d_energy), cudaMemcpyDeviceToHost));
-    CHECK_CUDA(cudaMemcpy(h_interactions_b.data(), d_interactions_b, X * Y * num_interactions * sizeof(*d_interactions_b), cudaMemcpyDeviceToHost));
-    CHECK_CUDA(cudaMemcpy(h_interactions_r.data(), d_interactions_r, X * Y * num_interactions * sizeof(*d_interactions_r), cudaMemcpyDeviceToHost));
-    CHECK_CUDA(cudaMemcpy(h_interactions_four_body_right.data(), d_interactions_right_four_body, X * Y / 2 * num_interactions * sizeof(*d_interactions_right_four_body), cudaMemcpyDeviceToHost));
-    CHECK_CUDA(cudaMemcpy(h_interactions_four_body_down.data(), d_interactions_down_four_body, X * Y / 2 * num_interactions * sizeof(*d_interactions_down_four_body), cudaMemcpyDeviceToHost));
-    CHECK_CUDA(cudaMemcpy(h_store_lattice_b.data(), d_store_lattice_b, X * Y / 2 * total_intervals * sizeof(*d_store_lattice_b), cudaMemcpyDeviceToHost));
-    CHECK_CUDA(cudaMemcpy(h_store_lattice_r.data(), d_store_lattice_r, X * Y / 2 * total_intervals * sizeof(*d_store_lattice_r), cudaMemcpyDeviceToHost));
+    CHECK_CUDA(cudaMemcpy(h_interactions_b.data(), d_interactions_b, 2 * X * Y * num_interactions * sizeof(*d_interactions_b), cudaMemcpyDeviceToHost));
+    CHECK_CUDA(cudaMemcpy(h_interactions_r.data(), d_interactions_r, 2 * X * Y * num_interactions * sizeof(*d_interactions_r), cudaMemcpyDeviceToHost));
+    CHECK_CUDA(cudaMemcpy(h_interactions_four_body_right.data(), d_interactions_right_four_body, X * Y * num_interactions * sizeof(*d_interactions_right_four_body), cudaMemcpyDeviceToHost));
+    CHECK_CUDA(cudaMemcpy(h_interactions_four_body_down.data(), d_interactions_down_four_body, X * Y * num_interactions * sizeof(*d_interactions_down_four_body), cudaMemcpyDeviceToHost));
+    CHECK_CUDA(cudaMemcpy(h_store_lattice_b.data(), d_store_lattice_b, X * Y * total_intervals * sizeof(*d_store_lattice_b), cudaMemcpyDeviceToHost));
+    CHECK_CUDA(cudaMemcpy(h_store_lattice_r.data(), d_store_lattice_r, X * Y * total_intervals * sizeof(*d_store_lattice_r), cudaMemcpyDeviceToHost));
     CHECK_CUDA(cudaMemcpy(h_H.data(), d_H, len_total_histogram * sizeof(*d_H), cudaMemcpyDeviceToHost));
 
     for (int i = 0; i < num_interactions; i++)
     {
         std::string path = "init/eight_vertex/periodic/prob_X_" + std::to_string(prob_x_err) + "__prob_Y_" + std::to_string(prob_y_err) + "__prob_Z_" + std::to_string(prob_z_err) + "/X_" + std::to_string(X) + "_Y_" + std::to_string(Y) + "/seed_" + std::to_string(seed + i) + "/error_class_I";
 
-        int offset_interactions = i * X * Y;               // for interactions closed on a single colored sublattice
-        int offset_four_body_interactions = i * X * Y / 2; // for interactions closed on a single colored sublattice
-        int offset_lattice = i * num_intervals_per_interaction * X * Y / 2;
+        int offset_interactions = i * 2 * X * Y;       // for interactions closed on a single colored sublattice
+        int offset_four_body_interactions = i * X * Y; // for interactions closed on a single colored sublattice
+        int offset_lattice = i * num_intervals_per_interaction * X * Y;
         int offset_energies = i * num_intervals_per_interaction;
 
         create_directory(path + "/interactions");
         create_directory(path + "/lattice");
         create_directory(path + "/histogram");
 
-        write(h_interactions_b.data() + offset_interactions, path + "/interactions/interactions_b", Y, X, 1, false);
-        write(h_interactions_r.data() + offset_interactions, path + "/interactions/interactions_r", Y, X, 1, false);
-        write(h_interactions_four_body_right.data() + offset_four_body_interactions, path + "/interactions/interactions_four_body_right", Y / 2, X, 1, false);
-        write(h_interactions_four_body_down.data() + offset_four_body_interactions, path + "/interactions/interactions_four_body_down", Y / 2, X, 1, false);
-        write(h_store_lattice_b.data() + offset_lattice, path + "/lattice/lattice_b", Y / 2, X, num_intervals_per_interaction, true, h_interval_energies.data() + offset_energies);
-        write(h_store_lattice_r.data() + offset_lattice, path + "/lattice/lattice_r", Y / 2, X, num_intervals_per_interaction, true, h_interval_energies.data() + offset_energies);
+        write(h_interactions_b.data() + offset_interactions, path + "/interactions/interactions_b", 2 * Y, X, 1, false);
+        write(h_interactions_r.data() + offset_interactions, path + "/interactions/interactions_r", 2 * Y, X, 1, false);
+        write(h_interactions_four_body_right.data() + offset_four_body_interactions, path + "/interactions/interactions_four_body_right", Y, X, 1, false);
+        write(h_interactions_four_body_down.data() + offset_four_body_interactions, path + "/interactions/interactions_four_body_down", Y, X, 1, false);
+        write(h_store_lattice_b.data() + offset_lattice, path + "/lattice/lattice_b", Y, X, num_intervals_per_interaction, true, h_interval_energies.data() + offset_energies);
+        write(h_store_lattice_r.data() + offset_lattice, path + "/lattice/lattice_r", Y, X, num_intervals_per_interaction, true, h_interval_energies.data() + offset_energies);
         write_histograms(h_H.data() + i * len_histogram, path + "/histogram/", (E_max - E_min + 1), seed, E_min);
     }
 
-    // printf("Finished prerun for Lattice %d x %d, boundary condition %s, probability %f, error type %c and %d interactions \n", X, Y, boundary.c_str(), prob_interactions, logical_error_type, num_interactions);
+    // printf("Finished prerun for Lattice %d x %d, boundary condition %s, probability %f, error type %c and %d interactions \n", X, 2 * Y, boundary.c_str(), prob_interactions, logical_error_type, num_interactions);
 
     return 0;
 }

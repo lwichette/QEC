@@ -29,13 +29,13 @@ iterations=1000
 
 time_limit=820
 
-for probability in 0.08 0.09 0.1 0.11 0.12
+for probability in 0.1
   do
     for size in 4
     do
       xval=$size
       yval=$size
-      for error_type in X Y Z I
+      for error_type in I
       do
         ./prerun_-10 -x $xval -y $yval -p $probability -n $iterations -l 100 -w 100 -s $seed_hist -i 20 -e "$error_type" -b $boundary_type -r $num_interactions
 

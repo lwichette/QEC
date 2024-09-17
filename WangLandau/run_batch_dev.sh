@@ -13,9 +13,9 @@ walker_wl=8
 
 overlap_wl=0.25
 
-seed_hist=1500
+seed_hist=1
 
-seed_run=46
+seed_run=1000
 
 num_interactions=1000
 
@@ -27,9 +27,9 @@ intervals_wl=10
 
 iterations=1000
 
-time_limit=1000
+time_limit=820
 
-for probability in 0.08 0.09 0.1 0.11 0.12
+for probability in 0.1
   do
     for size in 4
     do

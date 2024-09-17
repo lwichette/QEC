@@ -25,3 +25,4 @@ prerun_*
 **/wl_*
 **/prerun_*
 **/init/*
+!WangLandau/prerun_eight_vertex.cu

@@ -1868,196 +1868,196 @@ void write_results(std::vector<std::map<int, double>> rescaled_data, Options opt
     file.close();
 }
 
-// void result_handling_stitched_histogram(
-//     Options options, std::vector<double> h_logG,
-//     std::vector<int> h_start, std::vector<int> h_end, int int_id,
-//     int X, int Y)
-// {
-//     std::vector<std::map<int, double>> interval_data = get_logG_data(h_logG, h_start, h_end, options);
-
-//     std::vector<std::map<int, double>> rescaled_data = rescaleByMinimum(interval_data, options);
-
-//     //std::vector<std::map<int, double>> rescaled_data = interval_data;
-
-//     std::vector<int> stitching_keys = calculate_stitching_points(rescaled_data, options);
-
-//     rescale_intervals_for_concatenation(rescaled_data, stitching_keys);
-
-//     cut_overlapping_histogram_parts(rescaled_data, stitching_keys);
-
-//     rescaleMapValues(rescaled_data, X, Y); // rescaling for high temperature interpretation of partition function
-
-//     write_results(rescaled_data, options, int_id);
-// }
-
 void result_handling_stitched_histogram(
     Options options, std::vector<double> h_logG,
     std::vector<int> h_start, std::vector<int> h_end, int int_id,
     int X, int Y)
 {
+    std::vector<std::map<int, double>> interval_data = get_logG_data(h_logG, h_start, h_end, options);
 
-    int index_h_log_g = 0;
+    std::vector<std::map<int, double>> rescaled_data = rescaleByMinimum(interval_data, options);
 
-    // Store the results of the first walker for each interval as they are averaged already
-    std::vector<std::map<int, double>> interval_data(options.num_intervals);
+    // std::vector<std::map<int, double>> rescaled_data = interval_data;
 
-    for (int i = 0; i < options.num_intervals; i++)
-    {
-        int len_int = h_end[i] - h_start[i] + 1;
+    std::vector<int> stitching_keys = calculate_stitching_points(rescaled_data, options);
 
-        for (int j = 0; j < options.walker_per_interval; j++)
-        {
-            if (j == 0)
-            {
-                for (int k = 0; k < len_int; k++)
-                {
+    rescale_intervals_for_concatenation(rescaled_data, stitching_keys);
 
-                    int key = h_start[i] + k;
-                    double value = h_logG[index_h_log_g];
+    cut_overlapping_histogram_parts(rescaled_data, stitching_keys);
 
-                    if (value != 0)
-                    {
-                        interval_data[i][key] = value; // Store the non-zero value with its key at correct map object according to interval
-                    }
+    rescaleMapValues(rescaled_data, X, Y); // rescaling for high temperature interpretation of partition function
 
-                    index_h_log_g += 1;
-                }
-            }
-            else
-            {
-                index_h_log_g += len_int;
-            }
-        }
-    }
-
-    // Here follows rescaling by minimum in each interval to make it compatible with python script (for sanity checking only?)
-    // finding minimum per interval
-    std::vector<double> min_values(options.num_intervals, std::numeric_limits<double>::max());
-    for (int i = 0; i < options.num_intervals; i++)
-    {
-        for (const auto &key_value_pair : interval_data[i])
-        {
-            if (key_value_pair.second < min_values[i])
-            {
-                min_values[i] = key_value_pair.second;
-            }
-        }
-
-        // If no non-zero value was found, reset to 0 (or any other default)
-        if (min_values[i] == std::numeric_limits<double>::max())
-        {
-            min_values[i] = 0;
-        }
-    }
-    // rescaling by minimum
-    for (int i = 0; i < options.num_intervals; i++)
-    {
-        for (auto &key_value_pair : interval_data[i])
-        {
-            key_value_pair.second -= min_values[i]; // each interval has a zero value now
-        }
-    }
-
-    // Calculate best stitching points
-    std::vector<int> stitching_keys;
-    for (int i = 0; i < options.num_intervals - 1; i++)
-    {
-        const auto &current_interval = interval_data[i];
-        const auto &next_interval = interval_data[i + 1];
-
-        int min_key = find_stitching_keys(current_interval, next_interval);
-        if (min_key != -1)
-        {
-            stitching_keys.push_back(min_key);
-        }
-        else
-        {
-            stitching_keys.push_back(current_interval.end()->first); // when no overlap is found only pushback to keep a key per interval but will be catched when normalization of histogram
-            std::cout << "Found no matching key for intervals " << i << " and " << i + 1 << std::endl;
-        }
-    }
-
-    rescale_intervals_for_concatenation(interval_data, stitching_keys);
-
-    cut_overlapping_histogram_parts(interval_data, stitching_keys);
-
-    rescaleMapValues(interval_data, X, Y); // rescaling for high temperature interpretation of partition function
-
-    // From here on only write to csv
-    std::stringstream result_directory;
-
-    std::string boundary;
-
-    if (options.boundary_type == 0)
-    {
-        boundary = "periodic";
-    }
-    else if (options.boundary_type == 1)
-    {
-        boundary = "open";
-    }
-    else if (options.boundary_type == 2)
-    {
-        boundary = "cylinder";
-    }
-    else
-    {
-        boundary = "unknown"; // Handle any unexpected boundary_type values
-    }
-
-    result_directory << "results/" << boundary << "_head_old_stitched_handling/prob_" << std::fixed << std::setprecision(6) << options.prob_interactions
-                     << "/X_" << options.X
-                     << "_Y_" << options.Y
-                     << "/error_class_" << options.logical_error_type;
-
-    create_directory(result_directory.str());
-
-    result_directory << "/StitchedHistogram_"
-                     << "_intervals_" << options.num_intervals
-                     << "_iterations_" << options.num_iterations
-                     << "_overlap_" << options.overlap_decimal
-                     << "_walkers_" << options.walker_per_interval
-                     << "_alpha_" << options.alpha
-                     << "_beta_" << std::fixed << std::setprecision(10) << options.beta
-                     << "exchange_offset" << options.replica_exchange_offset
-                     << ".txt";
-
-    std::ofstream file(result_directory.str(), std::ios::app); // append mode to store multiple interaction results in same file
-
-    if (!file.is_open())
-    {
-        std::cerr << "Error opening file: " << result_directory.str() << std::endl;
-        return;
-    }
-
-    file << "{\n";
-    file << "  \"histogram_seed\": \"" << (options.seed_histogram + int_id) << "\",\n";
-    file << "  \"run_seed\": \"" << options.seed_run << "\",\n";
-    file << "  \"results\": [\n";
-    file << std::fixed << std::setprecision(10);
-    for (size_t i = 0; i < interval_data.size(); ++i)
-    {
-        const auto &interval_map = interval_data[i];
-        for (auto iterator = interval_map.begin(); iterator != interval_map.end(); ++iterator)
-        {
-            int key = iterator->first;
-            double value = iterator->second;
-
-            // Formatting key-value pairs
-            file << "      \"" << key << "\": " << value;
-
-            // Add a comma unless it's the last element
-            if (std::next(iterator) != interval_map.end() || i < interval_data.size() - 1)
-            {
-                file << ",";
-            }
-            file << "\n";
-        }
-    }
-    file << "]\n";
-    file << "}\n";
-    file.close();
+    write_results(rescaled_data, options, int_id);
 }
+
+// void result_handling_stitched_histogram(
+//     Options options, std::vector<double> h_logG,
+//     std::vector<int> h_start, std::vector<int> h_end, int int_id,
+//     int X, int Y)
+// {
+
+//     int index_h_log_g = 0;
+
+//     // Store the results of the first walker for each interval as they are averaged already
+//     std::vector<std::map<int, double>> interval_data(options.num_intervals);
+
+//     for (int i = 0; i < options.num_intervals; i++)
+//     {
+//         int len_int = h_end[i] - h_start[i] + 1;
+
+//         for (int j = 0; j < options.walker_per_interval; j++)
+//         {
+//             if (j == 0)
+//             {
+//                 for (int k = 0; k < len_int; k++)
+//                 {
+
+//                     int key = h_start[i] + k;
+//                     double value = h_logG[index_h_log_g];
+
+//                     if (value != 0)
+//                     {
+//                         interval_data[i][key] = value; // Store the non-zero value with its key at correct map object according to interval
+//                     }
+
+//                     index_h_log_g += 1;
+//                 }
+//             }
+//             else
+//             {
+//                 index_h_log_g += len_int;
+//             }
+//         }
+//     }
+
+//     // Here follows rescaling by minimum in each interval to make it compatible with python script (for sanity checking only?)
+//     // finding minimum per interval
+//     std::vector<double> min_values(options.num_intervals, std::numeric_limits<double>::max());
+//     for (int i = 0; i < options.num_intervals; i++)
+//     {
+//         for (const auto &key_value_pair : interval_data[i])
+//         {
+//             if (key_value_pair.second < min_values[i])
+//             {
+//                 min_values[i] = key_value_pair.second;
+//             }
+//         }
+
+//         // If no non-zero value was found, reset to 0 (or any other default)
+//         if (min_values[i] == std::numeric_limits<double>::max())
+//         {
+//             min_values[i] = 0;
+//         }
+//     }
+//     // rescaling by minimum
+//     for (int i = 0; i < options.num_intervals; i++)
+//     {
+//         for (auto &key_value_pair : interval_data[i])
+//         {
+//             key_value_pair.second -= min_values[i]; // each interval has a zero value now
+//         }
+//     }
+
+//     // Calculate best stitching points
+//     std::vector<int> stitching_keys;
+//     for (int i = 0; i < options.num_intervals - 1; i++)
+//     {
+//         const auto &current_interval = interval_data[i];
+//         const auto &next_interval = interval_data[i + 1];
+
+//         int min_key = find_stitching_keys(current_interval, next_interval);
+//         if (min_key != -1)
+//         {
+//             stitching_keys.push_back(min_key);
+//         }
+//         else
+//         {
+//             stitching_keys.push_back(current_interval.end()->first); // when no overlap is found only pushback to keep a key per interval but will be catched when normalization of histogram
+//             std::cout << "Found no matching key for intervals " << i << " and " << i + 1 << std::endl;
+//         }
+//     }
+
+//     rescale_intervals_for_concatenation(interval_data, stitching_keys);
+
+//     cut_overlapping_histogram_parts(interval_data, stitching_keys);
+
+//     rescaleMapValues(interval_data, X, Y); // rescaling for high temperature interpretation of partition function
+
+//     // From here on only write to csv
+//     std::stringstream result_directory;
+
+//     std::string boundary;
+
+//     if (options.boundary_type == 0)
+//     {
+//         boundary = "periodic";
+//     }
+//     else if (options.boundary_type == 1)
+//     {
+//         boundary = "open";
+//     }
+//     else if (options.boundary_type == 2)
+//     {
+//         boundary = "cylinder";
+//     }
+//     else
+//     {
+//         boundary = "unknown"; // Handle any unexpected boundary_type values
+//     }
+
+//     result_directory << "results/" << boundary << "_head_old_stitched_handling/prob_" << std::fixed << std::setprecision(6) << options.prob_interactions
+//                      << "/X_" << options.X
+//                      << "_Y_" << options.Y
+//                      << "/error_class_" << options.logical_error_type;
+
+//     create_directory(result_directory.str());
+
+//     result_directory << "/StitchedHistogram_"
+//                      << "_intervals_" << options.num_intervals
+//                      << "_iterations_" << options.num_iterations
+//                      << "_overlap_" << options.overlap_decimal
+//                      << "_walkers_" << options.walker_per_interval
+//                      << "_alpha_" << options.alpha
+//                      << "_beta_" << std::fixed << std::setprecision(10) << options.beta
+//                      << "exchange_offset" << options.replica_exchange_offset
+//                      << ".txt";
+
+//     std::ofstream file(result_directory.str(), std::ios::app); // append mode to store multiple interaction results in same file
+
+//     if (!file.is_open())
+//     {
+//         std::cerr << "Error opening file: " << result_directory.str() << std::endl;
+//         return;
+//     }
+
+//     file << "{\n";
+//     file << "  \"histogram_seed\": \"" << (options.seed_histogram + int_id) << "\",\n";
+//     file << "  \"run_seed\": \"" << options.seed_run << "\",\n";
+//     file << "  \"results\": [\n";
+//     file << std::fixed << std::setprecision(10);
+//     for (size_t i = 0; i < interval_data.size(); ++i)
+//     {
+//         const auto &interval_map = interval_data[i];
+//         for (auto iterator = interval_map.begin(); iterator != interval_map.end(); ++iterator)
+//         {
+//             int key = iterator->first;
+//             double value = iterator->second;
+
+//             // Formatting key-value pairs
+//             file << "      \"" << key << "\": " << value;
+
+//             // Add a comma unless it's the last element
+//             if (std::next(iterator) != interval_map.end() || i < interval_data.size() - 1)
+//             {
+//                 file << ",";
+//             }
+//             file << "\n";
+//         }
+//     }
+//     file << "]\n";
+//     file << "}\n";
+//     file.close();
+// }
 
 __global__ void check_sums(int *d_cond_interactions, int num_intervals, int num_interactions)
 {

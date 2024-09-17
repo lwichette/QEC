@@ -13,13 +13,9 @@ walker_wl=8
 
 overlap_wl=0.25
 
-seed_hist=1
+seed_hist=1500
 
-<<<<<<< HEAD
 seed_run=42
-=======
-seed_run=1000
->>>>>>> parent of 5f17cbe0... Results from cluster
 
 num_interactions=1000
 
@@ -31,15 +27,15 @@ intervals_wl=10
 
 iterations=1000
 
-time_limit=820
+time_limit=1000
 
-for probability in 0.1
+for probability in 0.08 0.09 0.1 0.11 0.12
   do
     for size in 4 6 8 10
     do
       xval=$size
       yval=$size
-      for error_type in I
+      for error_type in X Y Z
       do
         ./prerun_-10 -x $xval -y $yval -p $probability -n $iterations -l 100 -w 100 -s $seed_hist -i 20 -e "$error_type" -b $boundary_type -r $num_interactions
 
@@ -52,6 +48,8 @@ for probability in 0.1
         seed_run=$(($seed_run + 1))
 
         echo "Done with size $size, probability $probability, error type $error_type"
+
+        rm -r init/*
       done
     done
 done

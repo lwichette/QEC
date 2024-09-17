@@ -444,7 +444,6 @@ __global__ void init_lattice(signed char *lattice, float *d_probs, const int nx,
 }
 
 __global__ void init_interactionsOld(signed char *interactions, const int nx, const int ny, const int num_lattices, const int seed, const double prob, const char logical_error_type)
-    __global__ void init_interactionsOld(signed char *interactions, const int nx, const int ny, const int num_lattices, const int seed, const double prob, const char logical_error_type)
 {
 
     long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;

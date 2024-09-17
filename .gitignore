@@ -26,3 +26,5 @@ prerun_*
 **/prerun_*
 **/init/*
 !WangLandau/prerun_eight_vertex.cu
+WangLandau/prerun_-10
+**/eight_vertex_*

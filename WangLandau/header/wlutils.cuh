@@ -61,13 +61,99 @@ typedef struct
     int j;
 } RBIM;
 
+typedef struct
+{
+    double new_energy;
+    int i;
+    int j;
+    bool color;
+} RBIM_eight_vertex;
+
 void parse_args(int argc, char *argv[], Options *options);
 
 IntervalResult generate_intervals(const int E_min, const int E_max, int num_intervals, int num_walker, float overlap_decimal);
 
-void writeToFile(const std::string &filename, const signed char *data, int nx_w, int ny);
+template <typename T>
+inline void writeToFile(const std::string &filename, const T *data, int nx_w, int ny)
+{
+    std::ofstream file(filename);
+    if (file.is_open())
+    {
+        for (int i = 0; i < nx_w; i++)
+        {
+            for (int j = 0; j < ny; j++)
+            {
+                file << static_cast<int>(data[i * ny + j]) << " ";
+            }
+            file << std::endl;
+        }
+    }
+    else
+    {
+        std::cerr << "Error opening file: " << filename << std::endl;
+    }
+    file.close();
 
-void write(signed char *array_host, const std::string &filename, long nx, long ny, int num_lattices, bool lattice, const int *energies = NULL);
+    return;
+}
+
+template <>
+inline void writeToFile<double>(const std::string &filename, const double *data, int nx_w, int ny)
+{
+    std::ofstream file(filename);
+    if (file.is_open())
+    {
+        file << std::fixed << std::setprecision(10);
+        for (int i = 0; i < nx_w; i++)
+        {
+            for (int j = 0; j < ny; j++)
+            {
+                file << data[i * ny + j] << " ";
+            }
+            file << std::endl;
+        }
+    }
+    else
+    {
+        std::cerr << "Error opening file: " << filename << std::endl;
+    }
+    file.close();
+
+    return;
+}
+
+void write(signed char *array_host, const std::string &filename, long nx, long ny, int num_lattices, bool lattice, const int *energies = NULL); // non eight vertex write with int energies
+
+template <typename T>
+inline void write(
+    T *array_host, const std::string &filename, long num_rows, long num_cols,
+    int num_lattices, bool is_lattice, const double *energies = NULL)
+{
+    if (num_lattices == 1)
+    {
+        writeToFile(filename + ".txt", array_host, num_rows, num_cols);
+    }
+    else
+    {
+        for (int l = 0; l < num_lattices; l++)
+        {
+            int offset = l * num_rows * num_cols;
+
+            if (energies)
+            {
+                if (energies[l] == 0 && array_host[offset] == 0)
+                {
+                    continue;
+                }
+            }
+
+            std::string file_suffix = (!energies) ? std::to_string(l) : std::to_string(energies[l]);
+            writeToFile(filename + "_energy_" + file_suffix + ".txt", array_host + offset, num_rows, num_cols);
+        }
+    }
+
+    return;
+}
 
 void create_directory(std::string path);
 
@@ -166,7 +252,17 @@ __global__ void calc_average_log_g(
     int num_interactions, long long *d_offset_shared_logG,
     int *d_cond_interactions);
 
-__device__ void store_lattice(signed char *d_lattice, int *d_energy, int *d_found_interval, signed char *d_store_lattice, const int E_min, const int nx, const int ny, const long long tid, const int len_interval, const int num_intervals, const int int_id);
+// Overload for int type (no color argument)
+__device__ void store_lattice(
+    signed char *d_lattice, int *d_energy, int *d_found_interval, signed char *d_store_lattice,
+    const int E_min, const int nx, const int ny, const long long tid, const int len_interval,
+    const int num_interval, const int int_id);
+
+// Overload for double type (with color argument)
+__device__ void store_lattice(
+    signed char *d_lattice, double *d_energy, int *d_found_interval, signed char *d_store_lattice,
+    const int E_min, const int nx, const int ny, const long long tid, const int len_interval,
+    const int num_interval, const int int_id, bool color);
 
 __global__ void init_indices(int *d_indices, int total_walker);
 
@@ -182,12 +278,41 @@ __global__ void replica_exchange(
 
 __global__ void print_finished_walker_ratio(double *d_factor, int num_walker_total, const double exp_beta, double *d_finished_walkers_ratio);
 
+__global__ void generate_pauli_errors(int *pauli_errors, const int num_qubits, const int X, const int num_interactions, const unsigned long seed, const double p_I, const double p_X, const double p_Y, const double p_Z, const bool x_horizontal_error, const bool x_vertical_error, const bool z_horizontal_error, const bool z_vertical_error);
+
+__global__ void get_interaction_from_commutator(int *pauli_errors, double *int_X, double *int_Y, double *int_Z, const int num_qubits, const int num_interactions, double J_X, double J_Y, double J_Z);
+
+__global__ void init_interactions_eight_vertex(double *int_X, double *int_Y, double *int_Z, const int num_qubits, const int num_interactions, int X, int Y, double *int_r, double *int_b, double *d_interactions_down_four_body, double *d_interactions_right_four_body);
+
+__global__ void calc_energy_eight_vertex(double *energy_out, signed char *lattice_b, signed char *lattice_r, double *interactions_b, double *interactions_r, double *interactions_four_body_right, double *interactions_four_body_down, const int num_qubits, const int X, const int Y, const int num_lattices, const int num_lattices_x_interaction);
+
+__global__ void wang_landau_pre_run_eight_vertex(
+    signed char *d_lattice_b, signed char *d_lattice_r, double *d_interactions_b, double *d_interactions_r, double *d_interactions_right_four_body, double *d_interactions_down_four_body, double *d_energy, unsigned long long *d_H, unsigned long long *d_iter,
+    int *d_found_interval, signed char *d_store_lattice_b, signed char *d_store_lattice_r, const int E_min, const int E_max,
+    const int num_iterations, const int num_qubits, const int X, const int Y, const int seed, const int len_interval, const int found_interval,
+    const int num_walker, const int num_interval, const int boundary_type, const int walker_per_interaction);
+
 __global__ void check_sums(int *d_cond_interactions, int num_intervals, int num_interactions);
+
+__global__ void test_eight_vertex_periodic_wl_step(
+    signed char *d_lattice_b, signed char *d_lattice_r, double *d_interactions_b, double *d_interactions_r, double *d_interactions_four_body_right, double *d_interactions_four_body_down, double *d_energy, unsigned long long *d_offset_iter, const int num_qubits, const int X, const int Y, const int num_lattices, const int num_lattices_x_interaction);
 
 __device__ RBIM periodic_boundary_random_bond_ising(signed char *d_lattice, signed char *d_interactions, int *d_energy, int *d_offset_lattice, unsigned long long *d_offset_iter, curandStatePhilox4_32_10_t *st, const long long tid, const int nx, const int ny, const int interaction_offset);
 
 __device__ RBIM open_boundary_random_bond_ising(signed char *d_lattice, signed char *d_interactions, int *d_energy, int *d_offset_lattice, unsigned long long *d_offset_iter, curandStatePhilox4_32_10_t *st, const long long tid, const int nx, const int ny, const int interaction_offset);
 
+__device__ double calc_energy_periodic_eight_vertex(signed char *lattice_b, signed char *lattice_r, double *interactions_b, double *interactions_r, double *interactions_four_body_right, double *interactions_four_body_down, const int num_qubits, const int X, const int Y, const int num_lattices_x_interaction);
+
+__device__ int scalar_commutator(int pauli1, int pauli2);
+
+__device__ double calc_energy_periodic_eight_vertex(signed char *lattice_b, signed char *lattice_r, double *interactions_b, double *interactions_r, double *interactions_four_body_right, double *interactions_four_body_down, const int num_qubits, const int X, const int Y, const int num_lattices_x_interaction);
+
 __device__ RBIM cylinder_random_bond_ising(signed char *d_lattice, signed char *d_interactions, int *d_energy, int *d_offset_lattice, unsigned long long *d_offset_iter, curandStatePhilox4_32_10_t *st, const long long tid, const int nx, const int ny, const int interaction_offset);
+
+__device__ RBIM_eight_vertex eight_vertex_periodic_wl_step(
+    signed char *d_lattice_b, signed char *d_lattice_r, double *d_interactions_b, double *d_interactions_r, double *d_interactions_four_body_right, double *d_interactions_four_body_down, double *d_energy, unsigned long long *d_offset_iter,
+    curandStatePhilox4_32_10_t *st, const long long tid, const int num_qubits, const int X, const int Y, const int num_lattices, const int num_lattices_x_interaction);
+
+__device__ int commutator(int pauli1, int pauli2);
 
 #endif // WLUTILS_H

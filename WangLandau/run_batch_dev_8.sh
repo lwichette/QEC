@@ -13,9 +13,9 @@ walker_wl=8
 
 overlap_wl=0.25
 
-seed_hist=1
+seed_hist=1500
 
-seed_run=1000
+seed_run=42
 
 num_interactions=1000
 
@@ -23,15 +23,15 @@ replica_exchange_steps=50
 
 boundary_type=0
 
-intervals_wl=10
+intervals_wl=15
 
 iterations=1000
 
-time_limit=820
+time_limit=1000
 
 for probability in 0.08 0.09 0.1 0.11 0.12
   do
-    for size in 8 
+    for size in 10 
     do
       xval=$size
       yval=$size

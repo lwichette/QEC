@@ -23,8 +23,8 @@
 
 singularity exec --home /mnt/beegfs/data/QuDA-KI/qec/WangLandau --nv /mnt/beegfs/public/images/boost.sif /bin/bash -c "
 make \
-&& chmod +x run_batch_dev_6.sh \
-&& ./run_batch_dev_6.sh"
+&& chmod +x run_batch_dev_8.sh \
+&& ./run_batch_dev_8.sh"
 
 
 

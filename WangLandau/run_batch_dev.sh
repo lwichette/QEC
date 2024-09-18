@@ -31,11 +31,7 @@ time_limit=60
 
 for probability in 0.1
   do
-<<<<<<< HEAD
     for size in 12
-=======
-    for size in 4
->>>>>>> fe75fc3b78353641a130da57728772e254a26b37
     do
       xval=$size
       yval=$size

@@ -31,13 +31,13 @@ time_limit=1000
 
 for probability in 0.1 0.11 0.12
   do
-    for size in 4
+    for size in 10
     do
       xval=$size
       yval=$size
-      for error_type in I X Y Z
+      for error_type in Y
       do
-        ./prerun_-10 -x $xval -y $yval -p $probability -n $iterations -l 100 -w 100 -s $seed_hist -i 20 -e "$error_type" -b $boundary_type -r $num_interactions
+        ./prerun_-10 -x $xval -y $yval -p $probability -n $iterations -l 200 -w 100 -s $seed_hist -i 20 -e "$error_type" -b $boundary_type -r $num_interactions
 
         timeout $time_limit ./wl_-10 -x $xval -y $yval -n $iterations -p $probability -a $alpha -b $beta -i $intervals_wl -w $walker_wl -o $overlap_wl -s $seed_run -e "$error_type" -t $boundary_type -h $seed_hist -r $num_interactions -c $replica_exchange_steps
         if [ $? -eq 124 ]; then

@@ -191,4 +191,87 @@ int main(int argc, char **argv)
     //         std::cout << static_cast<int>(h_expected_energy_spectrum[j]) << std::endl;
     //     }
     // }
+
+    // f Factors for each walker
+    std::vector<double> h_factor(total_walker, exp(1.0));
+
+    double *d_factor;
+    CHECK_CUDA(cudaMalloc(&d_factor, total_walker * sizeof(*d_factor)));
+    CHECK_CUDA(cudaMemcpy(d_factor, h_factor.data(), total_walker * sizeof(*d_factor), cudaMemcpyHostToDevice));
+
+    // Indices used for replica exchange later
+    int *d_indices;
+    CHECK_CUDA(cudaMalloc(&d_indices, total_walker * sizeof(*d_indices)));
+
+    // interactions
+    double *d_interactions_r, *d_interactions_b, *d_interactions_down_four_body, *d_interactions_right_four_body; // single set of interaction arrays for all walkers to share
+    CHECK_CUDA(cudaMalloc(&d_interactions_r, num_interactions * 2 * X * Y * sizeof(*d_interactions_r)));
+    CHECK_CUDA(cudaMalloc(&d_interactions_b, num_interactions * 2 * X * Y * sizeof(*d_interactions_b)));
+    CHECK_CUDA(cudaMalloc(&d_interactions_down_four_body, num_interactions * X * Y * sizeof(*d_interactions_down_four_body)));
+    CHECK_CUDA(cudaMalloc(&d_interactions_right_four_body, num_interactions * X * Y * sizeof(*d_interactions_right_four_body)));
+
+    // declare b and r lattice
+    signed char *d_lattice_r, *d_lattice_b;
+    CHECK_CUDA(cudaMalloc(&d_lattice_b, total_walker * X * Y * sizeof(*d_lattice_b)));
+    CHECK_CUDA(cudaMalloc(&d_lattice_r, total_walker * X * Y * sizeof(*d_lattice_r)));
+
+    // Hamiltonian of lattices
+    double *d_energy;
+    CHECK_CUDA(cudaMalloc(&d_energy, total_walker * sizeof(*d_energy)));
+
+    // Binary indicator of energies were found or not
+    signed char *d_expected_energy_spectrum;
+    CHECK_CUDA(cudaMalloc(&d_expected_energy_spectrum, h_expected_energy_spectrum.size() * sizeof(*d_expected_energy_spectrum)));
+    CHECK_CUDA(cudaMemcpy(d_expected_energy_spectrum, h_expected_energy_spectrum.data(), h_expected_energy_spectrum.size() * sizeof(*d_expected_energy_spectrum), cudaMemcpyHostToDevice));
+
+    // To catch energies which are outside of expected spectrum
+    double *d_newEnergies;
+    int *d_foundNewEnergyFlag;
+    CHECK_CUDA(cudaMalloc(&d_newEnergies, total_walker * sizeof(*d_newEnergies)));
+    CHECK_CUDA(cudaMalloc(&d_foundNewEnergyFlag, total_walker * sizeof(*d_foundNewEnergyFlag)));
+
+    signed char *d_cond;
+    CHECK_CUDA(cudaMalloc(&d_cond, total_intervals * sizeof(*d_cond)));
+    CHECK_CUDA(cudaMemset(d_cond, 0, total_intervals * sizeof(*d_cond)));
+
+    int *d_cond_interactions;
+    CHECK_CUDA(cudaMalloc(&d_cond_interactions, num_interactions * sizeof(*d_cond_interactions)));
+    CHECK_CUDA(cudaMemset(d_cond_interactions, 0, num_interactions * sizeof(*d_cond_interactions)));
+
+    // host storage for the is finished flag per interaction stored in d_cond_interaction
+    int *h_cond_interactions;
+    h_cond_interactions = (int *)malloc(num_interactions * sizeof(*h_cond_interactions));
+
+    bool *h_result_is_dumped;
+    h_result_is_dumped = (bool *)calloc(num_interactions, sizeof(*h_result_is_dumped));
+
+    // Offsets
+    // lets write some comments about what these offsets are
+
+    int *d_offset_histogram_per_walker, *d_offset_lattice_per_walker;
+    unsigned long long *d_offset_iterator_per_walker;
+    CHECK_CUDA(cudaMalloc(&d_offset_histogram_per_walker, total_walker * sizeof(*d_offset_histogram_per_walker)));
+    CHECK_CUDA(cudaMalloc(&d_offset_lattice_per_walker, total_walker * sizeof(*d_offset_lattice_per_walker)));
+    CHECK_CUDA(cudaMalloc(&d_offset_iterator_per_walker, total_walker * sizeof(*d_offset_iterator_per_walker)));
+    CHECK_CUDA(cudaMemset(d_offset_iterator_per_walker, 0, total_walker * sizeof(*d_offset_iterator_per_walker)));
+
+    std::vector<int> h_offset_intervals(num_interactions + 1);
+
+    for (int i = 0; i < num_interactions; i++)
+    {
+        h_offset_intervals[i] = i * num_intervals;
+    }
+
+    h_offset_intervals[num_interactions] = total_intervals;
+
+    int *d_offset_intervals;
+    CHECK_CUDA(cudaMalloc(&d_offset_intervals, h_offset_intervals.size() * sizeof(*d_offset_intervals)));
+    CHECK_CUDA(cudaMemcpy(d_offset_intervals, h_offset_intervals.data(), h_offset_intervals.size() * sizeof(*d_offset_intervals), cudaMemcpyHostToDevice));
+
+    /*
+    ----------------------------------------------
+    ------------ Actual WL Starts Now ------------
+    ----------------------------------------------
+    */
+    return 0;
 }

@@ -2226,9 +2226,9 @@ __global__ void get_interaction_from_commutator(int *pauli_errors, double *int_X
         double comm_result_Y = scalar_commutator(pauli, 2); // * J_Y;
         double comm_result_Z = scalar_commutator(pauli, 3); //  * J_Z;
 
-        int_X[idx] = comm_result_X * J_X;
-        int_Y[idx] = comm_result_Y * J_Y;
-        int_Z[idx] = comm_result_Z * J_Z;
+        int_X[idx] = -comm_result_X * J_X;
+        int_Y[idx] = -comm_result_Y * J_Y;
+        int_Z[idx] = -comm_result_Z * J_Z;
 
         // printf("idx %lld int_X %f int_Y %f int_Z %f \n", idx, int_X[idx], int_Y[idx], int_Z[idx]);
     }
@@ -2246,9 +2246,9 @@ __global__ void get_interaction_from_commutator(int *pauli_errors, double *int_X
         double comm_result_Y = scalar_commutator(pauli, 2);
         double comm_result_Z = scalar_commutator(pauli, 3);
 
-        int_X[idx] = comm_result_X * J_X[qubit_id];
-        int_Y[idx] = comm_result_Y * J_Y[qubit_id];
-        int_Z[idx] = comm_result_Z * J_Z[qubit_id];
+        int_X[idx] = -comm_result_X * J_X[qubit_id];
+        int_Y[idx] = -comm_result_Y * J_Y[qubit_id];
+        int_Z[idx] = -comm_result_Z * J_Z[qubit_id];
 
         // printf("idx %lld int_X %f int_Y %f int_Z %f \n", idx, int_X[idx], int_Y[idx], int_Z[idx]);
     }

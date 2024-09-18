@@ -23,7 +23,7 @@ replica_exchange_steps=50
 
 boundary_type=0
 
-intervals_wl=15
+intervals_wl=10
 
 iterations=1000
 
@@ -31,7 +31,7 @@ time_limit=1000
 
 for probability in 0.1 0.11 0.12
   do
-    for size in 10
+    for size in 4
     do
       xval=$size
       yval=$size

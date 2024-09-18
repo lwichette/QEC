@@ -49,7 +49,7 @@ for probability in 0.1 0.11 0.12
 
         echo "Done with size $size, probability $probability, error type $error_type"
 
-	rm -rf ./init/*
+	rm -rf "init_$xval/*"
       done
     done
 done

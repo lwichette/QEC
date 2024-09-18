@@ -43,7 +43,7 @@ seed_hist=1
 
 seed_run=1000
 
-num_interactions=1
+num_interactions=2
 
 replica_exchange_steps=50
 

@@ -325,4 +325,8 @@ __device__ RBIM_eight_vertex eight_vertex_periodic_wl_step(
 
 __device__ int commutator(int pauli1, int pauli2);
 
+std::string eight_vertex_path(
+    bool is_qubit_specific_noise, float error_mean, float error_variance,
+    int X, int Y, int seed_hist, std::string type, bool x_horizontal_error, bool x_vertical_error,
+    bool z_horizontal_error, bool z_vertical_error);
 #endif // WLUTILS_H

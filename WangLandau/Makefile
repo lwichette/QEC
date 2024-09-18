@@ -7,7 +7,7 @@ LBOOSTFLAGS=-lboost_program_options
 
 ID ?= -10
 
-all: wl prerun prerun_eight_vertex
+all: wl prerun prerun_eight_vertex main_eight_vertex
 
 wl: main_WL.cu
 	$(CUDACC) $(NVCC_FLAGS) ./header/wlutils.cu main_WL.cu -o wl_$(ID) $(LDFLAGS) $(LBOOSTFLAGS)
@@ -17,6 +17,9 @@ prerun: main_prerun.cu
 
 prerun_eight_vertex: prerun_eight_vertex.cu
 	$(CUDACC) $(NVCC_FLAGS) ./header/wlutils.cu prerun_eight_vertex.cu -o prerun_eight_vertex_$(ID) $(LDFLAGS) $(LBOOSTFLAGS)
+
+main_eight_vertex: main_eight_vertex.cu
+	$(CUDACC) $(NVCC_FLAGS) ./header/wlutils.cu main_eight_vertex.cu -o main_eight_vertex_$(ID) $(LDFLAGS) $(LBOOSTFLAGS)
 
 
 clean:

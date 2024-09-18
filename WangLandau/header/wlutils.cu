@@ -2652,3 +2652,20 @@ __global__ void initialize_coupling_factors(double *prob_i_err, double *prob_x_e
     // printf("J params are rescaled by histogram_scale / max J_i. \n");
     // printf("idx: %d j_i: %.10f j_x: %.10f j_y: %.10f j_z: %.10f \n", idx, d_J_i[idx], d_J_x[idx], d_J_y[idx], d_J_z[idx]);
 }
+
+std::string eight_vertex_path(
+    bool is_qubit_specific_noise, float error_mean, float error_variance,
+    int X, int Y, int seed_hist, std::string type, bool x_horizontal_error, bool x_vertical_error,
+    bool z_horizontal_error, bool z_vertical_error)
+{
+    std::string error_string = std::to_string(x_horizontal_error) + std::to_string(x_vertical_error) + std::to_string(z_horizontal_error) + std::to_string(z_vertical_error);
+    std::stringstream strstr;
+    strstr << "init/eight_vertex/periodic/qubit_specific_noise_" << std::to_string(is_qubit_specific_noise);
+    strstr << "/error_mean_" << std::fixed << std::setprecision(6) << error_mean << "_error_variance_" << error_variance;
+    strstr << "/X_" << X << "_Y_" << Y;
+    strstr << "/seed_" << seed_hist;
+    strstr << "/error_class_" << error_string;
+    strstr << "/" << type << "/" << type << ".txt";
+
+    return strstr.str();
+}

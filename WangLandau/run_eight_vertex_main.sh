@@ -1,0 +1,80 @@
+#!/bin/bash
+
+prob_x_default=0.1
+prob_z_default=0.1
+prob_y_default=0.1
+
+# Check if arguments for pX pZ are provided for decoupled scenario
+if [ "$#" -eq 2 ]; then
+    echo "Usage: $0 pX pZ"
+
+    # Read input parameters
+    pX=$1
+    pZ=$2
+
+    prob_i=$(echo "(1 - $pX) * (1 - $pZ)" | bc -l)
+    prob_x=$(echo "$pX * (1 - $pZ)" | bc -l)
+    prob_z=$(echo "(1 - $pX) * $pZ" | bc -l)
+    prob_y=$(echo "$pX * $pZ" | bc -l)
+
+    echo "Decoupled scenario with provided arguments: pX = $pX and pZ = $pZ."
+else
+    prob_x=$prob_x_default
+    prob_z=$prob_z_default
+    prob_y=$prob_y_default
+
+    echo "Non decoupled scenario."
+fi
+
+LOGFILE="script.log"
+exec > >(tee -a "$LOGFILE") 2>&1
+
+SECONDS=0
+
+alpha=0.8
+
+beta=0.000001
+
+walker_wl=5
+
+overlap_wl=0.25
+
+seed_hist=1
+
+seed_run=1000
+
+num_interactions=1
+
+replica_exchange_steps=50
+
+intervals_wl=10
+
+iterations=10000
+
+time_limit=600
+
+x_horizontal_error=0
+
+x_vertical_error=0
+
+z_horizontal_error=0
+
+z_vertical_error=0
+
+error_mean=0.3
+
+error_variance=0.001
+
+xval=4
+
+yval=4
+
+timeout $time_limit ./main_eight_vertex_-10 -a $alpha -b $beta -c $x_horizontal_error -d $x_vertical_error -e $z_horizontal_error -f $z_vertical_error -g $prob_x -h $prob_y -i $prob_z -k -l 2 -m 20 -n 1000 -o 0.25 -p $seed_hist -q 42 -r 1 -s 2 -t $error_mean -u $error_variance -w 5 -x $xval -y $yval
+if [ $? -eq 124 ]; then
+    echo "prerun timed out after $time_limit seconds."
+fi
+
+seed_run=$(($seed_run + 1))
+
+duration=$SECONDS
+echo "Total runtime: $((duration / 60)) minutes and $((duration % 60)) seconds."

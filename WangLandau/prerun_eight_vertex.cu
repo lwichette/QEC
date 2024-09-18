@@ -454,16 +454,18 @@ int main(int argc, char **argv)
     CHECK_CUDA(cudaMemcpy(h_store_lattice_r.data(), d_store_lattice_r, X * Y * total_intervals * sizeof(*d_store_lattice_r), cudaMemcpyDeviceToHost));
     CHECK_CUDA(cudaMemcpy(h_H.data(), d_H, len_total_histogram * sizeof(*d_H), cudaMemcpyDeviceToHost));
 
+    std::string error_string = std::to_string(x_horizontal_error) + std::to_string(x_vertical_error) + std::to_string(z_horizontal_error) + std::to_string(z_vertical_error);
     std::string path;
+
     for (int i = 0; i < num_interactions; i++)
     {
         if (is_qubit_specific_noise)
         {
-            path = "init/eight_vertex/periodic/qubit_specific_noise_1/error_mean_" + std::to_string(error_mean) + "__error_variance_" + std::to_string(error_variance) + "/X_" + std::to_string(X) + "_Y_" + std::to_string(Y) + "/seed_" + std::to_string(seed + i) + "/error_class_I";
+            path = "init/eight_vertex/periodic/qubit_specific_noise_1/error_mean_" + std::to_string(error_mean) + "_error_variance_" + std::to_string(error_variance) + "/X_" + std::to_string(X) + "_Y_" + std::to_string(Y) + "/seed_" + std::to_string(seed + i) + "/error_class_" + error_string;
         }
         else
         {
-            path = "init/eight_vertex/periodic/qubit_specific_noise_0/prob_X_" + std::to_string(prob_x_err) + "__prob_Y_" + std::to_string(prob_y_err) + "__prob_Z_" + std::to_string(prob_z_err) + "/X_" + std::to_string(X) + "_Y_" + std::to_string(Y) + "/seed_" + std::to_string(seed + i) + "/error_class_I";
+            path = "init/eight_vertex/periodic/qubit_specific_noise_0/prob_X_" + std::to_string(prob_x_err) + "_prob_Y_" + std::to_string(prob_y_err) + "_prob_Z_" + std::to_string(prob_z_err) + "/X_" + std::to_string(X) + "_Y_" + std::to_string(Y) + "/seed_" + std::to_string(seed + i) + "/error_class_" + error_string;
         }
 
         int offset_interactions = i * 2 * X * Y;       // for interactions closed on a single colored sublattice

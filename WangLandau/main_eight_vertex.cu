@@ -188,6 +188,12 @@ int main(int argc, char **argv)
     CHECK_CUDA(cudaMalloc(&d_len_energy_spectrum, num_interactions * sizeof(*d_len_energy_spectrum)));
     CHECK_CUDA(cudaMemcpy(d_len_energy_spectrum, h_len_energy_spectrum.data(), num_interactions * sizeof(*d_len_energy_spectrum), cudaMemcpyHostToDevice));
 
+    int *d_offset_energy_spectrum, *d_len_energy_spectrum;
+    CHECK_CUDA(cudaMalloc(&d_offset_energy_spectrum, num_interactions * sizeof(*d_offset_energy_spectrum)));
+    CHECK_CUDA(cudaMemcpy(d_offset_energy_spectrum, h_offset_energy_spectrum.data(), num_interactions * sizeof(*d_offset_energy_spectrum), cudaMemcpyHostToDevice));
+    CHECK_CUDA(cudaMalloc(&d_len_energy_spectrum, num_interactions * sizeof(*d_len_energy_spectrum)));
+    CHECK_CUDA(cudaMemcpy(d_len_energy_spectrum, h_len_energy_spectrum.data(), num_interactions * sizeof(*d_len_energy_spectrum), cudaMemcpyHostToDevice));
+
     // Generate intervals for all different energy spectrums
     std::vector<int> h_end_int;
     std::vector<int> h_start_int;

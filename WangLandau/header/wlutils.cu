@@ -2405,6 +2405,26 @@ __global__ void get_interaction_from_commutator(int *pauli_errors, double *int_X
     }
 }
 
+__global__ void get_interaction_from_commutator(int *pauli_errors, double *int_X, double *int_Y, double *int_Z, const int num_qubits, const int num_interactions, double *J_X, double *J_Y, double *J_Z)
+{
+    unsigned long long idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < num_interactions * num_qubits)
+    {
+        int qubit_id = idx % num_qubits;
+        int pauli = pauli_errors[idx];
+
+        double comm_result_X = scalar_commutator(pauli, 1);
+        double comm_result_Y = scalar_commutator(pauli, 2);
+        double comm_result_Z = scalar_commutator(pauli, 3);
+
+        int_X[idx] = comm_result_X * J_X[qubit_id];
+        int_Y[idx] = comm_result_Y * J_Y[qubit_id];
+        int_Z[idx] = comm_result_Z * J_Z[qubit_id];
+
+        // printf("idx %lld int_X %f int_Y %f int_Z %f \n", idx, int_X[idx], int_Y[idx], int_Z[idx]);
+    }
+}
+
 __global__ void init_interactions_eight_vertex(double *int_X, double *int_Y, double *int_Z, const int num_qubits, const int num_interactions, int X, int Y, double *int_r, double *int_b, double *d_interactions_down_four_body, double *d_interactions_right_four_body)
 {
 
@@ -2735,4 +2755,72 @@ __global__ void test_eight_vertex_periodic_wl_step(
 
     double d_new_energy = d_energy[tid] + energy_diff;
     printf("interaction_id=%d tid=%lld energy diff=%.6f new energy=%.6f\n", int_id, tid, energy_diff, d_new_energy);
+}
+
+__global__ void initialize_Gaussian_error_rates(double *d_prob_i, double *d_prob_x, double *d_prob_y, double *d_prob_z, int num_qubits, int num_interactions, double error_rate_mean, double error_rate_variance, unsigned long long seed)
+{
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= num_qubits * num_interactions)
+        return;
+
+    curandStatePhilox4_32_10_t state;
+    curand_init(seed, idx, 0, &state);
+
+    // Generate a Gaussian distributed value with given mean and variance
+    double randomValue = curand_normal_double(&state) * sqrt(error_rate_variance) + error_rate_mean;
+
+    // Bound error probabilities between 1e-14 and 0.5
+    if (randomValue <= 0.0)
+        randomValue = 1e-25;
+    if (randomValue > 0.5)
+        randomValue = 0.5;
+
+    double unbiased_error_probability = randomValue / 3;
+
+    d_prob_i[idx] = 1 - randomValue;
+    d_prob_x[idx] = unbiased_error_probability;
+    d_prob_y[idx] = unbiased_error_probability;
+    d_prob_z[idx] = unbiased_error_probability;
+
+    // printf("idx: %d prob_i: %.10f prob_x: %.10f prob_y: %.10f prob_z: %.10f \n", idx, d_prob_i[idx], d_prob_x[idx], d_prob_y[idx], d_prob_z[idx]);
+}
+
+__global__ void initialize_coupling_factors(double *prob_i_err, double *prob_x_err, double *prob_y_err, double *prob_z_err, int num_qubits, int num_interactions, int histogram_scale, double *d_J_i, double *d_J_x, double *d_J_y, double *d_J_z)
+{
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= num_qubits * num_interactions)
+        return;
+
+    // Coupling strength from Nishimori condition in https://arxiv.org/pdf/1809.10704 eq 15 with beta = 1.
+    double J_i = log(prob_i_err[idx] * prob_x_err[idx] * prob_y_err[idx] * prob_z_err[idx]) / 4;
+    double J_x = log((prob_i_err[idx] * prob_x_err[idx]) / (prob_y_err[idx] * prob_z_err[idx])) / 4;
+    double J_y = log((prob_i_err[idx] * prob_y_err[idx]) / (prob_x_err[idx] * prob_z_err[idx])) / 4;
+    double J_z = log((prob_i_err[idx] * prob_z_err[idx]) / (prob_x_err[idx] * prob_y_err[idx])) / 4;
+
+    double abs_J_X = fabs(J_x);
+    double abs_J_Y = fabs(J_y);
+    double abs_J_Z = fabs(J_z);
+
+    // Find the maximum of the absolute values using fmax
+    double max_J = fmax(fmax(abs_J_X, abs_J_Y), abs_J_Z);
+
+    // Ensure max_J is non-zero to avoid division by zero
+    if (max_J > 0)
+    {
+        // Rescale the J values
+        d_J_i[idx] = J_i * (histogram_scale / max_J);
+        d_J_x[idx] = J_x * (histogram_scale / max_J);
+        d_J_y[idx] = J_y * (histogram_scale / max_J);
+        d_J_z[idx] = J_z * (histogram_scale / max_J);
+    }
+
+    // // // TEST BLOCK
+    // // // -----------
+    // // d_J_x[idx] = 1;
+    // // d_J_y[idx] = 1;
+    // // d_J_z[idx] = 1;
+    // // // -----------
+
+    // printf("J params are rescaled by histogram_scale / max J_i. \n");
+    // printf("idx: %d j_i: %.10f j_x: %.10f j_y: %.10f j_z: %.10f \n", idx, d_J_i[idx], d_J_x[idx], d_J_y[idx], d_J_z[idx]);
 }

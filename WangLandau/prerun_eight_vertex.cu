@@ -157,62 +157,6 @@ int main(int argc, char **argv)
     int total_walker = num_interactions * walker_per_interaction;
     int total_intervals = num_interactions * num_intervals_per_interaction;
 
-    // Coupling strength from Nishimori condition in https://arxiv.org/pdf/1809.10704 eq 15 with beta = 1.
-    double J_I = std::log(prob_i_err * prob_x_err * prob_y_err * prob_z_err) / 4;
-    double J_X = std::log((prob_i_err * prob_x_err) / (prob_y_err * prob_z_err)) / 4;
-    double J_Y = std::log((prob_i_err * prob_y_err) / (prob_x_err * prob_z_err)) / 4;
-    double J_Z = std::log((prob_i_err * prob_z_err) / (prob_x_err * prob_y_err)) / 4;
-
-    // Find the maximum absolute value of J_X, J_Y, J_Z to bound the energy range
-    double max_J = std::max({std::abs(J_X), std::abs(J_Y), std::abs(J_Z)});
-
-    // Rescale the J values
-    J_I *= (histogram_scale / max_J);
-    J_X *= (histogram_scale / max_J);
-    J_Y *= (histogram_scale / max_J);
-    J_Z *= (histogram_scale / max_J);
-
-    // double *d_prob_I;
-    // double *d_prob_X;
-    // double *d_prob_Y;
-    // double *d_prob_Z;
-
-    // // TEST BLOCK
-    // // -----------
-    // J_X = 1;
-    // J_Y = 1;
-    // J_Z = 1;
-
-    // and for qubit specific noise model test via:
-
-    // double *h_prob_I
-    // double *h_prob_X
-    // double *h_prob_Y
-    // double *h_prob_Z
-
-    // double *h_array = new double[num_qubits];
-    // size_t size = n * sizeof(double);
-
-    // // Initialize host array with the value a
-    // for (int i = 0; i < n; ++i)
-    // {
-    //     h_array[i] = a;
-    // }
-
-    // // Allocate device memory
-    // cudaMalloc((void **)&d_array, size);
-
-    // // Copy host array to device
-    // cudaMemcpy(d_array, h_array, size, cudaMemcpyHostToDevice);
-
-    // // Clean up host memory
-    // delete[] h_array;
-
-    // // -----------
-
-    std::cout << "J params rescaled by hist_scale/ absolute max of J_i = " << histogram_scale / max_J << ":" << std::endl;
-    std::cout << "J_I = " << J_I << " J_X = " << J_X << " J_Y = " << J_Y << " J_Z = " << J_Z << std::endl;
-
     // declaration of Pauli error over grid of qubits
     int *d_pauli_errors;
     CHECK_CUDA(cudaMalloc(&d_pauli_errors, num_interactions * num_qubits * sizeof(*d_pauli_errors)));
@@ -269,9 +213,6 @@ int main(int argc, char **argv)
     signed char *d_lattice_r, *d_lattice_b;
     CHECK_CUDA(cudaMalloc(&d_lattice_b, total_walker * X * Y * sizeof(*d_lattice_b)));
     CHECK_CUDA(cudaMalloc(&d_lattice_r, total_walker * X * Y * sizeof(*d_lattice_r)));
-    // // init lattices for testing with spin up
-    // CHECK_CUDA(cudaMemset(d_lattice_b, 1, total_walker * X * Y * sizeof(*d_lattice_b)));
-    // CHECK_CUDA(cudaMemset(d_lattice_r, 1, total_walker * X * Y * sizeof(*d_lattice_r)));
 
     double factor = std::exp(1);
 
@@ -297,6 +238,32 @@ int main(int argc, char **argv)
     unsigned long long *d_iter;
     CHECK_CUDA(cudaMalloc(&d_iter, total_walker * sizeof(*d_iter)));
     CHECK_CUDA(cudaMemset(d_iter, 0, total_walker * sizeof(*d_iter)));
+
+    double *d_prob_I;
+    double *d_prob_X;
+    double *d_prob_Y;
+    double *d_prob_Z;
+    CHECK_CUDA(cudaMalloc(&d_prob_I, total_walker * sizeof(*d_prob_I)));
+    CHECK_CUDA(cudaMemset(d_prob_I, 0, total_walker * sizeof(*d_prob_I)));
+    CHECK_CUDA(cudaMalloc(&d_prob_X, total_walker * sizeof(*d_prob_X)));
+    CHECK_CUDA(cudaMemset(d_prob_X, 0, total_walker * sizeof(*d_prob_X)));
+    CHECK_CUDA(cudaMalloc(&d_prob_Y, total_walker * sizeof(*d_prob_Y)));
+    CHECK_CUDA(cudaMemset(d_prob_Y, 0, total_walker * sizeof(*d_prob_Y)));
+    CHECK_CUDA(cudaMalloc(&d_prob_Z, total_walker * sizeof(*d_prob_Z)));
+    CHECK_CUDA(cudaMemset(d_prob_Z, 0, total_walker * sizeof(*d_prob_Z)));
+
+    double *d_J_I;
+    double *d_J_X;
+    double *d_J_Y;
+    double *d_J_Z;
+    CHECK_CUDA(cudaMalloc(&d_J_I, total_walker * sizeof(*d_J_I)));
+    CHECK_CUDA(cudaMemset(d_J_I, 0, total_walker * sizeof(*d_J_I)));
+    CHECK_CUDA(cudaMalloc(&d_J_X, total_walker * sizeof(*d_J_X)));
+    CHECK_CUDA(cudaMemset(d_J_X, 0, total_walker * sizeof(*d_J_X)));
+    CHECK_CUDA(cudaMalloc(&d_J_Y, total_walker * sizeof(*d_J_Y)));
+    CHECK_CUDA(cudaMemset(d_J_Y, 0, total_walker * sizeof(*d_J_Y)));
+    CHECK_CUDA(cudaMalloc(&d_J_Z, total_walker * sizeof(*d_J_Z)));
+    CHECK_CUDA(cudaMemset(d_J_Z, 0, total_walker * sizeof(*d_J_Z)));
 
     float *d_probs; // for lattice init
     CHECK_CUDA(cudaMalloc(&d_probs, total_walker * sizeof(*d_probs)));
@@ -326,17 +293,28 @@ int main(int argc, char **argv)
     int blocks_total_walker_x_thread = (total_walker + threads_per_block - 1) / threads_per_block;
     int blocks_total_intervals_x_thread = (total_intervals + threads_per_block - 1) / threads_per_block;
 
-    generate_pauli_errors<<<blocks_qubit_x_thread, threads_per_block>>>(d_pauli_errors, num_qubits, X, num_interactions, seed - 1, prob_i_err, prob_x_err, prob_y_err, prob_z_err, x_horizontal_error, x_vertical_error, z_horizontal_error, z_vertical_error);
+    // initialize error probability array with qubit specific error rates
+    initialize_Gaussian_error_rates<<<blocks_qubit_x_thread, threads_per_block>>>(d_prob_I, d_prob_X, d_prob_Y, d_prob_Z, num_qubits, num_interactions, 0.001, 0.00001, seed - 1);
     cudaDeviceSynchronize();
 
-    get_interaction_from_commutator<<<blocks_qubit_x_thread, threads_per_block>>>(d_pauli_errors, d_interactions_x, d_interactions_y, d_interactions_z, num_qubits, num_interactions, J_X, J_Y, J_Z);
+    // initialize qubit specific couplings based on error rates from kernel before
+    initialize_coupling_factors<<<blocks_qubit_x_thread, threads_per_block>>>(d_prob_I, d_prob_X, d_prob_Y, d_prob_Z, num_qubits, num_interactions, histogram_scale, d_J_I, d_J_X, d_J_Y, d_J_Z);
     cudaDeviceSynchronize();
 
+    // generate errors on the qubits based on qubit specific error distributions
+    generate_pauli_errors<<<blocks_qubit_x_thread, threads_per_block>>>(d_pauli_errors, num_qubits, X, num_interactions, seed - 2, d_prob_I, d_prob_X, d_prob_Y, d_prob_Z, x_horizontal_error, x_vertical_error, z_horizontal_error, z_vertical_error);
+    cudaDeviceSynchronize();
+
+    // derive interaction terms in Hamiltonian from commutator action
+    get_interaction_from_commutator<<<blocks_qubit_x_thread, threads_per_block>>>(d_pauli_errors, d_interactions_x, d_interactions_y, d_interactions_z, num_qubits, num_interactions, d_J_X, d_J_Y, d_J_Z);
+    cudaDeviceSynchronize();
+
+    // order the interaction terms in well defined scheme
     init_interactions_eight_vertex<<<blocks_qubit_x_thread, threads_per_block>>>(d_interactions_x, d_interactions_y, d_interactions_z, num_qubits, num_interactions, X, 2 * Y, d_interactions_r, d_interactions_b, d_interactions_down_four_body, d_interactions_right_four_body);
     cudaDeviceSynchronize();
 
-    init_lattice<<<blocks_spins_single_color_x_thread, threads_per_block>>>(d_lattice_b, d_probs, X, Y, total_walker, seed - 2);
-    init_lattice<<<blocks_spins_single_color_x_thread, threads_per_block>>>(d_lattice_r, d_probs, X, Y, total_walker, seed - 3);
+    init_lattice<<<blocks_spins_single_color_x_thread, threads_per_block>>>(d_lattice_b, d_probs, X, Y, total_walker, seed - 3);
+    init_lattice<<<blocks_spins_single_color_x_thread, threads_per_block>>>(d_lattice_r, d_probs, X, Y, total_walker, seed - 4);
     init_offsets_lattice<<<blocks_total_walker_x_thread, threads_per_block>>>(d_offset_lattice_per_walker, X, Y, total_walker);
     init_offsets_lattice<<<blocks_total_walker_x_thread, threads_per_block>>>(d_offset_lattice_per_interval, X, Y, total_intervals);
     cudaDeviceSynchronize();
@@ -398,10 +376,6 @@ int main(int argc, char **argv)
         CHECK_CUDA(cudaMemcpy(test_energies.data(), d_energy, total_walker * sizeof(*d_energy), cudaMemcpyDeviceToHost)); // get energies from calc energy function
         for (int idx = 0; idx < total_walker; idx++)
         {
-            // if (idx == 0)
-            // {
-            //     std::cout << "calc energy: " << test_energies[idx] << " wl calc energy: " << test_energies_wl[idx] << " Diff: " << std::abs(test_energies_wl[idx] - test_energies[idx]) << std::endl;
-            // }
             if (std::abs(test_energies_wl[idx] - test_energies[idx]) > 0.000001)
             {
                 std::cerr << "Assertion failed for iteration: " << i << " walker idx: " << idx << " calc energy: " << test_energies[idx] << " wl calc energy: " << test_energies_wl[idx] << " Diff: " << std::abs(test_energies_wl[idx] - test_energies[idx]) << std::endl;

@@ -257,27 +257,6 @@ std::vector<signed char> read_histogram(std::string filename, std::vector<int> &
     return energy_spectrum;
 }
 
-void read(std::vector<signed char> &lattice, std::string filename)
-{
-
-    std::ifstream inputFile(filename);
-
-    if (!inputFile)
-    {
-        std::cerr << "Unable to open file " << filename << std::endl;
-        return;
-    }
-
-    int spin = 0;
-
-    while (inputFile >> spin)
-    {
-        lattice.push_back(static_cast<signed char>(spin));
-    }
-
-    return;
-}
-
 // It is important that the format of the histogramm file is like energy: count such that we can append a row with new_energy: 1
 void handleNewEnergyError(int *new_energies, int *new_energies_flag, char *histogram_file, int num_walkers_total)
 {
@@ -393,7 +372,7 @@ std::vector<signed char> get_lattice_with_pre_run_result(float prob, int seed, i
                             // std::cout << "Processing file: " << entry.path() << " with energy: " << number << " for interval [" << h_start[interval_iterator] << ", " << h_end[interval_iterator] << "]" << std::endl;
                             for (int walker_per_interval_iterator = 0; walker_per_interval_iterator < num_walkers_per_interval; walker_per_interval_iterator++)
                             {
-                                read(lattice_over_all_walkers, entry.path().string());
+                                read<signed char>(lattice_over_all_walkers, entry.path().string());
                             }
                             break;
                         }
@@ -2653,19 +2632,50 @@ __global__ void initialize_coupling_factors(double *prob_i_err, double *prob_x_e
     // printf("idx: %d j_i: %.10f j_x: %.10f j_y: %.10f j_z: %.10f \n", idx, d_J_i[idx], d_J_x[idx], d_J_y[idx], d_J_z[idx]);
 }
 
-std::string eight_vertex_path(
+std::string eight_vertex_histogram_path(
     bool is_qubit_specific_noise, float error_mean, float error_variance,
-    int X, int Y, int seed_hist, std::string type, bool x_horizontal_error, bool x_vertical_error,
-    bool z_horizontal_error, bool z_vertical_error)
+    int X, int Y, int seed_hist, bool x_horizontal_error, bool x_vertical_error,
+    bool z_horizontal_error, bool z_vertical_error, float prob_x_err, float prob_y_err, float prob_z_err)
 {
     std::string error_string = std::to_string(x_horizontal_error) + std::to_string(x_vertical_error) + std::to_string(z_horizontal_error) + std::to_string(z_vertical_error);
     std::stringstream strstr;
-    strstr << "init/eight_vertex/periodic/qubit_specific_noise_" << std::to_string(is_qubit_specific_noise);
-    strstr << "/error_mean_" << std::fixed << std::setprecision(6) << error_mean << "_error_variance_" << error_variance;
+    strstr << "init/eight_vertex/periodic/qubit_specific_noise_" << std::to_string(is_qubit_specific_noise) << "/";
+    if (is_qubit_specific_noise)
+    {
+        strstr << "error_mean_" << std::fixed << std::setprecision(6) << error_mean << "_error_variance_" << error_variance;
+    }
+    else
+    {
+        strstr << "prob_X_" + std::to_string(prob_x_err) + "_prob_Y_" + std::to_string(prob_y_err) + "_prob_Z_" + std::to_string(prob_z_err);
+    }
     strstr << "/X_" << X << "_Y_" << Y;
     strstr << "/seed_" << seed_hist;
     strstr << "/error_class_" << error_string;
-    strstr << "/" << type << "/" << type << ".txt";
+    strstr << "/histogram/histogram.txt";
+
+    return strstr.str();
+}
+
+std::string eight_vertex_interaction_path(
+    bool is_qubit_specific_noise, float error_mean, float error_variance,
+    int X, int Y, int seed_hist, bool x_horizontal_error, bool x_vertical_error,
+    bool z_horizontal_error, bool z_vertical_error, std::string interaction_type, float prob_x_err, float prob_y_err, float prob_z_err)
+{
+    std::string error_string = std::to_string(x_horizontal_error) + std::to_string(x_vertical_error) + std::to_string(z_horizontal_error) + std::to_string(z_vertical_error);
+    std::stringstream strstr;
+    strstr << "init/eight_vertex/periodic/qubit_specific_noise_" << std::to_string(is_qubit_specific_noise) << "/" << std::fixed << std::setprecision(6);
+    if (is_qubit_specific_noise)
+    {
+        strstr << "error_mean_" << error_mean << "_error_variance_" << error_variance;
+    }
+    else
+    {
+        strstr << "prob_X_" + std::to_string(prob_x_err) + "_prob_Y_" + std::to_string(prob_y_err) + "_prob_Z_" + std::to_string(prob_z_err);
+    }
+    strstr << "/X_" << X << "_Y_" << Y;
+    strstr << "/seed_" << seed_hist;
+    strstr << "/error_class_" << error_string;
+    strstr << "/interactions/interactions_" << interaction_type << ".txt";
 
     return strstr.str();
 }

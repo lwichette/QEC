@@ -155,6 +155,28 @@ inline void write(
     return;
 }
 
+template <typename T>
+void read(std::vector<T> &lattice, std::string filename)
+{
+
+    std::ifstream inputFile(filename);
+
+    if (!inputFile)
+    {
+        std::cerr << "Unable to open file " << filename << std::endl;
+        return;
+    }
+
+    T spin = 0;
+
+    while (inputFile >> spin)
+    {
+        lattice.push_back(static_cast<T>(spin));
+    }
+
+    return;
+}
+
 void create_directory(std::string path);
 
 void write_histograms(unsigned long long *d_H, std::string path_histograms, int len_histogram, int seed, int E_min);
@@ -325,8 +347,14 @@ __device__ RBIM_eight_vertex eight_vertex_periodic_wl_step(
 
 __device__ int commutator(int pauli1, int pauli2);
 
-std::string eight_vertex_path(
+std::string eight_vertex_histogram_path(
     bool is_qubit_specific_noise, float error_mean, float error_variance,
-    int X, int Y, int seed_hist, std::string type, bool x_horizontal_error, bool x_vertical_error,
-    bool z_horizontal_error, bool z_vertical_error);
+    int X, int Y, int seed_hist, bool x_horizontal_error, bool x_vertical_error,
+    bool z_horizontal_error, bool z_vertical_error, float prob_x_err, float prob_y_err, float prob_z_err);
+
+std::string eight_vertex_interaction_path(
+    bool is_qubit_specific_noise, float error_mean, float error_variance,
+    int X, int Y, int seed_hist, bool x_horizontal_error, bool x_vertical_error,
+    bool z_horizontal_error, bool z_vertical_error, std::string interaction_type, float prob_x_err, float prob_y_err, float prob_z_err);
+
 #endif // WLUTILS_H

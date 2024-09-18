@@ -172,7 +172,8 @@ int main(int argc, char **argv)
 
     for (int i = 0; i < num_interactions; i++)
     {
-        std::string hist_path = eight_vertex_path(is_qubit_specific_noise, error_mean, error_variance, X, Y, seed_hist + i, "histogram", x_horizontal_error, x_vertical_error, z_horizontal_error, z_vertical_error);
+        std::string hist_path = eight_vertex_histogram_path(is_qubit_specific_noise, error_mean, error_variance, X, Y, seed_hist + i, x_horizontal_error, x_vertical_error, z_horizontal_error, z_vertical_error, prob_x_err, prob_y_err, prob_z_err);
+
         std::vector<signed char> energy_spectrum = read_histogram(hist_path, E_min, E_max);
 
         h_expected_energy_spectrum.insert(h_expected_energy_spectrum.end(),
@@ -182,12 +183,6 @@ int main(int argc, char **argv)
         total_len_energy_spectrum += energy_spectrum.size();
         h_len_energy_spectrum.push_back(energy_spectrum.size());
     }
-    int *d_offset_energy_spectrum, *d_len_energy_spectrum;
-    CHECK_CUDA(cudaMalloc(&d_offset_energy_spectrum, num_interactions * sizeof(*d_offset_energy_spectrum)));
-    CHECK_CUDA(cudaMemcpy(d_offset_energy_spectrum, h_offset_energy_spectrum.data(), num_interactions * sizeof(*d_offset_energy_spectrum), cudaMemcpyHostToDevice));
-    CHECK_CUDA(cudaMalloc(&d_len_energy_spectrum, num_interactions * sizeof(*d_len_energy_spectrum)));
-    CHECK_CUDA(cudaMemcpy(d_len_energy_spectrum, h_len_energy_spectrum.data(), num_interactions * sizeof(*d_len_energy_spectrum), cudaMemcpyHostToDevice));
-
     int *d_offset_energy_spectrum, *d_len_energy_spectrum;
     CHECK_CUDA(cudaMalloc(&d_offset_energy_spectrum, num_interactions * sizeof(*d_offset_energy_spectrum)));
     CHECK_CUDA(cudaMemcpy(d_offset_energy_spectrum, h_offset_energy_spectrum.data(), num_interactions * sizeof(*d_offset_energy_spectrum), cudaMemcpyHostToDevice));
@@ -333,10 +328,60 @@ int main(int argc, char **argv)
     CHECK_CUDA(cudaMalloc(&d_offset_intervals, h_offset_intervals.size() * sizeof(*d_offset_intervals)));
     CHECK_CUDA(cudaMemcpy(d_offset_intervals, h_offset_intervals.data(), h_offset_intervals.size() * sizeof(*d_offset_intervals), cudaMemcpyHostToDevice));
 
+    init_offsets_lattice<<<total_intervals, walker_per_interval>>>(d_offset_lattice_per_walker, X, Y, total_walker);
+    init_offsets_histogramm<<<total_intervals, walker_per_interval>>>(d_offset_histogram_per_walker, d_start, d_end, d_len_histograms, num_intervals, total_walker);
+    init_indices<<<total_intervals, walker_per_interval>>>(d_indices, total_walker);
+    cudaDeviceSynchronize();
+
+    std::vector<double> h_interactions_r;
+    std::vector<double> h_interactions_b;
+    std::vector<double> h_interactions_four_body_down;
+    std::vector<double> h_interactions_four_body_right;
+    for (int i = 0; i < num_interactions; i++)
+    {
+        std::string run_int_path_b = eight_vertex_interaction_path(is_qubit_specific_noise, error_mean, error_variance, X, Y, seed_hist + i, x_horizontal_error, x_vertical_error, z_horizontal_error, z_vertical_error, "b", prob_x_err, prob_y_err, prob_z_err);
+        std::string run_int_path_r = eight_vertex_interaction_path(is_qubit_specific_noise, error_mean, error_variance, X, Y, seed_hist + i, x_horizontal_error, x_vertical_error, z_horizontal_error, z_vertical_error, "r", prob_x_err, prob_y_err, prob_z_err);
+        std::string run_int_path_four_body_down = eight_vertex_interaction_path(is_qubit_specific_noise, error_mean, error_variance, X, Y, seed_hist + i, x_horizontal_error, x_vertical_error, z_horizontal_error, z_vertical_error, "four_body_down", prob_x_err, prob_y_err, prob_z_err);
+        std::string run_int_path_four_body_right = eight_vertex_interaction_path(is_qubit_specific_noise, error_mean, error_variance, X, Y, seed_hist + i, x_horizontal_error, x_vertical_error, z_horizontal_error, z_vertical_error, "four_body_right", prob_x_err, prob_y_err, prob_z_err);
+
+        std::vector<double> run_interactions_r;
+        std::vector<double> run_interactions_b;
+        std::vector<double> run_interactions_four_body_down;
+        std::vector<double> run_interactions_four_body_right;
+
+        read<double>(run_interactions_r, run_int_path_r);
+        read<double>(run_interactions_b, run_int_path_b);
+        read<double>(run_interactions_four_body_down, run_int_path_four_body_down);
+        read<double>(run_interactions_four_body_right, run_int_path_four_body_right);
+
+        h_interactions_r.insert(h_interactions_r.end(), run_interactions_r.begin(), run_interactions_r.end());
+        h_interactions_b.insert(h_interactions_b.end(), run_interactions_b.begin(), run_interactions_b.end());
+        h_interactions_four_body_down.insert(h_interactions_four_body_down.end(), run_interactions_four_body_down.begin(), run_interactions_four_body_down.end());
+        h_interactions_four_body_right.insert(h_interactions_four_body_right.end(), run_interactions_four_body_right.begin(), run_interactions_four_body_right.end());
+    }
+
+    // // TEST BLOCK
+    // for (int i = 0; i < num_interactions; i++)
+    // {
+    //     int offset_interactions = i * 2 * X * Y;       // for interactions closed on a single colored sublattice
+    //     int offset_four_body_interactions = i * X * Y; // for interactions closed on a single colored sublattice
+    //     int offset_lattice = i * num_intervals * X * Y;
+    //     int offset_energies = i * num_intervals;
+
+    //     create_directory("TEST_READ/interactions");
+
+    //     write(h_interactions_b.data() + offset_interactions, "TEST_READ/interactions/interactions_b", 2 * Y, X, 1, false);
+    //     write(h_interactions_r.data() + offset_interactions, "TEST_READ/interactions/interactions_r", 2 * Y, X, 1, false);
+    //     write(h_interactions_four_body_right.data() + offset_four_body_interactions, "TEST_READ/interactions/interactions_four_body_right", Y, X, 1, false);
+    //     write(h_interactions_four_body_down.data() + offset_four_body_interactions, "TEST_READ/interactions/interactions_four_body_down", Y, X, 1, false);
+    // }
+    // //
+
     /*
     ----------------------------------------------
     ------------ Actual WL Starts Now ------------
     ----------------------------------------------
     */
+
     return 0;
 }

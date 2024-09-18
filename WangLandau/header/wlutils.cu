@@ -750,7 +750,7 @@ __global__ void wang_landau_pre_run_eight_vertex(
     signed char *d_lattice_b, signed char *d_lattice_r, double *d_interactions_b, double *d_interactions_r, double *d_interactions_right_four_body, double *d_interactions_down_four_body, double *d_energy, unsigned long long *d_H, unsigned long long *d_iter,
     int *d_found_interval, signed char *d_store_lattice_b, signed char *d_store_lattice_r, const int E_min, const int E_max,
     const int num_iterations, const int num_qubits, const int X, const int Y, const int seed, const int len_interval, const int found_interval,
-    const int num_walker, const int num_interval, const int boundary_type, const int walker_per_interaction)
+    const int num_walker, const int num_interval, const int walker_per_interaction)
 {
 
     long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
@@ -2597,9 +2597,9 @@ __global__ void initialize_Gaussian_error_rates(double *d_prob_i, double *d_prob
     // Generate a Gaussian distributed value with given mean and variance
     double randomValue = curand_normal_double(&state) * sqrt(error_rate_variance) + error_rate_mean;
 
-    // Bound error probabilities between 1e-14 and 0.5
+    // Bound error probabilities between 1e-25 and 0.5
     if (randomValue <= 0.0)
-        randomValue = 1e-25;
+        randomValue = 1e-25; // error prob 0 is not allowed
     if (randomValue > 0.5)
         randomValue = 0.5;
 

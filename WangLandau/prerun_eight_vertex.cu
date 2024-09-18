@@ -32,8 +32,6 @@ int main(int argc, char **argv)
     bool z_horizontal_error = false;
     bool z_vertical_error = false;
 
-    int boundary_type = 0;
-
     int och;
 
     int num_interactions = 1;
@@ -41,6 +39,9 @@ int main(int argc, char **argv)
     int histogram_scale = 1;
 
     bool is_qubit_specific_noise = false;
+
+    float error_mean = 0;
+    float error_variance = 0;
 
     while (1)
     {
@@ -60,13 +61,14 @@ int main(int argc, char **argv)
             {"x_vertical_error", required_argument, 0, 'd'},
             {"z_horizontal_error", required_argument, 0, 'o'},
             {"z_vertical_error", required_argument, 0, 'p'},
-            {"boundary", required_argument, 0, 'b'},
             {"replicas", required_argument, 0, 'r'},
             {"hist_scale", required_argument, 0, 'q'},
-            {"qubit_specific_noise", required_argument, 0, 'a'},
+            {"qubit_specific_noise", no_argument, 0, 'a'},
+            {"error_mean", required_argument, 0, 't'},
+            {"error_variance", required_argument, 0, 'u'},
             {0, 0, 0, 0}};
 
-        och = getopt_long(argc, argv, "x:y:f:g:h:n:l:w:s:i:c:d:o:p:b:r:q:a:", long_options, &option_index);
+        och = getopt_long(argc, argv, "x:y:f:g:h:n:l:w:s:i:c:d:o:p:r:q:t:u:a", long_options, &option_index);
 
         if (och == -1)
             break;
@@ -116,16 +118,15 @@ int main(int argc, char **argv)
         case 'p':
             z_vertical_error = std::atoi(optarg) != 0;
             break;
-        case 'a':
-            is_qubit_specific_noise = std::atoi(optarg) != 0;
+        case 'a': // qubit_specific_noise flag
+            is_qubit_specific_noise = true;
+            std::cout << "Qubit-specific noise flag is set." << std::endl;
             break;
-        case 'b':
-            boundary_type = atoi(optarg);
-            if (boundary_type != 0 && boundary_type != 1)
-            {
-                fprintf(stderr, "Error: Invalid value for boundary type. Must be 0 (periodic) or 1 (open).\n");
-                exit(EXIT_FAILURE);
-            }
+        case 't':
+            error_mean = atof(optarg);
+            break;
+        case 'u':
+            error_variance = atof(optarg);
             break;
         case 'r':
             num_interactions = atoi(optarg);
@@ -293,10 +294,10 @@ int main(int argc, char **argv)
     int blocks_total_walker_x_thread = (total_walker + threads_per_block - 1) / threads_per_block;
     int blocks_total_intervals_x_thread = (total_intervals + threads_per_block - 1) / threads_per_block;
 
-    if (is_qubit_specific_noise)
+    if (is_qubit_specific_noise && (error_mean * error_variance != 0))
     {
         // initialize error probability array with qubit specific error rates
-        initialize_Gaussian_error_rates<<<blocks_qubit_x_thread, threads_per_block>>>(d_prob_I, d_prob_X, d_prob_Y, d_prob_Z, num_qubits, num_interactions, 0.3, 0.003, seed - 1);
+        initialize_Gaussian_error_rates<<<blocks_qubit_x_thread, threads_per_block>>>(d_prob_I, d_prob_X, d_prob_Y, d_prob_Z, num_qubits, num_interactions, error_mean, error_variance, seed - 1);
         cudaDeviceSynchronize();
 
         // initialize qubit specific couplings based on error rates from kernel before
@@ -330,9 +331,9 @@ int main(int argc, char **argv)
 
         // // TEST BLOCK
         // // -----------
-        J_X = 1;
-        J_Y = 1;
-        J_Z = 1;
+        // J_X = 1;
+        // J_Y = 1;
+        // J_Z = 1;
         // // -----------
 
         std::cout << "Unique noise model for all qubits" << std::endl;
@@ -347,7 +348,7 @@ int main(int argc, char **argv)
     }
     else
     {
-        std::cerr << "Did not specify statistical noise model per qubit while not handing non null unique error probs." << std::endl;
+        std::cerr << "Did not specify non null error params for is_qubit_specific_noise model: " << is_qubit_specific_noise << "." << std::endl;
     }
 
     // order the interaction terms in well defined scheme
@@ -406,7 +407,7 @@ int main(int argc, char **argv)
 
     for (int i = 0; i < num_wl_loops; i++)
     {
-        wang_landau_pre_run_eight_vertex<<<blocks_total_walker_x_thread, threads_per_block>>>(d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, d_energy, d_H, d_iter, d_found_interval, d_store_lattice_b, d_store_lattice_r, E_min, E_max, num_iterations, num_qubits, X, 2 * Y, seed, interval_result.len_interval, found_interval, total_walker, num_intervals_per_interaction, boundary_type, walker_per_interaction);
+        wang_landau_pre_run_eight_vertex<<<blocks_total_walker_x_thread, threads_per_block>>>(d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, d_energy, d_H, d_iter, d_found_interval, d_store_lattice_b, d_store_lattice_r, E_min, E_max, num_iterations, num_qubits, X, 2 * Y, seed, interval_result.len_interval, found_interval, total_walker, num_intervals_per_interaction, walker_per_interaction);
         cudaDeviceSynchronize();
 
         // TEST BLOCK
@@ -453,9 +454,17 @@ int main(int argc, char **argv)
     CHECK_CUDA(cudaMemcpy(h_store_lattice_r.data(), d_store_lattice_r, X * Y * total_intervals * sizeof(*d_store_lattice_r), cudaMemcpyDeviceToHost));
     CHECK_CUDA(cudaMemcpy(h_H.data(), d_H, len_total_histogram * sizeof(*d_H), cudaMemcpyDeviceToHost));
 
+    std::string path;
     for (int i = 0; i < num_interactions; i++)
     {
-        std::string path = "init/eight_vertex/periodic/prob_X_" + std::to_string(prob_x_err) + "__prob_Y_" + std::to_string(prob_y_err) + "__prob_Z_" + std::to_string(prob_z_err) + "/X_" + std::to_string(X) + "_Y_" + std::to_string(Y) + "/seed_" + std::to_string(seed + i) + "/error_class_I";
+        if (is_qubit_specific_noise)
+        {
+            path = "init/eight_vertex/periodic/qubit_specific_noise_1/error_mean_" + std::to_string(error_mean) + "__error_variance_" + std::to_string(error_variance) + "/X_" + std::to_string(X) + "_Y_" + std::to_string(Y) + "/seed_" + std::to_string(seed + i) + "/error_class_I";
+        }
+        else
+        {
+            path = "init/eight_vertex/periodic/qubit_specific_noise_0/prob_X_" + std::to_string(prob_x_err) + "__prob_Y_" + std::to_string(prob_y_err) + "__prob_Z_" + std::to_string(prob_z_err) + "/X_" + std::to_string(X) + "_Y_" + std::to_string(Y) + "/seed_" + std::to_string(seed + i) + "/error_class_I";
+        }
 
         int offset_interactions = i * 2 * X * Y;       // for interactions closed on a single colored sublattice
         int offset_four_body_interactions = i * X * Y; // for interactions closed on a single colored sublattice

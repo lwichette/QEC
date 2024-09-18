@@ -349,10 +349,10 @@ int main(int argc, char **argv)
         std::vector<double> run_interactions_four_body_down;
         std::vector<double> run_interactions_four_body_right;
 
-        read<double>(run_interactions_r, run_int_path_r);
-        read<double>(run_interactions_b, run_int_path_b);
-        read<double>(run_interactions_four_body_down, run_int_path_four_body_down);
-        read<double>(run_interactions_four_body_right, run_int_path_four_body_right);
+        read(run_interactions_r, run_int_path_r);
+        read(run_interactions_b, run_int_path_b);
+        read(run_interactions_four_body_down, run_int_path_four_body_down);
+        read(run_interactions_four_body_right, run_int_path_four_body_right);
 
         h_interactions_r.insert(h_interactions_r.end(), run_interactions_r.begin(), run_interactions_r.end());
         h_interactions_b.insert(h_interactions_b.end(), run_interactions_b.begin(), run_interactions_b.end());

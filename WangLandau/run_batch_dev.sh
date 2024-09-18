@@ -17,25 +17,29 @@ seed_hist=1
 
 seed_run=1000
 
-num_interactions=2000
+num_interactions=2
 
 replica_exchange_steps=50
 
 boundary_type=0
 
-intervals_wl=15
+intervals_wl=10
 
 iterations=1000
 
-time_limit=1000
+time_limit=60
 
-for probability in 0.1 0.11 0.12
+for probability in 0.1
   do
-    for size in 10
+<<<<<<< HEAD
+    for size in 12
+=======
+    for size in 4
+>>>>>>> fe75fc3b78353641a130da57728772e254a26b37
     do
       xval=$size
       yval=$size
-      for error_type in I X Y Z
+      for error_type in I
       do
         ./prerun_-10 -x $xval -y $yval -p $probability -n $iterations -l 100 -w 100 -s $seed_hist -i 20 -e "$error_type" -b $boundary_type -r $num_interactions
 
@@ -48,7 +52,7 @@ for probability in 0.1 0.11 0.12
 
         echo "Done with size $size, probability $probability, error type $error_type"
 
-        rm -rf "init_$xval/*"
+        rm -rf "init_$xval"
 
       done
     done

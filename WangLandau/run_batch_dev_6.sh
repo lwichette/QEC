@@ -17,7 +17,7 @@ seed_hist=1
 
 seed_run=1000
 
-num_interactions=1000
+num_interactions=2000
 
 replica_exchange_steps=50
 
@@ -29,7 +29,7 @@ iterations=1000
 
 time_limit=820
 
-for probability in 0.08 0.09 0.1 0.11 0.12
+for probability in 0.1 0.11 0.12
   do
     for size in 6 
     do
@@ -48,6 +48,8 @@ for probability in 0.08 0.09 0.1 0.11 0.12
         seed_run=$(($seed_run + 1))
 
         echo "Done with size $size, probability $probability, error type $error_type"
+
+	rm -rf ./init/*
       done
     done
 done

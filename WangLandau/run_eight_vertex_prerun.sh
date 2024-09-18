@@ -1,8 +1,8 @@
 #!/bin/bash
 
-prob_x_default=0.2
-prob_z_default=0.2
-prob_y_default=0.2
+prob_x_default=0.0002
+prob_z_default=0.0002
+prob_y_default=0.0002
 
 # Check if arguments for pX pZ are provided for decoupled scenario
 if [ "$#" -eq 2 ]; then
@@ -61,9 +61,9 @@ z_horizontal_error=0
 
 z_vertical_error=0
 
-xval=6
+xval=4
 
-yval=6
+yval=4
 
 timeout $time_limit ./prerun_eight_vertex_-10 -x $xval -y $yval --prob_x $prob_x --prob_y $prob_y --prob_z $prob_z --nit 1000 --nl 100 -w 128 --seed $seed_hist --num_intervals 20  --hist_scale 1 --replicas $num_interactions --x_horizontal_error $x_horizontal_error  --x_vertical_error $x_vertical_error  --z_horizontal_error $z_horizontal_error --z_vertical_error $z_vertical_error
 if [ $? -eq 124 ]; then

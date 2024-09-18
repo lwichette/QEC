@@ -293,21 +293,62 @@ int main(int argc, char **argv)
     int blocks_total_walker_x_thread = (total_walker + threads_per_block - 1) / threads_per_block;
     int blocks_total_intervals_x_thread = (total_intervals + threads_per_block - 1) / threads_per_block;
 
-    // initialize error probability array with qubit specific error rates
-    initialize_Gaussian_error_rates<<<blocks_qubit_x_thread, threads_per_block>>>(d_prob_I, d_prob_X, d_prob_Y, d_prob_Z, num_qubits, num_interactions, 0.001, 0.00001, seed - 1);
-    cudaDeviceSynchronize();
+    if (is_qubit_specific_noise)
+    {
+        // initialize error probability array with qubit specific error rates
+        initialize_Gaussian_error_rates<<<blocks_qubit_x_thread, threads_per_block>>>(d_prob_I, d_prob_X, d_prob_Y, d_prob_Z, num_qubits, num_interactions, 0.3, 0.003, seed - 1);
+        cudaDeviceSynchronize();
 
-    // initialize qubit specific couplings based on error rates from kernel before
-    initialize_coupling_factors<<<blocks_qubit_x_thread, threads_per_block>>>(d_prob_I, d_prob_X, d_prob_Y, d_prob_Z, num_qubits, num_interactions, histogram_scale, d_J_I, d_J_X, d_J_Y, d_J_Z);
-    cudaDeviceSynchronize();
+        // initialize qubit specific couplings based on error rates from kernel before
+        initialize_coupling_factors<<<blocks_qubit_x_thread, threads_per_block>>>(d_prob_I, d_prob_X, d_prob_Y, d_prob_Z, num_qubits, num_interactions, histogram_scale, d_J_I, d_J_X, d_J_Y, d_J_Z);
+        cudaDeviceSynchronize();
 
-    // generate errors on the qubits based on qubit specific error distributions
-    generate_pauli_errors<<<blocks_qubit_x_thread, threads_per_block>>>(d_pauli_errors, num_qubits, X, num_interactions, seed - 2, d_prob_I, d_prob_X, d_prob_Y, d_prob_Z, x_horizontal_error, x_vertical_error, z_horizontal_error, z_vertical_error);
-    cudaDeviceSynchronize();
+        // generate errors on the qubits based on qubit specific error distributions
+        generate_pauli_errors<<<blocks_qubit_x_thread, threads_per_block>>>(d_pauli_errors, num_qubits, X, num_interactions, seed - 2, d_prob_I, d_prob_X, d_prob_Y, d_prob_Z, x_horizontal_error, x_vertical_error, z_horizontal_error, z_vertical_error);
+        cudaDeviceSynchronize();
 
-    // derive interaction terms in Hamiltonian from commutator action
-    get_interaction_from_commutator<<<blocks_qubit_x_thread, threads_per_block>>>(d_pauli_errors, d_interactions_x, d_interactions_y, d_interactions_z, num_qubits, num_interactions, d_J_X, d_J_Y, d_J_Z);
-    cudaDeviceSynchronize();
+        // derive interaction terms in Hamiltonian from commutator action
+        get_interaction_from_commutator<<<blocks_qubit_x_thread, threads_per_block>>>(d_pauli_errors, d_interactions_x, d_interactions_y, d_interactions_z, num_qubits, num_interactions, d_J_X, d_J_Y, d_J_Z);
+        cudaDeviceSynchronize();
+    }
+    else if (prob_i_err * prob_x_err * prob_y_err * prob_z_err != 0)
+    {
+        // Coupling strength from Nishimori condition in https://arxiv.org/pdf/1809.10704 eq 15 with beta = 1.
+        double J_I = std::log(prob_i_err * prob_x_err * prob_y_err * prob_z_err) / 4;
+        double J_X = std::log((prob_i_err * prob_x_err) / (prob_y_err * prob_z_err)) / 4;
+        double J_Y = std::log((prob_i_err * prob_y_err) / (prob_x_err * prob_z_err)) / 4;
+        double J_Z = std::log((prob_i_err * prob_z_err) / (prob_x_err * prob_y_err)) / 4;
+
+        // Find the maximum absolute value of J_X, J_Y, J_Z to bound the energy range
+        double max_J = std::max({std::abs(J_X), std::abs(J_Y), std::abs(J_Z)});
+
+        // Rescale the J values
+        J_I *= (histogram_scale / max_J);
+        J_X *= (histogram_scale / max_J);
+        J_Y *= (histogram_scale / max_J);
+        J_Z *= (histogram_scale / max_J);
+
+        // // TEST BLOCK
+        // // -----------
+        J_X = 1;
+        J_Y = 1;
+        J_Z = 1;
+        // // -----------
+
+        std::cout << "Unique noise model for all qubits" << std::endl;
+        std::cout << "J params rescaled by hist_scale/ absolute max of J_i = " << histogram_scale / max_J << ":" << std::endl;
+        std::cout << "J_I = " << J_I << " J_X = " << J_X << " J_Y = " << J_Y << " J_Z = " << J_Z << std::endl;
+
+        generate_pauli_errors<<<blocks_qubit_x_thread, threads_per_block>>>(d_pauli_errors, num_qubits, X, num_interactions, seed - 1, prob_i_err, prob_x_err, prob_y_err, prob_z_err, x_horizontal_error, x_vertical_error, z_horizontal_error, z_vertical_error);
+        cudaDeviceSynchronize();
+
+        get_interaction_from_commutator<<<blocks_qubit_x_thread, threads_per_block>>>(d_pauli_errors, d_interactions_x, d_interactions_y, d_interactions_z, num_qubits, num_interactions, J_X, J_Y, J_Z);
+        cudaDeviceSynchronize();
+    }
+    else
+    {
+        std::cerr << "Did not specify statistical noise model per qubit while not handing non null unique error probs." << std::endl;
+    }
 
     // order the interaction terms in well defined scheme
     init_interactions_eight_vertex<<<blocks_qubit_x_thread, threads_per_block>>>(d_interactions_x, d_interactions_y, d_interactions_z, num_qubits, num_interactions, X, 2 * Y, d_interactions_r, d_interactions_b, d_interactions_down_four_body, d_interactions_right_four_body);
@@ -376,7 +417,7 @@ int main(int argc, char **argv)
         CHECK_CUDA(cudaMemcpy(test_energies.data(), d_energy, total_walker * sizeof(*d_energy), cudaMemcpyDeviceToHost)); // get energies from calc energy function
         for (int idx = 0; idx < total_walker; idx++)
         {
-            if (std::abs(test_energies_wl[idx] - test_energies[idx]) > 0.000001)
+            if (std::abs(test_energies_wl[idx] - test_energies[idx]) > 1e-10)
             {
                 std::cerr << "Assertion failed for iteration: " << i << " walker idx: " << idx << " calc energy: " << test_energies[idx] << " wl calc energy: " << test_energies_wl[idx] << " Diff: " << std::abs(test_energies_wl[idx] - test_energies[idx]) << std::endl;
             }

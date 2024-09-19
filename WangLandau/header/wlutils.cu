@@ -372,7 +372,7 @@ std::vector<signed char> get_lattice_with_pre_run_result(float prob, int seed, i
                             // std::cout << "Processing file: " << entry.path() << " with energy: " << number << " for interval [" << h_start[interval_iterator] << ", " << h_end[interval_iterator] << "]" << std::endl;
                             for (int walker_per_interval_iterator = 0; walker_per_interval_iterator < num_walkers_per_interval; walker_per_interval_iterator++)
                             {
-                                read<signed char>(lattice_over_all_walkers, entry.path().string());
+                                read(lattice_over_all_walkers, entry.path().string());
                             }
                             break;
                         }
@@ -2746,4 +2746,46 @@ std::string eight_vertex_interaction_path(
     strstr << "/interactions/interactions_" << interaction_type << ".txt";
 
     return strstr.str();
+}
+
+void read(std::vector<signed char> &lattice, std::string filename)
+{
+
+    std::ifstream inputFile(filename);
+
+    if (!inputFile)
+    {
+        std::cerr << "Unable to open file " << filename << std::endl;
+        return;
+    }
+
+    int spin = 0;
+
+    while (inputFile >> spin)
+    {
+        lattice.push_back(static_cast<signed char>(spin));
+    }
+
+    return;
+}
+
+void read(std::vector<double> &lattice, std::string filename)
+{
+
+    std::ifstream inputFile(filename);
+
+    if (!inputFile)
+    {
+        std::cerr << "Unable to open file " << filename << std::endl;
+        return;
+    }
+
+    double spin = 0;
+
+    while (inputFile >> spin)
+    {
+        lattice.push_back(spin);
+    }
+
+    return;
 }

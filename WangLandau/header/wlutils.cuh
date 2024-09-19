@@ -155,27 +155,9 @@ inline void write(
     return;
 }
 
-template <typename T>
-void read(std::vector<T> &lattice, std::string filename)
-{
+void read(std::vector<signed char> &lattice, std::string filename);
 
-    std::ifstream inputFile(filename);
-
-    if (!inputFile)
-    {
-        std::cerr << "Unable to open file " << filename << std::endl;
-        return;
-    }
-
-    T spin = 0;
-
-    while (inputFile >> spin)
-    {
-        lattice.push_back(static_cast<T>(spin));
-    }
-
-    return;
-}
+void read(std::vector<double> &lattice, std::string filename);
 
 void create_directory(std::string path);
 

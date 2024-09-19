@@ -422,37 +422,36 @@ std::vector<signed char> get_lattice_with_pre_run_result_eight_vertex(
     {
         try
         {
-            for (const auto &entry : fs::directory_iterator(lattice_path))
+            for (const auto &entry : std::filesystem::directory_iterator(lattice_path))
             {
                 // Check if the entry is a regular file and has a .txt extension
                 if (entry.is_regular_file() && entry.path().extension() == ".txt")
                 {
                     // Extract the number from the filename
                     std::string filename = entry.path().stem().string(); // Get the filename without extension
-                    std::regex regex("lattice_" + lattice_color + "_energy_(-?\\d+(\\.\\d+)?)");
+                    std::regex regex("lattice_" + lattice_color + "_energy_(-?\\d+(\\.\\d{6})?)");
                     std::smatch match;
-                    if (std::regex_search(filename, match, regex))
+
+                    // If the filename doesn't match the expected color, skip it
+                    if (!std::regex_search(filename, match, regex))
                     {
-                        float number = std::stof(match[1]);
-                        // Check if the number is between interval boundaries
-                        if (number >= h_start[interval_iterator] && number <= h_end[interval_iterator])
-                        {
-                            // std::cout << "Processing file: " << entry.path() << " with energy: " << number << " for interval [" << h_start[interval_iterator] << ", " << h_end[interval_iterator] << "]" << std::endl;
-                            for (int walker_per_interval_iterator = 0; walker_per_interval_iterator < num_walkers_per_interval; walker_per_interval_iterator++)
-                            {
-                                read<signed char>(lattice_over_all_walkers, entry.path().string());
-                            }
-                            break;
-                        }
+                        continue; // Skip files not matching the desired color
                     }
-                    else
+
+                    float number = std::stof(match[1]);
+                    // Check if the number is between interval boundaries
+                    if (number >= h_start[interval_iterator] && number <= h_end[interval_iterator])
                     {
-                        std::cerr << "Unable to open file: " << entry.path() << std::endl;
+                        for (int walker_per_interval_iterator = 0; walker_per_interval_iterator < num_walkers_per_interval; walker_per_interval_iterator++)
+                        {
+                            read(lattice_over_all_walkers, entry.path().string());
+                        }
+                        break; // No need to check other files once the lattice is found for this interval
                     }
                 }
             }
         }
-        catch (const fs::filesystem_error &e)
+        catch (const std::filesystem::filesystem_error &e)
         {
             std::cerr << "Filesystem error: " << e.what() << std::endl;
         }

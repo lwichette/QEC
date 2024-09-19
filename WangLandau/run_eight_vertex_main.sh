@@ -35,7 +35,7 @@ alpha=0.8
 
 beta=0.000001
 
-walker_wl=5
+walker_wl=1
 
 overlap_wl=0.25
 
@@ -43,7 +43,7 @@ seed_hist=1
 
 seed_run=1000
 
-num_interactions=2
+num_interactions=1
 
 replica_exchange_steps=50
 
@@ -71,7 +71,7 @@ yval=4
 
 ./prerun_eight_vertex_-10 -x $xval -y $yval --prob_x $prob_x --prob_y $prob_y --prob_z $prob_z --nit 1000 --nl 100 -w 128 --seed $seed_hist --num_intervals 20  --hist_scale 1 --replicas $num_interactions --x_horizontal_error $x_horizontal_error  --x_vertical_error $x_vertical_error  --z_horizontal_error $z_horizontal_error --z_vertical_error $z_vertical_error  --error_mean $error_mean --error_variance $error_variance
 
-timeout $time_limit ./main_eight_vertex_-10 -a $alpha -b $beta -c $x_horizontal_error -d $x_vertical_error -e $z_horizontal_error -f $z_vertical_error -g $prob_x -h $prob_y -i $prob_z  -l 2 -m 20 -n 1000 -o 0.25 -p $seed_hist -q 42 -r 1 -s $num_interactions -t $error_mean -u $error_variance -w 5 -x $xval -y $yval
+timeout $time_limit ./main_eight_vertex_-10 -a $alpha -b $beta -c $x_horizontal_error -d $x_vertical_error -e $z_horizontal_error -f $z_vertical_error -g $prob_x -h $prob_y -i $prob_z  -l 2 -m 20 -n 1000 -o 0.25 -p $seed_hist -q 42 -r 1 -s $num_interactions -t $error_mean -u $error_variance -w $walker_wl -x $xval -y $yval
 if [ $? -eq 124 ]; then
     echo "prerun timed out after $time_limit seconds."
 fi

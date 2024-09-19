@@ -27,17 +27,35 @@ intervals_wl=10
 
 iterations=1000
 
-time_limit=60
+time_limit=600
+
+num_loops=100
+
+num_walker_prerun=100
+
+num_intervals_prerun=20
+
+case $boundary_type in
+    1)
+        result="open"
+        ;;
+    0)
+        result="periodic"
+        ;;
+    2)
+        result="cylinder"
+        ;;
+esac
 
 for probability in 0.1
   do
-    for size in 10
+    for size in 4
     do
       xval=$size
       yval=$size
-      for error_type in Y
+      for error_type in I
       do
-        ./prerun_-10 -x $xval -y $yval -p $probability -n $iterations -l 200 -w 100 -s $seed_hist -i 20 -e "$error_type" -b $boundary_type -r $num_interactions
+        ./prerun_-10 -x $xval -y $yval -p $probability -n $iterations -l $num_loops -w $num_walker_prerun -s $seed_hist -i $num_intervals_prerun -e "$error_type" -b $boundary_type -r $num_interactions
 
         timeout $time_limit ./wl_-10 -x $xval -y $yval -n $iterations -p $probability -a $alpha -b $beta -i $intervals_wl -w $walker_wl -o $overlap_wl -s $seed_run -e "$error_type" -t $boundary_type -h $seed_hist -r $num_interactions -c $replica_exchange_steps
         if [ $? -eq 124 ]; then
@@ -48,7 +66,9 @@ for probability in 0.1
 
         echo "Done with size $size, probability $probability, error type $error_type"
 
-        rm -rf "init_$xval"
+        formatted_prob=$(printf "%.6f" $probability)
+
+        rm -rf init/${result}/prob_${formatted_prob}/X_${size}_Y_${size}/*
 
       done
     done

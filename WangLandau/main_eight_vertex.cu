@@ -337,6 +337,7 @@ int main(int argc, char **argv)
     std::vector<double> h_interactions_b;
     std::vector<double> h_interactions_four_body_down;
     std::vector<double> h_interactions_four_body_right;
+
     for (int i = 0; i < num_interactions; i++)
     {
         std::string run_int_path_b = eight_vertex_interaction_path(is_qubit_specific_noise, error_mean, error_variance, X, Y, seed_hist + i, x_horizontal_error, x_vertical_error, z_horizontal_error, z_vertical_error, "b", prob_x_err, prob_y_err, prob_z_err);

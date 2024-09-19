@@ -406,9 +406,40 @@ int main(int argc, char **argv)
     calc_energy_eight_vertex<<<blocks_total_walker_x_thread, threads_per_block>>>(d_energy, d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, 2 * X * Y, X, 2 * Y, total_walker, walker_per_interactions);
     cudaDeviceSynchronize();
 
+    //  TEST BLOC
+    // ------------
+    std::vector<double> h_energy(total_walker);
+    std::vector<signed char> h_expected_energy_spectrum_copy(h_expected_energy_spectrum.size());
+
+    // Copy the device data to the host
+    CHECK_CUDA(cudaMemcpy(h_energy.data(), d_energy, total_walker * sizeof(double), cudaMemcpyDeviceToHost));
+    CHECK_CUDA(cudaMemcpy(h_expected_energy_spectrum_copy.data(), d_expected_energy_spectrum, h_expected_energy_spectrum.size() * sizeof(signed char), cudaMemcpyDeviceToHost));
+
+    // Print the energy array
+    std::cout << "d_energy:" << std::endl;
+    for (size_t i = 0; i < total_walker; ++i)
+    {
+        int interaction_id = i / walker_per_interactions;
+        int interval_id = (i % walker_per_interactions) / walker_per_interval;
+        std::cout << h_energy[i] << " for interval_start: " << h_start_int[interaction_id * num_intervals + interval_id] << " interval_end: " << h_end_int[interaction_id * num_intervals + interval_id] << std::endl;
+    }
+    std::cout << std::endl;
+
+    // Print the expected energy spectrum array
+    std::cout << "d_expected_energy_spectrum:" << std::endl;
+    for (size_t i = 0; i < h_expected_energy_spectrum_copy.size(); ++i)
+    {
+        std::cout << static_cast<int>(h_expected_energy_spectrum_copy[i]) << " ";
+    }
+    std::cout << std::endl;
+
+    // ------------
+
     // check if read of lattices matches expected energy range of intervals
     check_energy_ranges<double><<<total_intervals, walker_per_interval>>>(d_energy, d_start, d_end, total_walker);
     cudaDeviceSynchronize();
+
+    return 0;
 
     // control flow variables
     double max_factor = exp(1.0);

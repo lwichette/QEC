@@ -1,30 +1,32 @@
 #!/bin/bash
 
-prob_x_default=0.1
-prob_z_default=0.1
-prob_y_default=0.1
+# # This block triggers decoupled scenario from Flammia Chubb paper when handing two params to shell execution from cli
 
-# Check if arguments for pX pZ are provided for decoupled scenario
-if [ "$#" -eq 2 ]; then
-    echo "Usage: $0 pX pZ"
+# prob_x_default=0.1
+# prob_z_default=0.1
+# prob_y_default=0.1
 
-    # Read input parameters
-    pX=$1
-    pZ=$2
+# # Check if arguments for pX pZ are provided for decoupled scenario
+# if [ "$#" -eq 2 ]; then
+#     echo "Usage: $0 pX pZ"
 
-    prob_i=$(echo "(1 - $pX) * (1 - $pZ)" | bc -l)
-    prob_x=$(echo "$pX * (1 - $pZ)" | bc -l)
-    prob_z=$(echo "(1 - $pX) * $pZ" | bc -l)
-    prob_y=$(echo "$pX * $pZ" | bc -l)
+#     # Read input parameters
+#     pX=$1
+#     pZ=$2
 
-    echo "Decoupled scenario with provided arguments: pX = $pX and pZ = $pZ."
-else
-    prob_x=$prob_x_default
-    prob_z=$prob_z_default
-    prob_y=$prob_y_default
+#     prob_i=$(echo "(1 - $pX) * (1 - $pZ)" | bc -l)
+#     prob_x=$(echo "$pX * (1 - $pZ)" | bc -l)
+#     prob_z=$(echo "(1 - $pX) * $pZ" | bc -l)
+#     prob_y=$(echo "$pX * $pZ" | bc -l)
 
-    echo "Non decoupled scenario."
-fi
+#     echo "Decoupled scenario with provided arguments: pX = $pX and pZ = $pZ."
+# else
+#     prob_x=$prob_x_default
+#     prob_z=$prob_z_default
+#     prob_y=$prob_y_default
+
+#     echo "Non decoupled scenario."
+# fi
 
 LOGFILE="script.log"
 exec > >(tee -a "$LOGFILE") 2>&1
@@ -45,11 +47,11 @@ seed_run=1000
 
 num_interactions=1
 
-replica_exchange_steps=50
+replica_exchange_steps=10
 
-intervals_wl=10
+intervals_main=10
 
-iterations=10000
+iterations=1000
 
 time_limit=600
 
@@ -65,18 +67,26 @@ error_mean=0.3
 
 error_variance=0.001
 
+histogram_scale=1
+
+prob_x=0.1
+
+prob_z=0.1
+
+prob_y=0.1
+
 xval=4
 
 yval=4
 
-./prerun_eight_vertex_-10 -x $xval -y $yval --prob_x $prob_x --prob_y $prob_y --prob_z $prob_z --nit 1000 --nl 100 -w 128 --seed $seed_hist --num_intervals 20  --hist_scale 1 --replicas $num_interactions --x_horizontal_error $x_horizontal_error  --x_vertical_error $x_vertical_error  --z_horizontal_error $z_horizontal_error --z_vertical_error $z_vertical_error  --error_mean $error_mean --error_variance $error_variance
+./prerun_eight_vertex_-10 -x $xval -y $yval --prob_x $prob_x --prob_y $prob_y --prob_z $prob_z --nit 1000 --nl 1000 -w 256 --seed $seed_hist --num_intervals 20  --hist_scale $histogram_scale --replicas $num_interactions --x_horizontal_error $x_horizontal_error  --x_vertical_error $x_vertical_error  --z_horizontal_error $z_horizontal_error --z_vertical_error $z_vertical_error  --error_mean $error_mean --error_variance $error_variance
 
-timeout $time_limit ./main_eight_vertex_-10 -a $alpha -b $beta -c $x_horizontal_error -d $x_vertical_error -e $z_horizontal_error -f $z_vertical_error -g $prob_x -h $prob_y -i $prob_z  -l 2 -m 20 -n 1000 -o 0.25 -p $seed_hist -q 42 -r 1 -s $num_interactions -t $error_mean -u $error_variance -w $walker_wl -x $xval -y $yval
+timeout $time_limit ./main_eight_vertex_-10 -a $alpha -b $beta -c $x_horizontal_error -d $x_vertical_error -e $z_horizontal_error -f $z_vertical_error -g $prob_x -h $prob_y -i $prob_z  --replica_exchange_offsets $replica_exchange_steps --num_intervals $intervals_main --num_iterations $iterations --overlap_decimal $overlap_wl --seed_histogram $seed_hist --seed_run 42 --hist_scale $histogram_scale --num_interactions $num_interactions --error_mean $error_mean --error_variance $error_variance --walker_per_interval $walker_wl -x $xval -y $yval
 if [ $? -eq 124 ]; then
     echo "prerun timed out after $time_limit seconds."
 fi
 
-seed_run=$(($seed_run + 1))
+# seed_run=$(($seed_run + 1))
 
 duration=$SECONDS
 echo "Total runtime: $((duration / 60)) minutes and $((duration % 60)) seconds."

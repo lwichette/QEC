@@ -337,6 +337,7 @@ int main(int argc, char **argv)
     std::vector<double> h_interactions_b;
     std::vector<double> h_interactions_four_body_down;
     std::vector<double> h_interactions_four_body_right;
+
     for (int i = 0; i < num_interactions; i++)
     {
         std::string run_int_path_b = eight_vertex_interaction_path(is_qubit_specific_noise, error_mean, error_variance, X, Y, seed_hist + i, x_horizontal_error, x_vertical_error, z_horizontal_error, z_vertical_error, "b", prob_x_err, prob_y_err, prob_z_err);
@@ -374,12 +375,12 @@ int main(int argc, char **argv)
         std::vector<signed char> run_lattice_r = get_lattice_with_pre_run_result_eight_vertex(
             is_qubit_specific_noise, error_mean, error_variance, x_horizontal_error, x_vertical_error,
             z_horizontal_error, z_vertical_error, X, Y, run_start, run_end, num_intervals, walker_per_interval,
-            seed_hist, prob_x_err, prob_y_err, prob_z_err, 'r');
+            seed_hist, prob_x_err, prob_y_err, prob_z_err, "r");
 
         std::vector<signed char> run_lattice_b = get_lattice_with_pre_run_result_eight_vertex(
             is_qubit_specific_noise, error_mean, error_variance, x_horizontal_error, x_vertical_error,
             z_horizontal_error, z_vertical_error, X, Y, run_start, run_end, num_intervals, walker_per_interval,
-            seed_hist, prob_x_err, prob_y_err, prob_z_err, 'b');
+            seed_hist, prob_x_err, prob_y_err, prob_z_err, "b");
 
         h_lattice_r.insert(h_lattice_r.end(), run_lattice_r.begin(), run_lattice_r.end());
         h_lattice_b.insert(h_lattice_b.end(), run_lattice_b.begin(), run_lattice_b.end());

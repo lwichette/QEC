@@ -309,7 +309,7 @@ std::string constructFilePath(float prob_interactions, int X, int Y, int seed, s
     }
 
     std::stringstream strstr;
-    strstr << "init_" + std::to_string(X) + "/" << boundary << "/prob_" << std::fixed << std::setprecision(6) << prob_interactions;
+    strstr << "init/" << boundary << "/prob_" << std::fixed << std::setprecision(6) << prob_interactions;
     strstr << "/X_" << X << "_Y_" << Y;
     strstr << "/seed_" << seed;
     strstr << "/error_class_" << error_class;
@@ -341,7 +341,7 @@ std::vector<signed char> get_lattice_with_pre_run_result(float prob, int seed, i
 
     namespace fs = std::filesystem;
     std::ostringstream oss;
-    oss << "init_" + std::to_string(x) + "/" << boundary << "/prob_" << std::fixed << std::setprecision(6) << prob;
+    oss << "init/" << boundary << "/prob_" << std::fixed << std::setprecision(6) << prob;
     oss << "/X_" << x << "_Y_" << y;
     oss << "/seed_" << seed;
     oss << "/error_class_" << error_class;
@@ -399,6 +399,7 @@ std::vector<signed char> get_lattice_with_pre_run_result_eight_vertex(
 
     std::string error_string = std::to_string(x_horizontal_error) + std::to_string(x_vertical_error) + std::to_string(z_horizontal_error) + std::to_string(z_vertical_error);
 
+    namespace fs = std::filesystem;
     std::ostringstream oss;
     oss << "init/eight_vertex/periodic/qubit_specific_noise_" << std::to_string(is_qubit_specific_noise) << "/" << std::fixed << std::setprecision(6);
 
@@ -440,7 +441,7 @@ std::vector<signed char> get_lattice_with_pre_run_result_eight_vertex(
                             // std::cout << "Processing file: " << entry.path() << " with energy: " << number << " for interval [" << h_start[interval_iterator] << ", " << h_end[interval_iterator] << "]" << std::endl;
                             for (int walker_per_interval_iterator = 0; walker_per_interval_iterator < num_walkers_per_interval; walker_per_interval_iterator++)
                             {
-                                read<signed char>(lattice_over_all_walkers, entry.path().string());
+                                read(lattice_over_all_walkers, entry.path().string());
                             }
                             break;
                         }
@@ -647,7 +648,7 @@ __global__ void calc_energy_periodic_boundary(signed char *lattice, signed char 
         energy += lattice[d_offset_lattice[tid] + i * ny + j] * (lattice[d_offset_lattice[tid] + inn * ny + j] * interactions[int_id * 2 * nx * ny + nx * ny + inn * ny + j] + lattice[d_offset_lattice[tid] + i * ny + jnn] * interactions[int_id * nx * ny * 2 + i * ny + jnn]);
     }
 
-    d_energy[tid] = energy;
+    d_energy[tid] = -energy;
 
     return;
 }
@@ -681,7 +682,7 @@ __global__ void calc_energy_open_boundary(signed char *lattice, signed char *int
         }
     }
 
-    d_energy[tid] = energy;
+    d_energy[tid] = -energy;
 
     return;
 }
@@ -720,7 +721,7 @@ __global__ void calc_energy_cylinder(signed char *lattice, signed char *interact
         }
     }
 
-    d_energy[tid] = energy;
+    d_energy[tid] = -energy;
 
     return;
 }
@@ -927,7 +928,7 @@ __global__ void find_spin_config_in_energy_range(signed char *d_lattice, signed 
 
             signed char energy_diff = -2 * d_lattice[d_offset_lattice[tid] + i * ny + j] * (d_lattice[d_offset_lattice[tid] + inn * ny + j] * d_interactions[nx * ny + inn * ny + j] + d_lattice[d_offset_lattice[tid] + i * ny + jnn] * d_interactions[i * ny + jnn] + d_lattice[d_offset_lattice[tid] + ipp * ny + j] * d_interactions[nx * ny + i * ny + j] + d_lattice[d_offset_lattice[tid] + i * ny + jpp] * d_interactions[i * ny + j]);
 
-            d_energy[tid] += energy_diff;
+            d_energy[tid] -= energy_diff;
             d_lattice[d_offset_lattice[tid] + i * ny + j] *= -1;
         }
     }
@@ -1385,7 +1386,7 @@ __device__ RBIM periodic_boundary_random_bond_ising(
 
     signed char energy_diff = -2 * d_lattice[d_offset_lattice[tid] + i * ny + j] * (d_lattice[d_offset_lattice[tid] + inn * ny + j] * d_interactions[interaction_offset + nx * ny + inn * ny + j] + d_lattice[d_offset_lattice[tid] + i * ny + jnn] * d_interactions[interaction_offset + i * ny + jnn] + d_lattice[d_offset_lattice[tid] + ipp * ny + j] * d_interactions[interaction_offset + nx * ny + i * ny + j] + d_lattice[d_offset_lattice[tid] + i * ny + jpp] * d_interactions[interaction_offset + i * ny + j]);
 
-    int d_new_energy = d_energy[tid] + energy_diff;
+    int d_new_energy = d_energy[tid] - energy_diff;
 
     RBIM rbim;
     rbim.new_energy = d_new_energy;
@@ -1420,7 +1421,7 @@ __device__ RBIM open_boundary_random_bond_ising(
 
     signed char energy_diff = -2 * d_lattice[d_offset_lattice[tid] + i * ny + j] * (c_up * d_lattice[d_offset_lattice[tid] + inn * ny + j] * d_interactions[interaction_offset + nx * ny + inn * ny + j] + c_left * d_lattice[d_offset_lattice[tid] + i * ny + jnn] * d_interactions[interaction_offset + i * ny + jnn] + c_down * d_lattice[d_offset_lattice[tid] + ipp * ny + j] * d_interactions[interaction_offset + nx * ny + i * ny + j] + c_right * d_lattice[d_offset_lattice[tid] + i * ny + jpp] * d_interactions[interaction_offset + i * ny + j]);
 
-    int d_new_energy = d_energy[tid] + energy_diff;
+    int d_new_energy = d_energy[tid] - energy_diff;
 
     RBIM rbim;
     rbim.new_energy = d_new_energy;
@@ -1461,7 +1462,7 @@ __device__ RBIM cylinder_random_bond_ising(
     // "-" simulates spin flip and "2" stems from energy diff.
     signed char energy_diff = -2 * current_spin * (c_up * d_lattice[d_offset_lattice[tid] + inn * ny + j] * d_interactions[interaction_offset + nx * ny + inn * ny + j] + d_lattice[d_offset_lattice[tid] + i * ny + jnn] * d_interactions[interaction_offset + i * ny + jnn] + c_down * d_lattice[d_offset_lattice[tid] + ipp * ny + j] * d_interactions[interaction_offset + nx * ny + i * ny + j] + d_lattice[d_offset_lattice[tid] + i * ny + jpp] * d_interactions[interaction_offset + i * ny + j]);
 
-    int d_new_energy = d_energy[tid] + energy_diff;
+    int d_new_energy = d_energy[tid] - energy_diff;
 
     RBIM rbim;
     rbim.new_energy = d_new_energy;

@@ -166,7 +166,7 @@ __global__ void check_energy_ranges(T *d_energy, int *d_start, int *d_end, int t
 
     int check = 1;
 
-    // printf("tid=%lld energy=%.2f start_interval=%d end_interval=%d  \n", tid, static_cast<double>(d_energy[tid]), d_start[blockIdx.x], d_end[blockIdx.x]);
+    printf("tid=%lld energy=%.2f start_interval=%d end_interval=%d  \n", tid, static_cast<double>(d_energy[tid]), d_start[blockIdx.x], d_end[blockIdx.x]);
 
     if (d_energy[tid] > d_end[blockIdx.x] || d_energy[tid] < d_start[blockIdx.x])
     {
@@ -337,9 +337,6 @@ __global__ void wang_landau_eight_vertex(
     int *d_offset_energy_spectrum, int *d_cond_interaction);
 
 __global__ void check_sums(int *d_cond_interactions, int num_intervals, int num_interactions);
-
-__global__ void test_eight_vertex_periodic_wl_step(
-    signed char *d_lattice_b, signed char *d_lattice_r, double *d_interactions_b, double *d_interactions_r, double *d_interactions_four_body_right, double *d_interactions_four_body_down, double *d_energy, unsigned long long *d_offset_iter, const int num_qubits, const int X, const int Y, const int num_lattices, const int num_lattices_x_interaction);
 
 __device__ RBIM periodic_boundary_random_bond_ising(signed char *d_lattice, signed char *d_interactions, int *d_energy, int *d_offset_lattice, unsigned long long *d_offset_iter, curandStatePhilox4_32_10_t *st, const long long tid, const int nx, const int ny, const int interaction_offset);
 

@@ -387,6 +387,17 @@ int main(int argc, char **argv)
     }
 
     // // TEST BLOCK
+    // for (int w = 0; w < total_walker; w++)
+    // {
+    //     int interval_id = w / walker_per_interval;
+    //     std::cout << "E_start: " << h_start_int[interval_id] << " E_end: " << h_end_int[interval_id] << ": ";
+    //     for (int s = 0; s < X * Y; s++)
+    //     {
+    //         std::cout << static_cast<int>(h_lattice_r[w * X * Y + s]) << " ";
+    //     }
+    //     std::cout << std::endl;
+    // }
+
     // for (int i = 0; i < num_interactions; i++)
     // {
     //     int offset_interactions = i * 2 * X * Y;       // for interactions closed on a single colored sublattice

@@ -35,6 +35,8 @@ num_walker_prerun=150
 
 num_intervals_prerun=30
 
+end_seed=$(( seed_hist + num_interactions - 1 ))
+
 case $boundary_type in
     1)
         result="open"
@@ -68,9 +70,9 @@ for probability in 0.1
 
         formatted_prob=$(printf "%.6f" $probability)
 
-        gpu_id=$(nvidia-smi --query-gpu=index --format=csv,noheader,nounits)
+        base_dir="init/${result}/prob_${formatted_prob}/X_${size}_Y_${size}"
 
-        rm -rf ${gpu_id}
+        python3 delete_folders.py $base_dir $seed_hist $end_seed
 
       done
     done

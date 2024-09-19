@@ -214,12 +214,9 @@ int main(int argc, char **argv)
     CHECK_CUDA(cudaMemcpy(h_store_lattice.data(), d_store_lattice, X * Y * total_intervals * sizeof(*d_store_lattice), cudaMemcpyDeviceToHost));
     CHECK_CUDA(cudaMemcpy(h_H.data(), d_H, total_histogram * sizeof(*d_H), cudaMemcpyDeviceToHost));
 
-    int device_id;
-    cudaError_t err = cudaGetDevice(&device_id);
-
     for (int i = 0; i < num_interactions; i++)
     {
-        std::string path = std::to_string(device_id) + "/init/" + boundary + "/prob_" + std::to_string(prob_interactions) + "/X_" + std::to_string(X) + "_Y_" + std::to_string(Y) + "/seed_" + std::to_string(seed + i) + "/error_class_" + logical_error_type;
+        std::string path = "init/" + boundary + "/prob_" + std::to_string(prob_interactions) + "/X_" + std::to_string(X) + "_Y_" + std::to_string(Y) + "/seed_" + std::to_string(seed + i) + "/error_class_" + logical_error_type;
 
         int offset_interactions = i * X * Y * 2;
         int offset_lattice = i * num_intervals * X * Y;

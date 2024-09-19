@@ -28,3 +28,4 @@ prerun_*
 !WangLandau/prerun_eight_vertex.cu
 WangLandau/prerun_-10
 **/eight_vertex_*
+WangLandau/main_eight_vertex_-10

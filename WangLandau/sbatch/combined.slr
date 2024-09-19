@@ -63,6 +63,8 @@ error_type=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $19
 
 formatted_prob=$(printf "%.6f" $probability)
 
+base_dir="init/${result}/prob_${formatted_prob}/X_${size}_Y_${size}"
+
 case $boundary_type in
     1)
         result="open"
@@ -81,7 +83,7 @@ make prerun ID=$SLURM_ARRAY_TASK_ID \
 && make clean ID=$SLURM_ARRAY_TASK_ID \
 && make wl ID=$SLURM_ARRAY_TASK_ID \
 && timeout $time_limit ./wl_$SLURM_ARRAY_TASK_ID -x $size -y $size -n $iterations -p $prob -a $alpha -b $beta -i $intervals_wl -w $walker_wl -o $overlap -s $seed_run -e "$error_type" -t $boundary_type -h $seed_hist -r $num_interactions -c $replica_exchange_steps \
-&& rm -rf init/${result}/prob_${formatted_prob}/X_${size}_Y_${size}/*"
+&& python3 delete_folders.py $base_dir $seed_hist $end_seed"
 
 duration=$SECONDS
 echo "Total runtime: $((duration / 60)) minutes and $((duration % 60)) seconds."

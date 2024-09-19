@@ -307,7 +307,6 @@ int main(int argc, char **argv)
 
     // Offsets
     // lets write some comments about what these offsets are
-
     int *d_offset_histogram_per_walker, *d_offset_lattice_per_walker;
     unsigned long long *d_offset_iterator_per_walker;
     CHECK_CUDA(cudaMalloc(&d_offset_histogram_per_walker, total_walker * sizeof(*d_offset_histogram_per_walker)));
@@ -333,6 +332,7 @@ int main(int argc, char **argv)
     init_indices<<<total_intervals, walker_per_interval>>>(d_indices, total_walker);
     cudaDeviceSynchronize();
 
+    // Load interactions from init
     std::vector<double> h_interactions_r;
     std::vector<double> h_interactions_b;
     std::vector<double> h_interactions_four_body_down;
@@ -361,6 +361,7 @@ int main(int argc, char **argv)
         h_interactions_four_body_right.insert(h_interactions_four_body_right.end(), run_interactions_four_body_right.begin(), run_interactions_four_body_right.end());
     }
 
+    // Load lattices from init
     std::vector<signed char> h_lattice_r;
     std::vector<signed char> h_lattice_b;
 
@@ -385,6 +386,41 @@ int main(int argc, char **argv)
         h_lattice_r.insert(h_lattice_r.end(), run_lattice_r.begin(), run_lattice_r.end());
         h_lattice_b.insert(h_lattice_b.end(), run_lattice_b.begin(), run_lattice_b.end());
     }
+
+    // Init device arrays with host lattices and interactions
+    CHECK_CUDA(cudaMemcpy(d_interactions_r, h_interactions_r.data(), num_interactions * X * Y * 2 * sizeof(*d_interactions_r), cudaMemcpyHostToDevice));
+    CHECK_CUDA(cudaMemcpy(d_interactions_b, h_interactions_b.data(), num_interactions * X * Y * 2 * sizeof(*d_interactions_b), cudaMemcpyHostToDevice));
+    CHECK_CUDA(cudaMemcpy(d_interactions_down_four_body, h_interactions_four_body_down.data(), num_interactions * X * Y * sizeof(*d_interactions_down_four_body), cudaMemcpyHostToDevice));
+    CHECK_CUDA(cudaMemcpy(d_interactions_right_four_body, h_interactions_four_body_right.data(), num_interactions * X * Y * sizeof(*d_interactions_right_four_body), cudaMemcpyHostToDevice));
+    CHECK_CUDA(cudaMemcpy(d_lattice_r, h_lattice_r.data(), total_walker * X * Y * sizeof(*d_lattice_r), cudaMemcpyHostToDevice));
+    CHECK_CUDA(cudaMemcpy(d_lattice_b, h_lattice_b.data(), total_walker * X * Y * sizeof(*d_lattice_b), cudaMemcpyHostToDevice));
+
+    // block counts
+    int blocks_qubit_x_thread = (num_interactions * 2 * X * Y + threads_per_block - 1) / threads_per_block;
+    int blocks_spins_single_color_x_thread = (total_walker * X * Y + threads_per_block - 1) / threads_per_block;
+    int blocks_total_walker_x_thread = (total_walker + threads_per_block - 1) / threads_per_block;
+    int blocks_total_intervals_x_thread = (total_intervals + threads_per_block - 1) / threads_per_block;
+    int blocks_toal_len_histogram_x_thread = (total_len_histogram + threads_per_block - 1) / threads_per_block;
+
+    // init the energy array
+    calc_energy_eight_vertex<<<blocks_total_walker_x_thread, threads_per_block>>>(d_energy, d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, 2 * X * Y, X, 2 * Y, total_walker, walker_per_interactions);
+    cudaDeviceSynchronize();
+
+    // check if read of lattices matches expected energy range of intervals
+    check_energy_ranges<double><<<total_intervals, walker_per_interval>>>(d_energy, d_start, d_end, total_walker);
+    cudaDeviceSynchronize();
+
+    // control flow variables
+    double max_factor = exp(1.0);
+    int min_cond_interactions = 0;
+    int max_newEnergyFlag = 0;
+    long long wang_landau_counter = 1;
+
+    // Stop timing
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = end - start;
+    std::cout << "Execution time before Wang Landau has started: "
+              << elapsed.count() << " seconds" << std::endl;
 
     // // TEST BLOCK
     // for (int w = 0; w < total_walker; w++)
@@ -419,6 +455,17 @@ int main(int argc, char **argv)
     ------------ Actual WL Starts Now ------------
     ----------------------------------------------
     */
+    // while (max_factor > exp(options.beta))
+    // {
+    wang_landau_eight_vertex<<<blocks_total_walker_x_thread, threads_per_block>>>(
+        d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, d_energy, d_start, d_end, d_H,
+        d_logG, d_offset_histogram_per_walker, d_offset_lattice_per_walker, num_iterations, X, Y,
+        seed_run, d_factor, d_offset_iterator_per_walker, d_expected_energy_spectrum, d_newEnergies, d_foundNewEnergyFlag,
+        total_walker, beta, d_cond, walker_per_interactions, num_intervals,
+        d_offset_energy_spectrum, d_cond_interactions);
+
+    cudaDeviceSynchronize();
+    // }
 
     return 0;
 }

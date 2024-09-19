@@ -890,6 +890,137 @@ __global__ void wang_landau_pre_run_eight_vertex(
     return;
 }
 
+__global__ void wang_landau_eight_vertex(
+    signed char *d_lattice_b, signed char *d_lattice_r, double *d_interactions_b, double *d_interactions_r, double *d_interactions_right_four_body, double *d_interactions_down_four_body, double *d_energy, int *d_start, int *d_end, unsigned long long *d_H,
+    double *d_logG, int *d_offset_histogramm, int *d_offset_lattice, const int num_iterations, const int nx, const int ny,
+    const int seed, double *factor, unsigned long long *d_offset_iter, signed char *d_expected_energy_spectrum, double *d_newEnergies, int *foundFlag,
+    const int num_lattices, const double beta, signed char *d_cond, const int walker_per_interactions, const int num_intervals,
+    int *d_offset_energy_spectrum, int *d_cond_interaction)
+{
+
+    long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
+
+    if (tid >= num_lattices)
+        return;
+
+    const int blockId = blockIdx.x;
+    const int int_id = tid / walker_per_interactions;
+
+    if (d_cond_interaction[int_id] == -1)
+        return;
+
+    curandStatePhilox4_32_10_t st;
+    curand_init(seed, tid, d_offset_iter[tid], &st);
+
+    if (d_cond[blockId] == 0)
+    {
+
+        for (int it = 0; it < num_iterations; it++)
+        {
+            RBIM_eight_vertex result = eight_vertex_periodic_wl_step(
+                d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, d_energy, d_offset_iter,
+                &st, tid, 2 * nx * ny, nx, ny, num_lattices, walker_per_interactions);
+
+            const int old_energy_int = static_cast<int>(round(d_energy[tid])); // Int cast for indexing via energy
+            const int new_energy_int = static_cast<int>(round(result.new_energy));
+
+            // If no new energy is found, set it to 0, else to tid + 1
+            foundFlag[tid] = (d_expected_energy_spectrum[d_offset_energy_spectrum[int_id] + new_energy_int - d_start[int_id * num_intervals]] == 1) ? 0 : tid + 1;
+
+            if (foundFlag[tid] != 0)
+            {
+                printf("new_energy %d index in spectrum %d \n", new_energy_int, new_energy_int - d_start[int_id * num_intervals]);
+                d_newEnergies[tid] = result.new_energy;
+                return;
+            }
+
+            int index_old = d_offset_histogramm[tid] + old_energy_int - d_start[blockId];
+
+            if (result.new_energy > d_end[blockId] || result.new_energy < d_start[blockId])
+            {
+                d_H[index_old] += 1;
+                d_logG[index_old] += log(factor[tid]);
+            }
+            else
+            {
+                int index_new = d_offset_histogramm[tid] + new_energy_int - d_start[blockId];
+                double prob = exp(d_logG[index_old] - d_logG[index_new]);
+                double randval = curand_uniform(&st);
+
+                if (randval < prob)
+                {
+                    if (result.color)
+                    { // red lattice spin flip
+                        d_lattice_r[d_offset_lattice[tid] + result.i * nx + result.j] *= -1;
+                    }
+                    else // blue lattice spin flip
+                    {
+                        d_lattice_b[d_offset_lattice[tid] + result.i * nx + result.j] *= -1;
+                    }
+
+                    d_H[index_new] += 1;
+                    d_logG[index_new] += log(factor[tid]);
+                    d_energy[tid] = result.new_energy;
+                }
+
+                else
+                {
+                    d_H[index_old] += 1;
+                    d_logG[index_old] += log(factor[tid]);
+                }
+
+                d_offset_iter[tid] += 1;
+            }
+        }
+    }
+    else
+    {
+        for (int it = 0; it < num_iterations; it++)
+        {
+            RBIM_eight_vertex result = eight_vertex_periodic_wl_step(
+                d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, d_energy, d_offset_iter,
+                &st, tid, 2 * nx * ny, nx, ny, num_lattices, walker_per_interactions);
+
+            const int old_energy_int = static_cast<int>(round(d_energy[tid])); // Int cast for indexing via energy
+            const int new_energy_int = static_cast<int>(round(result.new_energy));
+
+            // If no new energy is found, set it to 0, else to tid + 1
+            foundFlag[tid] = (d_expected_energy_spectrum[d_offset_energy_spectrum[int_id] + new_energy_int - d_start[int_id * num_intervals]] == 1) ? 0 : tid + 1;
+
+            if (foundFlag[tid] != 0)
+            {
+                printf("new_energy %d index in spectrum %d \n", new_energy_int, new_energy_int - d_start[int_id * num_intervals]);
+                d_newEnergies[tid] = result.new_energy;
+                return;
+            }
+
+            if (result.new_energy <= d_end[blockId] || result.new_energy >= d_start[blockId])
+            {
+                int index_old = d_offset_histogramm[tid] + old_energy_int - d_start[blockId];
+                int index_new = d_offset_histogramm[tid] + new_energy_int - d_start[blockId];
+
+                double prob = min(1.0, exp(d_logG[index_old] - d_logG[index_new]));
+
+                if (curand_uniform(&st) < prob)
+                {
+                    if (result.color)
+                    { // red lattice spin flip
+                        d_lattice_r[d_offset_lattice[tid] + result.i * nx + result.j] *= -1;
+                    }
+                    else // blue lattice spin flip
+                    {
+                        d_lattice_b[d_offset_lattice[tid] + result.i * nx + result.j] *= -1;
+                    }
+                    d_energy[tid] = result.new_energy;
+                }
+                d_offset_iter[tid] += 1;
+            }
+        }
+    }
+
+    return;
+}
+
 __global__ void find_spin_config_in_energy_range(signed char *d_lattice, signed char *d_interactions, const int nx, const int ny, const int num_lattices, const int seed, int *d_start, int *d_end, int *d_energy, int *d_offset_lattice)
 {
     const long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
@@ -931,26 +1062,6 @@ __global__ void find_spin_config_in_energy_range(signed char *d_lattice, signed 
             d_lattice[d_offset_lattice[tid] + i * ny + j] *= -1;
         }
     }
-
-    return;
-}
-
-__global__ void check_energy_ranges(int *d_energy, int *d_start, int *d_end, int total_walker)
-{
-
-    long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
-
-    if (tid >= total_walker)
-        return;
-
-    int check = 1;
-
-    if (d_energy[tid] > d_end[blockIdx.x] || d_energy[tid] < d_start[blockIdx.x])
-    {
-        check = 0;
-    }
-
-    assert(check);
 
     return;
 }

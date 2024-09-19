@@ -360,6 +360,31 @@ int main(int argc, char **argv)
         h_interactions_four_body_right.insert(h_interactions_four_body_right.end(), run_interactions_four_body_right.begin(), run_interactions_four_body_right.end());
     }
 
+    std::vector<signed char> h_lattice_r;
+    std::vector<signed char> h_lattice_b;
+
+    for (int i = 0; i < num_interactions; i++)
+    {
+        std::vector<int> run_start(h_start_int.begin() + i * num_intervals,
+                                   h_start_int.begin() + i * num_intervals + num_intervals);
+
+        std::vector<int> run_end(h_end_int.begin() + i * num_intervals,
+                                 h_end_int.begin() + i * num_intervals + num_intervals);
+
+        std::vector<signed char> run_lattice_r = get_lattice_with_pre_run_result_eight_vertex(
+            is_qubit_specific_noise, error_mean, error_variance, x_horizontal_error, x_vertical_error,
+            z_horizontal_error, z_vertical_error, X, Y, run_start, run_end, num_intervals, walker_per_interval,
+            seed_hist, prob_x_err, prob_y_err, prob_z_err, 'r');
+
+        std::vector<signed char> run_lattice_b = get_lattice_with_pre_run_result_eight_vertex(
+            is_qubit_specific_noise, error_mean, error_variance, x_horizontal_error, x_vertical_error,
+            z_horizontal_error, z_vertical_error, X, Y, run_start, run_end, num_intervals, walker_per_interval,
+            seed_hist, prob_x_err, prob_y_err, prob_z_err, 'b');
+
+        h_lattice_r.insert(h_lattice_r.end(), run_lattice_r.begin(), run_lattice_r.end());
+        h_lattice_b.insert(h_lattice_b.end(), run_lattice_b.begin(), run_lattice_b.end());
+    }
+
     // // TEST BLOCK
     // for (int i = 0; i < num_interactions; i++)
     // {

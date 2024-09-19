@@ -392,6 +392,74 @@ std::vector<signed char> get_lattice_with_pre_run_result(float prob, int seed, i
     return lattice_over_all_walkers;
 }
 
+std::vector<signed char> get_lattice_with_pre_run_result_eight_vertex(
+    bool is_qubit_specific_noise, float error_mean, float error_variance, bool x_horizontal_error, bool x_vertical_error, bool z_horizontal_error, bool z_vertical_error,
+    int X, int Y, std::vector<int> h_start, std::vector<int> h_end, int num_intervals, int num_walkers_per_interval, int seed_hist, float prob_x_err, float prob_y_err, float prob_z_err, std::string lattice_color)
+{
+
+    std::string error_string = std::to_string(x_horizontal_error) + std::to_string(x_vertical_error) + std::to_string(z_horizontal_error) + std::to_string(z_vertical_error);
+
+    std::ostringstream oss;
+    oss << "init/eight_vertex/periodic/qubit_specific_noise_" << std::to_string(is_qubit_specific_noise) << "/" << std::fixed << std::setprecision(6);
+
+    if (is_qubit_specific_noise)
+    {
+        oss << "error_mean_" << error_mean << "_error_variance_" << error_variance;
+    }
+    else
+    {
+        oss << "prob_X_" + std::to_string(prob_x_err) + "_prob_Y_" + std::to_string(prob_y_err) + "_prob_Z_" + std::to_string(prob_z_err);
+    }
+
+    oss << "/X_" << X << "_Y_" << Y;
+    oss << "/seed_" << seed_hist;
+    oss << "/error_class_" << error_string;
+    oss << "/lattice";
+
+    std::string lattice_path = oss.str();
+    std::vector<signed char> lattice_over_all_walkers;
+    for (int interval_iterator = 0; interval_iterator < num_intervals; interval_iterator++)
+    {
+        try
+        {
+            for (const auto &entry : fs::directory_iterator(lattice_path))
+            {
+                // Check if the entry is a regular file and has a .txt extension
+                if (entry.is_regular_file() && entry.path().extension() == ".txt")
+                {
+                    // Extract the number from the filename
+                    std::string filename = entry.path().stem().string(); // Get the filename without extension
+                    std::regex regex("lattice_" + lattice_color + "_energy_(-?\\d+(\\.\\d+)?)");
+                    std::smatch match;
+                    if (std::regex_search(filename, match, regex))
+                    {
+                        float number = std::stof(match[1]);
+                        // Check if the number is between interval boundaries
+                        if (number >= h_start[interval_iterator] && number <= h_end[interval_iterator])
+                        {
+                            // std::cout << "Processing file: " << entry.path() << " with energy: " << number << " for interval [" << h_start[interval_iterator] << ", " << h_end[interval_iterator] << "]" << std::endl;
+                            for (int walker_per_interval_iterator = 0; walker_per_interval_iterator < num_walkers_per_interval; walker_per_interval_iterator++)
+                            {
+                                read<signed char>(lattice_over_all_walkers, entry.path().string());
+                            }
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        std::cerr << "Unable to open file: " << entry.path() << std::endl;
+                    }
+                }
+            }
+        }
+        catch (const fs::filesystem_error &e)
+        {
+            std::cerr << "Filesystem error: " << e.what() << std::endl;
+        }
+    }
+    return lattice_over_all_walkers;
+}
+
 __device__ float atomicCAS_f32(float *p, float cmp, float val)
 {
     return __int_as_float(atomicCAS((int *)p, __float_as_int(cmp), __float_as_int(val)));

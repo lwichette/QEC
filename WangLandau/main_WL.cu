@@ -256,7 +256,7 @@ int main(int argc, char **argv)
                 walker_per_interactions);
     cudaDeviceSynchronize();
 
-    check_energy_ranges<<<total_intervals, options.walker_per_interval>>>(d_energy, d_start, d_end, total_walker);
+    check_energy_ranges<int><<<total_intervals, options.walker_per_interval>>>(d_energy, d_start, d_end, total_walker);
     cudaDeviceSynchronize();
 
     // Stop timing

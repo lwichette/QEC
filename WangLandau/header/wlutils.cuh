@@ -155,6 +155,29 @@ inline void write(
     return;
 }
 
+template <typename T>
+__global__ void check_energy_ranges(T *d_energy, int *d_start, int *d_end, int total_walker)
+{
+
+    long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
+
+    if (tid >= total_walker)
+        return;
+
+    int check = 1;
+
+    // printf("tid=%lld energy=%.2f start_interval=%d end_interval=%d  \n", tid, static_cast<double>(d_energy[tid]), d_start[blockIdx.x], d_end[blockIdx.x]);
+
+    if (d_energy[tid] > d_end[blockIdx.x] || d_energy[tid] < d_start[blockIdx.x])
+    {
+        check = 0;
+    }
+
+    assert(check);
+
+    return;
+}
+
 void read(std::vector<signed char> &lattice, std::string filename);
 
 void read(std::vector<double> &lattice, std::string filename);
@@ -306,6 +329,13 @@ __global__ void wang_landau_pre_run_eight_vertex(
     const int num_iterations, const int num_qubits, const int X, const int Y, const int seed, const int len_interval, const int found_interval,
     const int num_walker, const int num_interval, const int walker_per_interaction);
 
+__global__ void wang_landau_eight_vertex(
+    signed char *d_lattice_b, signed char *d_lattice_r, double *d_interactions_b, double *d_interactions_r, double *d_interactions_right_four_body, double *d_interactions_down_four_body, double *d_energy, int *d_start, int *d_end, unsigned long long *d_H,
+    double *d_logG, int *d_offset_histogramm, int *d_offset_lattice, const int num_iterations, const int nx, const int ny,
+    const int seed, double *factor, unsigned long long *d_offset_iter, signed char *d_expected_energy_spectrum, double *d_newEnergies, int *foundFlag,
+    const int num_lattices, const double beta, signed char *d_cond, const int walker_per_interactions, const int num_intervals,
+    int *d_offset_energy_spectrum, int *d_cond_interaction);
+
 __global__ void check_sums(int *d_cond_interactions, int num_intervals, int num_interactions);
 
 __global__ void test_eight_vertex_periodic_wl_step(
@@ -342,5 +372,9 @@ std::string eight_vertex_interaction_path(
 std::vector<signed char> get_lattice_with_pre_run_result_eight_vertex(
     bool is_qubit_specific_noise, float error_mean, float error_variance, bool x_horizontal_error, bool x_vertical_error, bool z_horizontal_error, bool z_vertical_error,
     int X, int Y, std::vector<int> h_start, std::vector<int> h_end, int num_intervals, int num_walkers_per_interval, int seed_hist, float prob_x_err, float prob_y_err, float prob_z_err, std::string lattice_color);
+
+template __global__ void check_energy_ranges<int>(int *d_energy, int *d_start, int *d_end, int total_walker);
+
+template __global__ void check_energy_ranges<double>(double *d_energy, int *d_start, int *d_end, int total_walker);
 
 #endif // WLUTILS_H

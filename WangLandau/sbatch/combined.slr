@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=WL-prerun
+#SBATCH --job-name=WL-main
 
 #SBATCH --partition=qc
 #SBATCH --account=quxki
@@ -22,6 +22,8 @@
 #SBATCH -D /mnt/beegfs/data/QuDA-KI/qec/WangLandau
 
 config="configs/combined.txt"
+
+SECONDS=0
 
 alpha=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $2}' $config)
 
@@ -51,14 +53,35 @@ num_loops=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $14}
 
 num_walker_prerun=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $15}' $config)
 
-prob=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $16}' $config)
+num_intervals_prerun=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $16}' $config)
 
-size=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $17}' $config)
+prob=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $17}' $config)
 
-error_type=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $18}' $config)
+size=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $18}' $config)
 
+error_type=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $19}' $config)
+
+formatted_prob=$(printf "%.6f" $probability)
+
+case $boundary_type in
+    1)
+        result="open"
+        ;;
+    0)
+        result="periodic"
+        ;;
+    2)
+        result="cylinder"
+        ;;
+esac
 
 singularity exec --home /mnt/beegfs/data/QuDA-KI/qec/WangLandau --nv /mnt/beegfs/public/images/boost.sif /bin/bash -c "
 make prerun ID=$SLURM_ARRAY_TASK_ID \
-&& ./prerun_$SLURM_ARRAY_TASK_ID -x 4 -y 4 -p 0.1 -n 100 -l 1000 -w 200 -s 222 -i 15 -e I -b 0 -r 1000  \
-&& make clean ID=$SLURM_ARRAY_TASK_ID"
+&& ./prerun_$SLURM_ARRAY_TASK_ID -x $size -y $size -p $prob -n $iterations -l $num_loops -w $num_walker_prerun -s $seed_hist -i $num_intervals_prerun -e "$error_type" -b $boundary_type -r $num_interactions \
+&& make clean ID=$SLURM_ARRAY_TASK_ID \
+&& make wl ID=$SLURM_ARRAY_TASK_ID \
+&& timeout $time_limit ./wl_$SLURM_ARRAY_TASK_ID -x $size -y $size -n $iterations -p $prob -a $alpha -b $beta -i $intervals_wl -w $walker_wl -o $overlap -s $seed_run -e "$error_type" -t $boundary_type -h $seed_hist -r $num_interactions -c $replica_exchange_steps \
+&& rm -rf init/${result}/prob_${formatted_prob}/X_${size}_Y_${size}/*"
+
+duration=$SECONDS
+echo "Total runtime: $((duration / 60)) minutes and $((duration % 60)) seconds."

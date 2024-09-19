@@ -17,13 +17,13 @@ seed_hist=1
 
 seed_run=1000
 
-num_interactions=2
+num_interactions=2000
 
 replica_exchange_steps=50
 
 boundary_type=0
 
-intervals_wl=10
+intervals_wl=15
 
 iterations=1000
 
@@ -33,7 +33,7 @@ num_loops=100
 
 num_walker_prerun=100
 
-num_intervals_prerun=20
+num_intervals_prerun=30
 
 case $boundary_type in
     1)
@@ -49,7 +49,7 @@ esac
 
 for probability in 0.1
   do
-    for size in 4
+    for size in 10
     do
       xval=$size
       yval=$size
@@ -68,7 +68,7 @@ for probability in 0.1
 
         formatted_prob=$(printf "%.6f" $probability)
 
-        rm -rf init/${result}/prob_${formatted_prob}/X_${size}_Y_${size}/*
+        #rm -rf init/${result}/prob_${formatted_prob}/X_${size}_Y_${size}/*
 
       done
     done

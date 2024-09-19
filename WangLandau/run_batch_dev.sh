@@ -13,25 +13,25 @@ walker_wl=8
 
 overlap_wl=0.25
 
-seed_hist=1
+seed_hist=854
 
-seed_run=1000
+seed_run=42
 
-num_interactions=2000
+num_interactions=2
 
 replica_exchange_steps=50
 
 boundary_type=0
 
-intervals_wl=15
+intervals_wl=10
 
 iterations=1000
 
 time_limit=600
 
-num_loops=100
+num_loops=200
 
-num_walker_prerun=100
+num_walker_prerun=150
 
 num_intervals_prerun=30
 
@@ -49,7 +49,7 @@ esac
 
 for probability in 0.1
   do
-    for size in 10
+    for size in 4
     do
       xval=$size
       yval=$size
@@ -68,7 +68,9 @@ for probability in 0.1
 
         formatted_prob=$(printf "%.6f" $probability)
 
-        #rm -rf init/${result}/prob_${formatted_prob}/X_${size}_Y_${size}/*
+        gpu_id=$(nvidia-smi --query-gpu=index --format=csv,noheader,nounits)
+
+        rm -rf ${gpu_id}
 
       done
     done

@@ -308,8 +308,11 @@ std::string constructFilePath(float prob_interactions, int X, int Y, int seed, s
         boundary = "unknown"; // Handle any unexpected boundary_type values
     }
 
+    int device_id;
+    cudaError_t err = cudaGetDevice(&device_id);
+
     std::stringstream strstr;
-    strstr << "init/" << boundary << "/prob_" << std::fixed << std::setprecision(6) << prob_interactions;
+    strstr << std::to_string(device_id) << "/init/" << boundary << "/prob_" << std::fixed << std::setprecision(6) << prob_interactions;
     strstr << "/X_" << X << "_Y_" << Y;
     strstr << "/seed_" << seed;
     strstr << "/error_class_" << error_class;
@@ -339,9 +342,12 @@ std::vector<signed char> get_lattice_with_pre_run_result(float prob, int seed, i
         boundary = "unknown"; // Handle any unexpected boundary_type values
     }
 
+    int device_id;
+    cudaError_t err = cudaGetDevice(&device_id);
+
     namespace fs = std::filesystem;
     std::ostringstream oss;
-    oss << "init/" << boundary << "/prob_" << std::fixed << std::setprecision(6) << prob;
+    oss << std::to_string(device_id) + "/init/" << boundary << "/prob_" << std::fixed << std::setprecision(6) << prob;
     oss << "/X_" << x << "_Y_" << y;
     oss << "/seed_" << seed;
     oss << "/error_class_" << error_class;

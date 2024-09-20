@@ -392,11 +392,10 @@ std::vector<signed char> get_lattice_with_pre_run_result(float prob, int seed, i
     return lattice_over_all_walkers;
 }
 
-std::vector<signed char> get_lattice_with_pre_run_result_eight_vertex(
+std::map<std::string, std::vector<signed char>> get_lattice_with_pre_run_result_eight_vertex(
     bool is_qubit_specific_noise, float error_mean, float error_variance, bool x_horizontal_error, bool x_vertical_error, bool z_horizontal_error, bool z_vertical_error,
-    int X, int Y, std::vector<int> h_start, std::vector<int> h_end, int num_intervals, int num_walkers_per_interval, int seed_hist, float prob_x_err, float prob_y_err, float prob_z_err, std::string lattice_color)
+    int X, int Y, std::vector<int> h_start, std::vector<int> h_end, int num_intervals, int num_walkers_per_interval, int seed_hist, float prob_x_err, float prob_y_err, float prob_z_err)
 {
-
     std::string error_string = std::to_string(x_horizontal_error) + std::to_string(x_vertical_error) + std::to_string(z_horizontal_error) + std::to_string(z_vertical_error);
 
     namespace fs = std::filesystem;
@@ -418,9 +417,15 @@ std::vector<signed char> get_lattice_with_pre_run_result_eight_vertex(
     oss << "/lattice";
 
     std::string lattice_path = oss.str();
-    std::vector<signed char> lattice_over_all_walkers;
+    std::map<std::string, std::vector<signed char>> lattices;
+    lattices["b"] = {};
+    lattices["r"] = {};
+
     for (int interval_iterator = 0; interval_iterator < num_intervals; interval_iterator++)
     {
+        std::vector<std::pair<float, fs::path>> r_files;
+        std::vector<std::pair<float, fs::path>> b_files;
+
         try
         {
             for (const auto &entry : std::filesystem::directory_iterator(lattice_path))
@@ -428,30 +433,66 @@ std::vector<signed char> get_lattice_with_pre_run_result_eight_vertex(
                 // Check if the entry is a regular file and has a .txt extension
                 if (entry.is_regular_file() && entry.path().extension() == ".txt")
                 {
-                    // Extract the number from the filename
                     std::string filename = entry.path().stem().string(); // Get the filename without extension
-                    std::regex regex("lattice_" + lattice_color + "_energy_(-?\\d+(\\.\\d{6})?)");
-                    std::smatch match;
 
-                    // If the filename doesn't match the expected color, skip it
-                    if (!std::regex_search(filename, match, regex))
+                    // Check for "r" lattice
+                    std::regex regex_r("lattice_r_energy_(-?\\d+(\\.\\d{6})?)");
+                    std::smatch match_r;
+                    if (std::regex_search(filename, match_r, regex_r))
                     {
-                        continue; // Skip files not matching the desired color
+                        float energy_r = std::stof(match_r[1]);
+                        r_files.push_back({energy_r, entry.path()});
+                        continue;
                     }
 
-                    float number = std::stof(match[1]);
-
-                    // std::cout << "energy from file name: " << number << " interval start: " << h_start[interval_iterator] << " interval end: " << h_end[interval_iterator] << std::endl;
-
-                    // Check if the number is between interval boundaries
-                    if (number > h_start[interval_iterator] && number < h_end[interval_iterator])
+                    // Check for "b" lattice
+                    std::regex regex_b("lattice_b_energy_(-?\\d+(\\.\\d{6})?)");
+                    std::smatch match_b;
+                    if (std::regex_search(filename, match_b, regex_b))
                     {
-                        for (int walker_per_interval_iterator = 0; walker_per_interval_iterator < num_walkers_per_interval; walker_per_interval_iterator++)
-                        {
-                            read(lattice_over_all_walkers, entry.path().string());
-                        }
-                        break; // No need to check other files once the lattice is found for this interval
+                        float energy_b = std::stof(match_b[1]);
+                        b_files.push_back({energy_b, entry.path()});
                     }
+                }
+            }
+
+            // Sort both r and b files by energy
+            std::sort(r_files.begin(), r_files.end());
+            std::sort(b_files.begin(), b_files.end());
+
+            // Process files only if they have matching energies
+            size_t r_idx = 0, b_idx = 0;
+            while (r_idx < r_files.size() && b_idx < b_files.size())
+            {
+                float r_energy = r_files[r_idx].first;
+                float b_energy = b_files[b_idx].first;
+
+                if (r_energy == b_energy &&
+                    r_energy > h_start[interval_iterator] && r_energy < h_end[interval_iterator])
+                {
+                    // // Print the processing message for matching files
+                    // std::cout << "Processing files: "
+                    //           << r_files[r_idx].second << " (r) and "
+                    //           << b_files[b_idx].second << " (b) with energy: "
+                    //           << r_energy << " for interval ["
+                    //           << h_start[interval_iterator] << ", "
+                    //           << h_end[interval_iterator] << "]" << std::endl;
+
+                    // Matching energy and within bounds, process both
+                    for (int walker_per_interval_iterator = 0; walker_per_interval_iterator < num_walkers_per_interval; walker_per_interval_iterator++)
+                    {
+                        read(lattices["r"], r_files[r_idx].second.string());
+                        read(lattices["b"], b_files[b_idx].second.string());
+                    }
+                    break;
+                }
+                else if (r_energy < b_energy)
+                {
+                    r_idx++;
+                }
+                else
+                {
+                    b_idx++;
                 }
             }
         }
@@ -460,7 +501,8 @@ std::vector<signed char> get_lattice_with_pre_run_result_eight_vertex(
             std::cerr << "Filesystem error: " << e.what() << std::endl;
         }
     }
-    return lattice_over_all_walkers;
+
+    return lattices;
 }
 
 __device__ float atomicCAS_f32(float *p, float cmp, float val)
@@ -922,7 +964,7 @@ __global__ void wang_landau_eight_vertex(
         {
             RBIM_eight_vertex result = eight_vertex_periodic_wl_step(
                 d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, d_energy, d_offset_iter,
-                &st, tid, 2 * nx * ny, nx, ny, num_lattices, walker_per_interactions);
+                &st, tid, nx * ny, nx, ny, num_lattices, walker_per_interactions);
 
             const int old_energy_int = static_cast<int>(round(d_energy[tid])); // Int cast for indexing via energy
             const int new_energy_int = static_cast<int>(round(result.new_energy));
@@ -934,6 +976,14 @@ __global__ void wang_landau_eight_vertex(
             {
                 printf("new_energy %d index in spectrum %d \n", new_energy_int, new_energy_int - d_start[int_id * num_intervals]);
                 d_newEnergies[tid] = result.new_energy;
+                if (result.color)
+                { // red lattice spin flip
+                    d_lattice_r[d_offset_lattice[tid] + result.i * nx + result.j] *= -1;
+                }
+                else // blue lattice spin flip
+                {
+                    d_lattice_b[d_offset_lattice[tid] + result.i * nx + result.j] *= -1;
+                }
                 return;
             }
 
@@ -982,7 +1032,7 @@ __global__ void wang_landau_eight_vertex(
         {
             RBIM_eight_vertex result = eight_vertex_periodic_wl_step(
                 d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, d_energy, d_offset_iter,
-                &st, tid, 2 * nx * ny, nx, ny, num_lattices, walker_per_interactions);
+                &st, tid, nx * ny, nx, ny, num_lattices, walker_per_interactions);
 
             const int old_energy_int = static_cast<int>(round(d_energy[tid])); // Int cast for indexing via energy
             const int new_energy_int = static_cast<int>(round(result.new_energy));
@@ -1122,7 +1172,7 @@ __device__ void store_lattice(
     const int num_interval, const int int_id, bool color)
 {
 
-    int interval_index = ((d_energy[tid] - E_min) / len_interval < num_interval) ? (d_energy[tid] - E_min) / len_interval : num_interval - 1;
+    int interval_index = ((static_cast<int>(round(d_energy[tid])) - E_min) / len_interval < num_interval) ? (static_cast<int>(round(d_energy[tid])) - E_min) / len_interval : num_interval - 1;
 
     if (color)
     {
@@ -2522,16 +2572,20 @@ __device__ double calc_energy_periodic_eight_vertex(signed char *lattice_b, sign
         energy += lattice_b[offset_lattice + i * X + j] * (lattice_b[offset_lattice + i_dn * X + j] * interactions_b[offset_interactions_closed_on_sublattice + num_qubits / 2 + i * X + j] + lattice_b[offset_lattice + i * X + j_rn] * interactions_b[offset_interactions_closed_on_sublattice + i * X + j]) + lattice_r[offset_lattice + i * X + j] * (lattice_r[offset_lattice + i_dn * X + j] * interactions_r[offset_interactions_closed_on_sublattice + num_qubits / 2 + i * X + j] + lattice_r[offset_lattice + i * X + j_rn] * interactions_r[offset_interactions_closed_on_sublattice + i * X + j]) + interactions_four_body_right[offset_interactions_four_body + i * X + j] * (lattice_b[offset_lattice + i * X + j] * lattice_b[offset_lattice + right_four_body_side_b] * lattice_r[offset_lattice + right_four_body_up_r] * lattice_r[offset_lattice + right_four_body_down_r]) + interactions_four_body_down[offset_interactions_four_body + i * X + j] * (lattice_b[offset_lattice + i * X + j] * lattice_b[offset_lattice + down_four_body_down_b] * lattice_r[offset_lattice + down_four_body_left_r] * lattice_r[offset_lattice + down_four_body_right_r]);
     }
 
+    // if (tid == 0)
+    // {
+    //     printf("%.2f energies in calc_energy \n", energy);
+    // }
     return energy;
 }
 
 __global__ void calc_energy_eight_vertex(double *energy_out, signed char *lattice_b, signed char *lattice_r, double *interactions_b, double *interactions_r, double *interactions_four_body_right, double *interactions_four_body_down, const int num_qubits, const int X, const int Y, const int num_lattices, const int num_lattices_x_interaction)
 {
     long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
+
     if (tid < num_lattices)
     {
         energy_out[tid] = calc_energy_periodic_eight_vertex(lattice_b, lattice_r, interactions_b, interactions_r, interactions_four_body_right, interactions_four_body_down, num_qubits, X, Y, num_lattices_x_interaction);
-        // printf("lattice %lld energy %.10f \n", tid, energy_out[tid]);
     }
 }
 
@@ -2563,6 +2617,7 @@ __device__ RBIM_eight_vertex eight_vertex_periodic_wl_step(
     int j_ln = (j - 1 >= 0) ? j - 1 : X - 1;     // left neighbor column index
 
     double energy_diff = 0;
+
     if (!color) // color is blue
     {
         // these indices are used for right four body interaction (the one with blue spins on horizontal line and the right refers to storage of coupling strength labeled by blue spin at left end of the cross term) with root spin at left position
@@ -2620,8 +2675,6 @@ __device__ RBIM_eight_vertex eight_vertex_periodic_wl_step(
 
         energy_diff = -2 * (E_up + E_down + E_right + E_left + E_right_four_body_down_version + E_right_four_body_up_version + E_down_four_body_left_version + E_down_four_body_right_version);
 
-        // energy_diff = -2 * d_lattice_r[offset_lattice + i * X + j] * (d_lattice_r[offset_lattice + i_un * X + j] * d_interactions_r[offset_interactions_closed_on_sublattice + num_qubits / 2 + i_un * X + j] + d_lattice_r[offset_lattice + i_dn * X + j] * d_interactions_r[offset_interactions_closed_on_sublattice + num_qubits / 2 + i * X + j] + d_lattice_r[offset_lattice + i * X + j_rn] * d_interactions_r[offset_interactions_closed_on_sublattice + i * X + j] + d_lattice_r[offset_lattice + i * X + j_ln] * d_interactions_r[offset_interactions_closed_on_sublattice + i * X + j_ln] + d_interactions_four_body_right[offset_interactions_four_body + right_four_body_term_up_version_left_b] * (d_lattice_b[offset_lattice + right_four_body_term_up_version_left_b] * d_lattice_b[offset_lattice + right_four_body_term_up_version_right_b] * d_lattice_r[offset_lattice + right_four_body_term_up_version_down_r]) + d_interactions_four_body_right[offset_interactions_four_body + right_four_body_term_down_version_left_b] * (d_lattice_b[offset_lattice + right_four_body_term_down_version_left_b] * d_lattice_b[offset_lattice + right_four_body_term_down_version_right_b] * d_lattice_r[offset_lattice + right_four_body_term_down_version_up_r]) + d_interactions_four_body_down[offset_interactions_four_body + down_four_body_term_left_version_up_b] * (d_lattice_b[offset_lattice + down_four_body_term_left_version_up_b] * d_lattice_b[offset_lattice + down_four_body_term_left_version_down_b] * d_lattice_r[offset_lattice + down_four_body_term_left_version_right_r]) + d_interactions_four_body_down[offset_interactions_four_body + down_four_body_term_right_version_up_b] * (d_lattice_b[offset_lattice + down_four_body_term_right_version_up_b] * d_lattice_b[offset_lattice + down_four_body_term_right_version_down_b] * d_lattice_r[offset_lattice + down_four_body_term_right_version_left_r]));
-
         // if (tid == 0)
         // {
         // printf("E_up=%.6f E_down=%.6f E_right=%.6f E_left=%.6f E_right_four_body_up_version=%.6f E_right_four_body_down_version=%.6f E_down_four_body_left_version=%.6f E_down_four_body_right_version=%.6f \n", E_up, E_down, E_right, E_left, E_right_four_body_up_version, E_right_four_body_down_version, E_down_four_body_left_version, E_down_four_body_right_version);
@@ -2642,7 +2695,10 @@ __device__ RBIM_eight_vertex eight_vertex_periodic_wl_step(
 
     double d_new_energy = d_energy[tid] + energy_diff;
 
-    // printf("walker idx = %lld old energy = %.6f new energy = %.6f energy diff = %.6f\n", tid, d_energy[tid], d_new_energy, energy_diff);
+    // if (tid == 0 || tid == 1)
+    // {
+    //     printf("walker idx = %lld old energy = %.6f new energy = %.6f energy diff = %.6f\n", tid, d_energy[tid], d_new_energy, energy_diff);
+    // }
 
     RBIM_eight_vertex rbim;
     rbim.new_energy = d_new_energy;

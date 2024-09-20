@@ -166,11 +166,21 @@ __global__ void check_energy_ranges(T *d_energy, int *d_start, int *d_end, int t
 
     int check = 1;
 
-    //printf("tid=%lld energy=%.2f start_interval=%d end_interval=%d  \n", tid, static_cast<double>(d_energy[tid]), d_start[blockIdx.x], d_end[blockIdx.x]);
+    int energy_int;
+    if (std::is_same<T, double>::value)
+    {
+        // Round the double valued energy to the nearest int as binning allows for out of bounds by rounding to nearest bin
+        energy_int = __double2int_rn(static_cast<double>(d_energy[tid]));
+    }
+    else
+    {
+        energy_int = static_cast<int>(d_energy[tid]);
+    }
 
-    if (d_energy[tid] > d_end[blockIdx.x] || d_energy[tid] < d_start[blockIdx.x])
+    if (energy_int >= d_end[blockIdx.x] || energy_int <= d_start[blockIdx.x])
     {
         check = 0;
+        printf("tid=%lld energy=%.2f start_interval=%d end_interval=%d  \n", tid, static_cast<double>(d_energy[tid]), d_start[blockIdx.x], d_end[blockIdx.x]);
     }
 
     assert(check);
@@ -258,8 +268,6 @@ __global__ void check_histogram(
     int *d_cond_interactions);
 
 __global__ void find_spin_config_in_energy_range(signed char *d_lattice, signed char *d_interactions, const int nx, const int ny, const int num_lattices, const int seed, int *d_start, int *d_end, int *d_energy, int *d_offset_lattice);
-
-__global__ void check_energy_ranges(int *d_energy, int *d_start, int *d_end, int total_walker);
 
 __device__ void fisher_yates(int *d_shuffle, int seed, unsigned long long *d_offset_iter);
 
@@ -366,9 +374,9 @@ std::string eight_vertex_interaction_path(
     int X, int Y, int seed_hist, bool x_horizontal_error, bool x_vertical_error,
     bool z_horizontal_error, bool z_vertical_error, std::string interaction_type, float prob_x_err, float prob_y_err, float prob_z_err);
 
-std::vector<signed char> get_lattice_with_pre_run_result_eight_vertex(
+std::map<std::string, std::vector<signed char>> get_lattice_with_pre_run_result_eight_vertex(
     bool is_qubit_specific_noise, float error_mean, float error_variance, bool x_horizontal_error, bool x_vertical_error, bool z_horizontal_error, bool z_vertical_error,
-    int X, int Y, std::vector<int> h_start, std::vector<int> h_end, int num_intervals, int num_walkers_per_interval, int seed_hist, float prob_x_err, float prob_y_err, float prob_z_err, std::string lattice_color);
+    int X, int Y, std::vector<int> h_start, std::vector<int> h_end, int num_intervals, int num_walkers_per_interval, int seed_hist, float prob_x_err, float prob_y_err, float prob_z_err);
 
 template __global__ void check_energy_ranges<int>(int *d_energy, int *d_start, int *d_end, int total_walker);
 

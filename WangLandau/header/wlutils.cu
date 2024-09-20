@@ -1119,31 +1119,6 @@ __global__ void find_spin_config_in_energy_range(signed char *d_lattice, signed 
     return;
 }
 
-__device__ void fisher_yates(int *d_shuffle, int seed, unsigned long long *d_offset_iter)
-{
-
-    long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
-
-    int offset = blockDim.x * blockIdx.x;
-
-    curandStatePhilox4_32_10_t st;
-    curand_init(seed, tid, d_offset_iter[tid], &st);
-
-    for (int i = blockDim.x - 1; i > 0; i--)
-    {
-        double randval = curand_uniform(&st);
-        randval *= (i + 0.999999);
-        int random_index = (int)trunc(randval);
-        d_offset_iter[tid] += 1;
-
-        int temp = d_shuffle[offset + i];
-        d_shuffle[offset + i] = d_shuffle[offset + random_index];
-        d_shuffle[offset + random_index] = temp;
-    }
-
-    return;
-}
-
 __device__ void store_lattice(
     signed char *d_lattice, int *d_energy, int *d_found_interval, signed char *d_store_lattice,
     const int E_min, const int nx, const int ny, const long long tid, const int len_interval,
@@ -1251,66 +1226,6 @@ __global__ void init_offsets_lattice(int *d_offset_lattice, int nx, int ny, int 
         return;
 
     d_offset_lattice[tid] = tid * nx * ny;
-
-    return;
-}
-
-__global__ void replica_exchange(
-    int *d_offset_lattice, int *d_energy, int *d_start, int *d_end, int *d_indices,
-    double *d_logG, int *d_offset_histogram, bool even, int seed,
-    unsigned long long *d_offset_iter, const int num_intervals,
-    const int walker_per_interactions, int *d_cond_interaction)
-{
-
-    // if last block in interaction return
-    if (blockIdx.x % num_intervals == (num_intervals - 1))
-        return;
-
-    // if even only even blocks if odd only odd blocks
-    if ((even && (blockIdx.x % 2 != 0)) || (!even && (blockIdx.x % 2 == 0)))
-        return;
-
-    long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
-    const int int_id = tid / walker_per_interactions;
-
-    if (d_cond_interaction[int_id] == -1)
-        return;
-
-    long long cid = static_cast<long long>(blockDim.x) * (blockIdx.x + 1);
-
-    if (threadIdx.x == 0)
-    {
-        fisher_yates(d_indices, seed, d_offset_iter);
-    }
-
-    __syncthreads();
-
-    cid += d_indices[tid];
-
-    if (d_energy[tid] > d_end[blockIdx.x + 1] || d_energy[tid] < d_start[blockIdx.x + 1])
-        return;
-    if (d_energy[cid] > d_end[blockIdx.x] || d_energy[cid] < d_start[blockIdx.x])
-        return;
-
-    double prob = min(1.0, exp(d_logG[d_offset_histogram[tid] + d_energy[tid] - d_start[blockIdx.x]] - d_logG[d_offset_histogram[tid] + d_energy[cid] - d_start[blockIdx.x]]) * exp(d_logG[d_offset_histogram[cid] + d_energy[cid] - d_start[blockIdx.x + 1]] - d_logG[d_offset_histogram[cid] + d_energy[tid] - d_start[blockIdx.x + 1]]));
-
-    curandStatePhilox4_32_10_t st;
-    curand_init(seed, tid, d_offset_iter[tid], &st);
-
-    if (curand_uniform(&st) < prob)
-    {
-
-        int temp_off = d_offset_lattice[tid];
-        int temp_energy = d_energy[tid];
-
-        d_offset_lattice[tid] = d_offset_lattice[cid];
-        d_energy[tid] = d_energy[cid];
-
-        d_offset_lattice[cid] = temp_off;
-        d_energy[cid] = temp_energy;
-    }
-
-    d_offset_iter[tid] += 1;
 
     return;
 }

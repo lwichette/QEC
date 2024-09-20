@@ -3,25 +3,6 @@
 #include "./header/cudamacro.h"
 #include "./header/wlutils.cuh"
 
-__global__ void check_energies(double *d_energies, double *d_energies_test, int i, int total_walker)
-{
-
-    long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
-
-    if (tid >= total_walker)
-        return;
-
-    if (std::abs(d_energies[tid] - d_energies_test[tid]) > 1e-10)
-    {
-        printf("%.6f %.6f %d %lld \n", d_energies[tid], d_energies_test[tid], i, tid);
-    }
-
-    if (tid == 0)
-    {
-        printf("%.2f \n", d_energies_test[tid]);
-    }
-}
-
 int main(int argc, char **argv)
 {
 
@@ -434,6 +415,8 @@ int main(int argc, char **argv)
     int max_newEnergyFlag = 0;
     long long wang_landau_counter = 1;
 
+    int block_count = (total_len_histogram + threads_per_block - 1) / threads_per_block;
+
     // Stop timing
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = end - start;
@@ -445,13 +428,7 @@ int main(int argc, char **argv)
     ------------ Actual WL Starts Now ------------
     ----------------------------------------------
     */
-    // while (max_factor > exp(options.beta))
-    // {
-
-    double *d_test_energies;
-    CHECK_CUDA(cudaMalloc(&d_test_energies, total_walker * sizeof(*d_test_energies)));
-
-    for (int i = 0; i < 1000000; i++)
+    while (max_factor > exp(beta))
     {
         wang_landau_eight_vertex<<<blocks_total_walker_x_thread, threads_per_block>>>(
             d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, d_energy, d_start, d_end, d_H,
@@ -461,41 +438,76 @@ int main(int argc, char **argv)
             d_offset_energy_spectrum, d_cond_interactions);
         cudaDeviceSynchronize();
 
-        calc_energy_eight_vertex<<<blocks_total_walker_x_thread, threads_per_block>>>(d_test_energies, d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, 2 * X * Y, X, 2 * Y, total_walker, walker_per_interactions);
+        // get max of found new energy flag array to condition break and update the
+        // histogramm file with value in new energy array
+        thrust::device_ptr<int> d_newEnergyFlag_ptr(d_foundNewEnergyFlag);
+        thrust::device_ptr<int> max_newEnergyFlag_ptr = thrust::max_element(d_newEnergyFlag_ptr, d_newEnergyFlag_ptr + total_walker);
+        max_newEnergyFlag = *max_newEnergyFlag_ptr;
+
+        // If flag shows new energies get the device arrays containing these to the
+        // host, update histogramm file and print error message.
+        if (max_newEnergyFlag != 0)
+        {
+            int h_newEnergies[total_walker];
+            int h_newEnergyFlag[total_walker];
+            CHECK_CUDA(cudaMemcpy(h_newEnergies, d_newEnergies, total_walker * sizeof(*d_newEnergies), cudaMemcpyDeviceToHost));
+            CHECK_CUDA(cudaMemcpy(h_newEnergyFlag, d_foundNewEnergyFlag, total_walker * sizeof(*d_foundNewEnergyFlag), cudaMemcpyDeviceToHost));
+
+            // TO DO: Adjust for several interactions
+            // handleNewEnergyError(h_newEnergies, h_newEnergyFlag, histogram_file, total_walker);
+            std::cerr << "Error: Found new energy:" << std::endl;
+            return -1;
+        }
+
+        check_histogram<<<total_intervals, walker_per_interval>>>(
+            d_H, d_logG, d_shared_logG, d_offset_histogram_per_walker, d_end, d_start,
+            d_factor, X, Y, alpha, beta, d_expected_energy_spectrum,
+            d_len_energy_spectrum, total_walker, d_cond, walker_per_interactions,
+            num_intervals, d_offset_energy_spectrum, d_cond_interactions);
         cudaDeviceSynchronize();
 
-        std::vector<double> h_energies(total_walker);
-        CHECK_CUDA(cudaMemcpy(h_energies.data(), d_energy, total_walker * sizeof(*d_energy), cudaMemcpyDeviceToHost));
+        calc_average_log_g<<<block_count, threads_per_block>>>(
+            num_intervals, d_len_histograms, walker_per_interval, d_logG, d_shared_logG,
+            d_end, d_start, d_expected_energy_spectrum, d_cond, d_offset_histogram_per_walker,
+            d_offset_energy_spectrum, num_interactions, d_offset_shared_logG, d_cond_interactions);
+        cudaDeviceSynchronize();
 
-        std::vector<double> h_test_energies(total_walker);
-        CHECK_CUDA(cudaMemcpy(h_test_energies.data(), d_test_energies, total_walker * sizeof(*d_energy), cudaMemcpyDeviceToHost));
+        redistribute_g_values<<<block_count, threads_per_block>>>(
+            num_intervals, d_len_histograms, walker_per_interval, d_logG, d_shared_logG,
+            d_end, d_start, d_factor, beta, d_expected_energy_spectrum, d_cond,
+            d_offset_histogram_per_walker, num_interactions, d_offset_shared_logG, d_cond_interactions);
+        cudaDeviceSynchronize();
 
-        for (int idx = 0; idx < total_walker; idx++)
+        CHECK_CUDA(cudaMemset(d_shared_logG, 0, size_shared_log_G * sizeof(*d_shared_logG)));
+
+        check_interactions_finished(
+            d_cond, d_cond_interactions, d_offset_intervals,
+            num_intervals, num_interactions,
+            d_temp_storage, temp_storage_bytes);
+
+        // get max factor over walkers for abort condition of while loop
+        thrust::device_ptr<double> d_factor_ptr(d_factor);
+        thrust::device_ptr<double> max_factor_ptr = thrust::max_element(d_factor_ptr, d_factor_ptr + total_walker);
+        max_factor = *max_factor_ptr;
+
+        // get flag if any interaction is completely done and thus already ready for dump out
+        thrust::device_ptr<int> d_cond_interactions_ptr(d_cond_interactions);
+        thrust::device_ptr<int> min_cond_interactions_ptr = thrust::min_element(d_cond_interactions_ptr, d_cond_interactions_ptr + num_interactions);
+        min_cond_interactions = *min_cond_interactions_ptr;
+
+        if (wang_landau_counter % replica_exchange_offset == 0)
         {
-            if (std::abs(h_test_energies[idx] - h_energies[idx]) > 1e-10)
-            {
-                std::cerr << "Assertion failed for iteration: " << i << " walker idx: " << idx << " calc energy: " << h_test_energies[idx] << " wl calc energy: " << h_energies[idx] << std::endl;
-            }
+            replica_exchange<double><<<total_intervals, walker_per_interval>>>(
+                d_offset_lattice_per_walker, d_energy, d_start, d_end, d_indices, d_logG,
+                d_offset_histogram_per_walker, true, seed_run, d_offset_iterator_per_walker,
+                num_intervals, walker_per_interactions, d_cond_interactions);
+
+            replica_exchange<double><<<total_intervals, walker_per_interval>>>(
+                d_offset_lattice_per_walker, d_energy, d_start, d_end, d_indices, d_logG,
+                d_offset_histogram_per_walker, false, seed_run, d_offset_iterator_per_walker,
+                num_intervals, walker_per_interactions, d_cond_interactions);
         }
     }
-
-    // // TEST BLOCK
-    // //-----------
-    // std::vector<double> test_energies(total_walker);
-    // std::vector<double> test_energies_wl(total_walker);
-    // CHECK_CUDA(cudaMemcpy(test_energies_wl.data(), d_energy, total_walker * sizeof(*d_energy), cudaMemcpyDeviceToHost)); // get energies from wl step with energy diff calc
-    // calc_energy_eight_vertex<<<blocks_total_walker_x_thread, threads_per_block>>>(d_energy, d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, 2 * X * Y, X, 2 * Y, total_walker, walker_per_interactions);
-    // cudaDeviceSynchronize();
-    // CHECK_CUDA(cudaMemcpy(test_energies.data(), d_energy, total_walker * sizeof(*d_energy), cudaMemcpyDeviceToHost)); // get energies from calc energy function
-    // for (int idx = 0; idx < total_walker; idx++)
-    // {
-    //     if (std::abs(test_energies_wl[idx] - test_energies[idx]) > 1e-10)
-    //     {
-    //         std::cerr << " walker idx: " << idx << " calc energy: " << test_energies[idx] << " wl calc energy: " << test_energies_wl[idx] << " Diff: " << std::abs(test_energies_wl[idx] - test_energies[idx]) << std::endl;
-    //     }
-    // }
-    // //-----------
-    // // }
 
     return 0;
 }

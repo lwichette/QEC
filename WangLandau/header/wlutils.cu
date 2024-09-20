@@ -976,6 +976,14 @@ __global__ void wang_landau_eight_vertex(
             {
                 printf("new_energy %d index in spectrum %d \n", new_energy_int, new_energy_int - d_start[int_id * num_intervals]);
                 d_newEnergies[tid] = result.new_energy;
+                if (result.color)
+                { // red lattice spin flip
+                    d_lattice_r[d_offset_lattice[tid] + result.i * nx + result.j] *= -1;
+                }
+                else // blue lattice spin flip
+                {
+                    d_lattice_b[d_offset_lattice[tid] + result.i * nx + result.j] *= -1;
+                }
                 return;
             }
 

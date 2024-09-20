@@ -461,11 +461,11 @@ int main(int argc, char **argv)
     {
         if (is_qubit_specific_noise)
         {
-            path = "init/eight_vertex/periodic/qubit_specific_noise_1/error_mean_" + std::to_string(error_mean) + "_error_variance_" + std::to_string(error_variance) + "/X_" + std::to_string(X) + "_Y_" + std::to_string(Y) + "/seed_" + std::to_string(seed + i) + "/error_class_" + error_string;
+            path = "init/eight_vertex/periodic/qubit_specific_noise_1/error_mean_" + std::to_string(error_mean) + "_error_variance_" + std::to_string(error_variance) + "/X_" + std::to_string(X) + "_Y_" + std::to_string(Y) + "/error_class_" + error_string + "/seed_" + std::to_string(seed + i);
         }
         else
         {
-            path = "init/eight_vertex/periodic/qubit_specific_noise_0/prob_X_" + std::to_string(prob_x_err) + "_prob_Y_" + std::to_string(prob_y_err) + "_prob_Z_" + std::to_string(prob_z_err) + "/X_" + std::to_string(X) + "_Y_" + std::to_string(Y) + "/seed_" + std::to_string(seed + i) + "/error_class_" + error_string;
+            path = "init/eight_vertex/periodic/qubit_specific_noise_0/prob_X_" + std::to_string(prob_x_err) + "_prob_Y_" + std::to_string(prob_y_err) + "_prob_Z_" + std::to_string(prob_z_err) + "/X_" + std::to_string(X) + "_Y_" + std::to_string(Y) + "/error_class_" + error_string + "/seed_" + std::to_string(seed + i);
         }
 
         int offset_interactions = i * 2 * X * Y;       // for interactions closed on a single colored sublattice

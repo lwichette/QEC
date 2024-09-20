@@ -311,8 +311,8 @@ std::string constructFilePath(float prob_interactions, int X, int Y, int seed, s
     std::stringstream strstr;
     strstr << "init/" << boundary << "/prob_" << std::fixed << std::setprecision(6) << prob_interactions;
     strstr << "/X_" << X << "_Y_" << Y;
-    strstr << "/seed_" << seed;
     strstr << "/error_class_" << error_class;
+    strstr << "/seed_" << seed;
     strstr << "/" << type << "/" << type << ".txt";
 
     return strstr.str();
@@ -343,8 +343,8 @@ std::vector<signed char> get_lattice_with_pre_run_result(float prob, int seed, i
     std::ostringstream oss;
     oss << "init/" << boundary << "/prob_" << std::fixed << std::setprecision(6) << prob;
     oss << "/X_" << x << "_Y_" << y;
-    oss << "/seed_" << seed;
     oss << "/error_class_" << error_class;
+    oss << "/seed_" << seed;
     oss << "/lattice";
 
     std::string lattice_path = oss.str();
@@ -413,8 +413,8 @@ std::vector<signed char> get_lattice_with_pre_run_result_eight_vertex(
     }
 
     oss << "/X_" << X << "_Y_" << Y;
-    oss << "/seed_" << seed_hist;
     oss << "/error_class_" << error_string;
+    oss << "/seed_" << seed_hist;
     oss << "/lattice";
 
     std::string lattice_path = oss.str();
@@ -2737,8 +2737,8 @@ std::string eight_vertex_histogram_path(
         strstr << "prob_X_" + std::to_string(prob_x_err) + "_prob_Y_" + std::to_string(prob_y_err) + "_prob_Z_" + std::to_string(prob_z_err);
     }
     strstr << "/X_" << X << "_Y_" << Y;
-    strstr << "/seed_" << seed_hist;
     strstr << "/error_class_" << error_string;
+    strstr << "/seed_" << seed_hist;
     strstr << "/histogram/histogram.txt";
 
     return strstr.str();
@@ -2761,8 +2761,8 @@ std::string eight_vertex_interaction_path(
         strstr << "prob_X_" + std::to_string(prob_x_err) + "_prob_Y_" + std::to_string(prob_y_err) + "_prob_Z_" + std::to_string(prob_z_err);
     }
     strstr << "/X_" << X << "_Y_" << Y;
-    strstr << "/seed_" << seed_hist;
     strstr << "/error_class_" << error_string;
+    strstr << "/seed_" << seed_hist;
     strstr << "/interactions/interactions_" << interaction_type << ".txt";
 
     return strstr.str();

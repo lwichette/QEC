@@ -216,7 +216,7 @@ int main(int argc, char **argv)
 
     for (int i = 0; i < num_interactions; i++)
     {
-        std::string path = "init/" + boundary + "/prob_" + std::to_string(prob_interactions) + "/X_" + std::to_string(X) + "_Y_" + std::to_string(Y) + "/seed_" + std::to_string(seed + i) + "/error_class_" + logical_error_type;
+        std::string path = "init/" + boundary + "/prob_" + std::to_string(prob_interactions) + "/X_" + std::to_string(X) + "_Y_" + std::to_string(Y) + "/error_class_" + logical_error_type + "/seed_" + std::to_string(seed + i);
 
         int offset_interactions = i * X * Y * 2;
         int offset_lattice = i * num_intervals * X * Y;

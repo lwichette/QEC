@@ -70,7 +70,7 @@ for probability in 0.1
 
         formatted_prob=$(printf "%.6f" $probability)
 
-        base_dir="init/${result}/prob_${formatted_prob}/X_${size}_Y_${size}"
+        base_dir="init/${result}/prob_${formatted_prob}/X_${size}_Y_${size}/error_class_${error_type}"
 
         python3 delete_folders.py $base_dir $seed_hist $end_seed
 

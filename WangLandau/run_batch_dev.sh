@@ -72,7 +72,7 @@ for probability in 0.1
 
         base_dir="init/${result}/prob_${formatted_prob}/X_${size}_Y_${size}"
 
-        python3 delete_folders.py $base_dir $seed_hist $end_seed
+        # python3 delete_folders.py $base_dir $seed_hist $end_seed
 
       done
     done

@@ -61,9 +61,9 @@ size=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $18}' $co
 
 error_type=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $19}' $config)
 
-formatted_prob=$(printf "%.6f" $probability)
+formatted_prob=$(printf "%.6f" $prob)
 
-base_dir="init/${result}/prob_${formatted_prob}/X_${size}_Y_${size}"
+end_seed=$(( seed_hist + num_interactions - 1 ))
 
 case $boundary_type in
     1)
@@ -72,18 +72,20 @@ case $boundary_type in
     0)
         result="periodic"
         ;;
-    2)
-        result="cylinder"
+    2)	
+	result="cylinder"
         ;;
 esac
 
+base_dir="init/${result}/prob_${formatted_prob}/X_${size}_Y_${size}"
+
 singularity exec --home /mnt/beegfs/data/QuDA-KI/qec/WangLandau --nv /mnt/beegfs/public/images/boost.sif /bin/bash -c "
 make prerun ID=$SLURM_ARRAY_TASK_ID \
-&& ./prerun_$SLURM_ARRAY_TASK_ID -x $size -y $size -p $prob -n $iterations -l $num_loops -w $num_walker_prerun -s $seed_hist -i $num_intervals_prerun -e "$error_type" -b $boundary_type -r $num_interactions \
-&& make clean ID=$SLURM_ARRAY_TASK_ID \
 && make wl ID=$SLURM_ARRAY_TASK_ID \
-&& timeout $time_limit ./wl_$SLURM_ARRAY_TASK_ID -x $size -y $size -n $iterations -p $prob -a $alpha -b $beta -i $intervals_wl -w $walker_wl -o $overlap -s $seed_run -e "$error_type" -t $boundary_type -h $seed_hist -r $num_interactions -c $replica_exchange_steps \
-&& python3 delete_folders.py $base_dir $seed_hist $end_seed"
+&& ./prerun_$SLURM_ARRAY_TASK_ID -x $size -y $size -p $prob -n $iterations -l $num_loops -w $num_walker_prerun -s $seed_hist -i $num_intervals_prerun -e "$error_type" -b $boundary_type -r $num_interactions \
+&& timeout $time_limit ./wl_$SLURM_ARRAY_TASK_ID -x $size -y $size -n $iterations -p $prob -a $alpha -b $beta -i $intervals_wl -w $walker_wl -o $overlap -s $seed_run -e "$error_type" -t $boundary_type -h $seed_hist -r $num_interactions -c $replica_exchange_offset \
+&& python3 delete_folders.py "$base_dir" $seed_hist $end_seed \
+&& make clean ID=$SLURM_ARRAY_TASK_ID"
 
 duration=$SECONDS
 echo "Total runtime: $((duration / 60)) minutes and $((duration % 60)) seconds."

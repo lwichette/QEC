@@ -966,6 +966,11 @@ __global__ void wang_landau_eight_vertex(
                 d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, d_energy, d_offset_iter,
                 &st, tid, 2 * nx * ny, nx, ny, num_lattices, walker_per_interactions);
 
+            if (tid == 0)
+            {
+                printf("%d %d %d \n", result.color, result.i, result.j);
+            }
+
             const int old_energy_int = static_cast<int>(round(d_energy[tid])); // Int cast for indexing via energy
             const int new_energy_int = static_cast<int>(round(result.new_energy));
 
@@ -2572,17 +2577,47 @@ __device__ double calc_energy_periodic_eight_vertex(signed char *lattice_b, sign
         energy += lattice_b[offset_lattice + i * X + j] * (lattice_b[offset_lattice + i_dn * X + j] * interactions_b[offset_interactions_closed_on_sublattice + num_qubits / 2 + i * X + j] + lattice_b[offset_lattice + i * X + j_rn] * interactions_b[offset_interactions_closed_on_sublattice + i * X + j]) + lattice_r[offset_lattice + i * X + j] * (lattice_r[offset_lattice + i_dn * X + j] * interactions_r[offset_interactions_closed_on_sublattice + num_qubits / 2 + i * X + j] + lattice_r[offset_lattice + i * X + j_rn] * interactions_r[offset_interactions_closed_on_sublattice + i * X + j]) + interactions_four_body_right[offset_interactions_four_body + i * X + j] * (lattice_b[offset_lattice + i * X + j] * lattice_b[offset_lattice + right_four_body_side_b] * lattice_r[offset_lattice + right_four_body_up_r] * lattice_r[offset_lattice + right_four_body_down_r]) + interactions_four_body_down[offset_interactions_four_body + i * X + j] * (lattice_b[offset_lattice + i * X + j] * lattice_b[offset_lattice + down_four_body_down_b] * lattice_r[offset_lattice + down_four_body_left_r] * lattice_r[offset_lattice + down_four_body_right_r]);
     }
 
+    // if (tid == 0)
+    // {
+    //     printf("%.2f energies in calc_energy \n", energy);
+    // }
     return energy;
 }
 
 __global__ void calc_energy_eight_vertex(double *energy_out, signed char *lattice_b, signed char *lattice_r, double *interactions_b, double *interactions_r, double *interactions_four_body_right, double *interactions_four_body_down, const int num_qubits, const int X, const int Y, const int num_lattices, const int num_lattices_x_interaction)
 {
     long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
+
     if (tid < num_lattices)
     {
         energy_out[tid] = calc_energy_periodic_eight_vertex(lattice_b, lattice_r, interactions_b, interactions_r, interactions_four_body_right, interactions_four_body_down, num_qubits, X, Y, num_lattices_x_interaction);
-        // printf("lattice %lld energy %.10f \n", tid, energy_out[tid]);
     }
+
+    // if (tid == 0)
+    // {
+    //     printf("lattice %lld energy %.10f \n", tid, energy_out[tid]);
+    //     printf("Red \n");
+    //     for (int i = 0; i < X; i++)
+    //     {
+    //         for (int j = 0; j < Y / 2; j++)
+    //         {
+    //             printf("%d ", lattice_r[i * int(Y / 2) + j]);
+    //         }
+    //         printf("\n");
+    //     }
+
+    //     printf("\n");
+
+    //     printf("Blue \n");
+    //     for (int i = 0; i < X; i++)
+    //     {
+    //         for (int j = 0; j < Y / 2; j++)
+    //         {
+    //             printf("%d ", lattice_b[i * int(Y / 2) + j]);
+    //         }
+    //         printf("\n");
+    //     }
+    // }
 }
 
 // gets called with a thread per walker
@@ -2613,6 +2648,7 @@ __device__ RBIM_eight_vertex eight_vertex_periodic_wl_step(
     int j_ln = (j - 1 >= 0) ? j - 1 : X - 1;     // left neighbor column index
 
     double energy_diff = 0;
+
     if (!color) // color is blue
     {
         // these indices are used for right four body interaction (the one with blue spins on horizontal line and the right refers to storage of coupling strength labeled by blue spin at left end of the cross term) with root spin at left position
@@ -2670,6 +2706,10 @@ __device__ RBIM_eight_vertex eight_vertex_periodic_wl_step(
 
         energy_diff = -2 * (E_up + E_down + E_right + E_left + E_right_four_body_down_version + E_right_four_body_up_version + E_down_four_body_left_version + E_down_four_body_right_version);
 
+        if (tid == 0)
+        {
+            printf("E_up %.2f, E_down %.2f, E_right %.2f, E_left %.2f, E_right_four_body_up_version %.2f, E_right_four_body_down_version, %.2f, E_down_four_body_left_version %.2f, E_down_four_body_right_version %.2f \n", E_up, E_down, E_right, E_left, E_right_four_body_up_version, E_right_four_body_down_version, E_down_four_body_left_version, E_down_four_body_right_version);
+        }
         // energy_diff = -2 * d_lattice_r[offset_lattice + i * X + j] * (d_lattice_r[offset_lattice + i_un * X + j] * d_interactions_r[offset_interactions_closed_on_sublattice + num_qubits / 2 + i_un * X + j] + d_lattice_r[offset_lattice + i_dn * X + j] * d_interactions_r[offset_interactions_closed_on_sublattice + num_qubits / 2 + i * X + j] + d_lattice_r[offset_lattice + i * X + j_rn] * d_interactions_r[offset_interactions_closed_on_sublattice + i * X + j] + d_lattice_r[offset_lattice + i * X + j_ln] * d_interactions_r[offset_interactions_closed_on_sublattice + i * X + j_ln] + d_interactions_four_body_right[offset_interactions_four_body + right_four_body_term_up_version_left_b] * (d_lattice_b[offset_lattice + right_four_body_term_up_version_left_b] * d_lattice_b[offset_lattice + right_four_body_term_up_version_right_b] * d_lattice_r[offset_lattice + right_four_body_term_up_version_down_r]) + d_interactions_four_body_right[offset_interactions_four_body + right_four_body_term_down_version_left_b] * (d_lattice_b[offset_lattice + right_four_body_term_down_version_left_b] * d_lattice_b[offset_lattice + right_four_body_term_down_version_right_b] * d_lattice_r[offset_lattice + right_four_body_term_down_version_up_r]) + d_interactions_four_body_down[offset_interactions_four_body + down_four_body_term_left_version_up_b] * (d_lattice_b[offset_lattice + down_four_body_term_left_version_up_b] * d_lattice_b[offset_lattice + down_four_body_term_left_version_down_b] * d_lattice_r[offset_lattice + down_four_body_term_left_version_right_r]) + d_interactions_four_body_down[offset_interactions_four_body + down_four_body_term_right_version_up_b] * (d_lattice_b[offset_lattice + down_four_body_term_right_version_up_b] * d_lattice_b[offset_lattice + down_four_body_term_right_version_down_b] * d_lattice_r[offset_lattice + down_four_body_term_right_version_left_r]));
 
         // if (tid == 0)
@@ -2688,6 +2728,11 @@ __device__ RBIM_eight_vertex eight_vertex_periodic_wl_step(
         // printf("blue spins on horizontal line four body interactions: root_spin_up_inter=%d root_spin_down_inter=%d \n", offset_interactions_four_body + right_four_body_term_up_version_left_b, offset_interactions_four_body + right_four_body_term_down_version_left_b);
         // printf("blue spins on vertical line four body interactions: root_spin_left_inter=%d root_spin_right_inter=%d \n", offset_interactions_four_body + down_four_body_term_left_version_up_b, offset_interactions_four_body + down_four_body_term_right_version_up_b);
         // }
+    }
+
+    if (tid == 0)
+    {
+        printf("Energy diff %.2f \n", energy_diff);
     }
 
     double d_new_energy = d_energy[tid] + energy_diff;

@@ -373,15 +373,14 @@ int main(int argc, char **argv)
         std::vector<int> run_end(h_end_int.begin() + i * num_intervals,
                                  h_end_int.begin() + i * num_intervals + num_intervals);
 
-        std::vector<signed char> run_lattice_r = get_lattice_with_pre_run_result_eight_vertex(
+        std::map<std::string, std::vector<signed char>> run_lattices = get_lattice_with_pre_run_result_eight_vertex(
             is_qubit_specific_noise, error_mean, error_variance, x_horizontal_error, x_vertical_error,
             z_horizontal_error, z_vertical_error, X, Y, run_start, run_end, num_intervals, walker_per_interval,
-            seed_hist, prob_x_err, prob_y_err, prob_z_err, "r");
+            seed_hist, prob_x_err, prob_y_err, prob_z_err);
 
-        std::vector<signed char> run_lattice_b = get_lattice_with_pre_run_result_eight_vertex(
-            is_qubit_specific_noise, error_mean, error_variance, x_horizontal_error, x_vertical_error,
-            z_horizontal_error, z_vertical_error, X, Y, run_start, run_end, num_intervals, walker_per_interval,
-            seed_hist, prob_x_err, prob_y_err, prob_z_err, "b");
+        // Access the "r" and "b" lattices from the map
+        std::vector<signed char> run_lattice_r = run_lattices["r"];
+        std::vector<signed char> run_lattice_b = run_lattices["b"];
 
         h_lattice_r.insert(h_lattice_r.end(), run_lattice_r.begin(), run_lattice_r.end());
         h_lattice_b.insert(h_lattice_b.end(), run_lattice_b.begin(), run_lattice_b.end());

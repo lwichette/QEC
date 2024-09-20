@@ -392,11 +392,10 @@ std::vector<signed char> get_lattice_with_pre_run_result(float prob, int seed, i
     return lattice_over_all_walkers;
 }
 
-std::vector<signed char> get_lattice_with_pre_run_result_eight_vertex(
+std::map<std::string, std::vector<signed char>> get_lattice_with_pre_run_result_eight_vertex(
     bool is_qubit_specific_noise, float error_mean, float error_variance, bool x_horizontal_error, bool x_vertical_error, bool z_horizontal_error, bool z_vertical_error,
-    int X, int Y, std::vector<int> h_start, std::vector<int> h_end, int num_intervals, int num_walkers_per_interval, int seed_hist, float prob_x_err, float prob_y_err, float prob_z_err, std::string lattice_color)
+    int X, int Y, std::vector<int> h_start, std::vector<int> h_end, int num_intervals, int num_walkers_per_interval, int seed_hist, float prob_x_err, float prob_y_err, float prob_z_err)
 {
-
     std::string error_string = std::to_string(x_horizontal_error) + std::to_string(x_vertical_error) + std::to_string(z_horizontal_error) + std::to_string(z_vertical_error);
 
     namespace fs = std::filesystem;
@@ -418,9 +417,15 @@ std::vector<signed char> get_lattice_with_pre_run_result_eight_vertex(
     oss << "/lattice";
 
     std::string lattice_path = oss.str();
-    std::vector<signed char> lattice_over_all_walkers;
+    std::map<std::string, std::vector<signed char>> lattices;
+    lattices["b"] = {};
+    lattices["r"] = {};
+
     for (int interval_iterator = 0; interval_iterator < num_intervals; interval_iterator++)
     {
+        std::vector<std::pair<float, fs::path>> r_files;
+        std::vector<std::pair<float, fs::path>> b_files;
+
         try
         {
             for (const auto &entry : std::filesystem::directory_iterator(lattice_path))
@@ -428,30 +433,66 @@ std::vector<signed char> get_lattice_with_pre_run_result_eight_vertex(
                 // Check if the entry is a regular file and has a .txt extension
                 if (entry.is_regular_file() && entry.path().extension() == ".txt")
                 {
-                    // Extract the number from the filename
                     std::string filename = entry.path().stem().string(); // Get the filename without extension
-                    std::regex regex("lattice_" + lattice_color + "_energy_(-?\\d+(\\.\\d{6})?)");
-                    std::smatch match;
 
-                    // If the filename doesn't match the expected color, skip it
-                    if (!std::regex_search(filename, match, regex))
+                    // Check for "r" lattice
+                    std::regex regex_r("lattice_r_energy_(-?\\d+(\\.\\d{6})?)");
+                    std::smatch match_r;
+                    if (std::regex_search(filename, match_r, regex_r))
                     {
-                        continue; // Skip files not matching the desired color
+                        float energy_r = std::stof(match_r[1]);
+                        r_files.push_back({energy_r, entry.path()});
+                        continue;
                     }
 
-                    float number = std::stof(match[1]);
-
-                    // std::cout << "energy from file name: " << number << " interval start: " << h_start[interval_iterator] << " interval end: " << h_end[interval_iterator] << std::endl;
-
-                    // Check if the number is between interval boundaries
-                    if (number > h_start[interval_iterator] && number < h_end[interval_iterator])
+                    // Check for "b" lattice
+                    std::regex regex_b("lattice_b_energy_(-?\\d+(\\.\\d{6})?)");
+                    std::smatch match_b;
+                    if (std::regex_search(filename, match_b, regex_b))
                     {
-                        for (int walker_per_interval_iterator = 0; walker_per_interval_iterator < num_walkers_per_interval; walker_per_interval_iterator++)
-                        {
-                            read(lattice_over_all_walkers, entry.path().string());
-                        }
-                        break; // No need to check other files once the lattice is found for this interval
+                        float energy_b = std::stof(match_b[1]);
+                        b_files.push_back({energy_b, entry.path()});
                     }
+                }
+            }
+
+            // Sort both r and b files by energy
+            std::sort(r_files.begin(), r_files.end());
+            std::sort(b_files.begin(), b_files.end());
+
+            // Process files only if they have matching energies
+            size_t r_idx = 0, b_idx = 0;
+            while (r_idx < r_files.size() && b_idx < b_files.size())
+            {
+                float r_energy = r_files[r_idx].first;
+                float b_energy = b_files[b_idx].first;
+
+                if (r_energy == b_energy &&
+                    r_energy > h_start[interval_iterator] && r_energy < h_end[interval_iterator])
+                {
+                    // Print the processing message for matching files
+                    std::cout << "Processing files: "
+                              << r_files[r_idx].second << " (r) and "
+                              << b_files[b_idx].second << " (b) with energy: "
+                              << r_energy << " for interval ["
+                              << h_start[interval_iterator] << ", "
+                              << h_end[interval_iterator] << "]" << std::endl;
+
+                    // Matching energy and within bounds, process both
+                    for (int walker_per_interval_iterator = 0; walker_per_interval_iterator < num_walkers_per_interval; walker_per_interval_iterator++)
+                    {
+                        read(lattices["r"], r_files[r_idx].second.string());
+                        read(lattices["b"], b_files[b_idx].second.string());
+                    }
+                    break;
+                }
+                else if (r_energy < b_energy)
+                {
+                    r_idx++;
+                }
+                else
+                {
+                    b_idx++;
                 }
             }
         }
@@ -460,7 +501,8 @@ std::vector<signed char> get_lattice_with_pre_run_result_eight_vertex(
             std::cerr << "Filesystem error: " << e.what() << std::endl;
         }
     }
-    return lattice_over_all_walkers;
+
+    return lattices;
 }
 
 __device__ float atomicCAS_f32(float *p, float cmp, float val)
@@ -1122,7 +1164,7 @@ __device__ void store_lattice(
     const int num_interval, const int int_id, bool color)
 {
 
-    int interval_index = ((d_energy[tid] - E_min) / len_interval < num_interval) ? (d_energy[tid] - E_min) / len_interval : num_interval - 1;
+    int interval_index = ((static_cast<int>(round(d_energy[tid])) - E_min) / len_interval < num_interval) ? (static_cast<int>(round(d_energy[tid])) - E_min) / len_interval : num_interval - 1;
 
     if (color)
     {

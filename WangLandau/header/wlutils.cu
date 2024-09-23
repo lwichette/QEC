@@ -369,7 +369,7 @@ std::vector<signed char> get_lattice_with_pre_run_result(float prob, int seed, i
                         // Check if the number is between interval boundaries
                         if (number >= h_start[interval_iterator] && number <= h_end[interval_iterator])
                         {
-                            // std::cout << "Processing file: " << entry.path() << " with energy: " << number << " for interval [" << h_start[interval_iterator] << ", " << h_end[interval_iterator] << "]" << std::endl;
+                            std::cout << "Processing file: " << entry.path() << " with energy: " << number << " for interval [" << h_start[interval_iterator] << ", " << h_end[interval_iterator] << "]" << std::endl;
                             for (int walker_per_interval_iterator = 0; walker_per_interval_iterator < num_walkers_per_interval; walker_per_interval_iterator++)
                             {
                                 read(lattice_over_all_walkers, entry.path().string());
@@ -470,13 +470,13 @@ std::map<std::string, std::vector<signed char>> get_lattice_with_pre_run_result_
                 if (r_energy == b_energy &&
                     r_energy > h_start[interval_iterator] && r_energy < h_end[interval_iterator])
                 {
-                    // // Print the processing message for matching files
-                    // std::cout << "Processing files: "
-                    //           << r_files[r_idx].second << " (r) and "
-                    //           << b_files[b_idx].second << " (b) with energy: "
-                    //           << r_energy << " for interval ["
-                    //           << h_start[interval_iterator] << ", "
-                    //           << h_end[interval_iterator] << "]" << std::endl;
+                    // Print the processing message for matching files
+                    std::cout << "Processing files: "
+                              << r_files[r_idx].second << " (r) and "
+                              << b_files[b_idx].second << " (b) with energy: "
+                              << r_energy << " for interval ["
+                              << h_start[interval_iterator] << ", "
+                              << h_end[interval_iterator] << "]" << std::endl;
 
                     // Matching energy and within bounds, process both
                     for (int walker_per_interval_iterator = 0; walker_per_interval_iterator < num_walkers_per_interval; walker_per_interval_iterator++)
@@ -940,7 +940,7 @@ __global__ void wang_landau_eight_vertex(
     double *d_logG, int *d_offset_histogramm, int *d_offset_lattice, const int num_iterations, const int nx, const int ny,
     const int seed, double *factor, unsigned long long *d_offset_iter, signed char *d_expected_energy_spectrum, double *d_newEnergies, int *foundFlag,
     const int num_lattices, const double beta, signed char *d_cond, const int walker_per_interactions, const int num_intervals,
-    int *d_offset_energy_spectrum, int *d_cond_interaction)
+    int *d_offset_energy_spectrum, int *d_cond_interaction, const int walker_per_interval)
 {
 
     long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
@@ -948,16 +948,16 @@ __global__ void wang_landau_eight_vertex(
     if (tid >= num_lattices)
         return;
 
-    const int blockId = blockIdx.x;
-    const int int_id = tid / walker_per_interactions;
+    const int interval_id = (tid % walker_per_interactions) / walker_per_interval;
+    const int interaction_id = tid / walker_per_interactions;
 
-    if (d_cond_interaction[int_id] == -1)
+    if (d_cond_interaction[interaction_id] == -1)
         return;
 
     curandStatePhilox4_32_10_t st;
     curand_init(seed, tid, d_offset_iter[tid], &st);
 
-    if (d_cond[blockId] == 0)
+    if (d_cond[interval_id] == 0)
     {
 
         for (int it = 0; it < num_iterations; it++)
@@ -970,11 +970,11 @@ __global__ void wang_landau_eight_vertex(
             const int new_energy_int = static_cast<int>(round(result.new_energy));
 
             // If no new energy is found, set it to 0, else to tid + 1
-            foundFlag[tid] = (d_expected_energy_spectrum[d_offset_energy_spectrum[int_id] + new_energy_int - d_start[int_id * num_intervals]] == 1) ? 0 : tid + 1;
+            foundFlag[tid] = (d_expected_energy_spectrum[d_offset_energy_spectrum[interaction_id] + new_energy_int - d_start[interaction_id * num_intervals]] == 1) ? 0 : tid + 1;
 
             if (foundFlag[tid] != 0)
             {
-                printf("new_energy %d index in spectrum %d \n", new_energy_int, new_energy_int - d_start[int_id * num_intervals]);
+                printf("new_energy %d index in spectrum %d \n", new_energy_int, new_energy_int - d_start[interaction_id * num_intervals]);
                 d_newEnergies[tid] = result.new_energy;
                 if (result.color)
                 { // red lattice spin flip
@@ -987,21 +987,22 @@ __global__ void wang_landau_eight_vertex(
                 return;
             }
 
-            int index_old = d_offset_histogramm[tid] + old_energy_int - d_start[blockId];
+            int index_old = d_offset_histogramm[tid] + old_energy_int - d_start[interval_id];
 
-            if (result.new_energy > d_end[blockId] || result.new_energy < d_start[blockId])
+            if (new_energy_int > d_end[interval_id] || new_energy_int < d_start[interval_id])
             {
                 d_H[index_old] += 1;
                 d_logG[index_old] += log(factor[tid]);
             }
             else
             {
-                int index_new = d_offset_histogramm[tid] + new_energy_int - d_start[blockId];
+                int index_new = d_offset_histogramm[tid] + new_energy_int - d_start[interval_id];
                 double prob = exp(d_logG[index_old] - d_logG[index_new]);
                 double randval = curand_uniform(&st);
 
                 if (randval < prob)
                 {
+
                     if (result.color)
                     { // red lattice spin flip
                         d_lattice_r[d_offset_lattice[tid] + result.i * nx + result.j] *= -1;
@@ -1038,19 +1039,19 @@ __global__ void wang_landau_eight_vertex(
             const int new_energy_int = static_cast<int>(round(result.new_energy));
 
             // If no new energy is found, set it to 0, else to tid + 1
-            foundFlag[tid] = (d_expected_energy_spectrum[d_offset_energy_spectrum[int_id] + new_energy_int - d_start[int_id * num_intervals]] == 1) ? 0 : tid + 1;
+            foundFlag[tid] = (d_expected_energy_spectrum[d_offset_energy_spectrum[interaction_id] + new_energy_int - d_start[interaction_id * num_intervals]] == 1) ? 0 : tid + 1;
 
             if (foundFlag[tid] != 0)
             {
-                printf("new_energy %d index in spectrum %d \n", new_energy_int, new_energy_int - d_start[int_id * num_intervals]);
+                printf("new_energy %d index in spectrum %d \n", new_energy_int, new_energy_int - d_start[interaction_id * num_intervals]);
                 d_newEnergies[tid] = result.new_energy;
                 return;
             }
 
-            if (result.new_energy <= d_end[blockId] || result.new_energy >= d_start[blockId])
+            if (result.new_energy <= d_end[interval_id] || result.new_energy >= d_start[interval_id])
             {
-                int index_old = d_offset_histogramm[tid] + old_energy_int - d_start[blockId];
-                int index_new = d_offset_histogramm[tid] + new_energy_int - d_start[blockId];
+                int index_old = d_offset_histogramm[tid] + old_energy_int - d_start[interval_id];
+                int index_new = d_offset_histogramm[tid] + new_energy_int - d_start[interval_id];
 
                 double prob = min(1.0, exp(d_logG[index_old] - d_logG[index_new]));
 
@@ -1285,7 +1286,7 @@ __global__ void check_histogram(
 
         average = average / len_reduced_energy_spectrum;
 
-        // printf("Walker %d in interval %d with min %lld alpha*average %2f and factor %.10f and d_cond %d and end %d and start %d\n", threadIdx.x, blockIdx.x, min, alpha * average, d_factor[tid], d_cond[blockId], d_end[blockId], d_start[blockId]);
+        printf("Walker %d in interval %d with min %lld average %.6f alpha %.6f alpha*average %.2f and factor %.10f and d_cond %d and end %d and start %d\n", threadIdx.x, blockIdx.x, min, average, alpha, alpha * average, d_factor[tid], d_cond[blockId], d_end[blockId], d_start[blockId]);
 
         if (min >= alpha * average)
         {

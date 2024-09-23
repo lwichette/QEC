@@ -420,7 +420,7 @@ __global__ void wang_landau_eight_vertex(
     double *d_logG, int *d_offset_histogramm, int *d_offset_lattice, const int num_iterations, const int nx, const int ny,
     const int seed, double *factor, unsigned long long *d_offset_iter, signed char *d_expected_energy_spectrum, double *d_newEnergies, int *foundFlag,
     const int num_lattices, const double beta, signed char *d_cond, const int walker_per_interactions, const int num_intervals,
-    int *d_offset_energy_spectrum, int *d_cond_interaction);
+    int *d_offset_energy_spectrum, int *d_cond_interaction, const int walker_per_interval);
 
 __global__ void check_sums(int *d_cond_interactions, int num_intervals, int num_interactions);
 

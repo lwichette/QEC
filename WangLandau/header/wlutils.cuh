@@ -177,7 +177,7 @@ __global__ void check_energy_ranges(T *d_energy, int *d_start, int *d_end, int t
         energy_int = static_cast<int>(d_energy[tid]);
     }
 
-    if (energy_int >= d_end[blockIdx.x] || energy_int <= d_start[blockIdx.x])
+    if (energy_int > d_end[blockIdx.x] || energy_int < d_start[blockIdx.x])
     {
         check = 0;
         printf("tid=%lld energy=%.2f start_interval=%d end_interval=%d  \n", tid, static_cast<double>(d_energy[tid]), d_start[blockIdx.x], d_end[blockIdx.x]);
@@ -377,9 +377,5 @@ std::string eight_vertex_interaction_path(
 std::map<std::string, std::vector<signed char>> get_lattice_with_pre_run_result_eight_vertex(
     bool is_qubit_specific_noise, float error_mean, float error_variance, bool x_horizontal_error, bool x_vertical_error, bool z_horizontal_error, bool z_vertical_error,
     int X, int Y, std::vector<int> h_start, std::vector<int> h_end, int num_intervals, int num_walkers_per_interval, int seed_hist, float prob_x_err, float prob_y_err, float prob_z_err);
-
-template __global__ void check_energy_ranges<int>(int *d_energy, int *d_start, int *d_end, int total_walker);
-
-template __global__ void check_energy_ranges<double>(double *d_energy, int *d_start, int *d_end, int total_walker);
 
 #endif // WLUTILS_H

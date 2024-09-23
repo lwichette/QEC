@@ -428,7 +428,8 @@ int main(int argc, char **argv)
     ------------ Actual WL Starts Now ------------
     ----------------------------------------------
     */
-    while (max_factor > exp(beta))
+
+    while (max_factor - exp(beta) > 1e-10) // set precision for abort condition
     {
         wang_landau_eight_vertex<<<blocks_total_walker_x_thread, threads_per_block>>>(
             d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, d_energy, d_start, d_end, d_H,

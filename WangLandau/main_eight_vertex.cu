@@ -84,7 +84,7 @@ int main(int argc, char **argv)
             alpha = atof(optarg);
             break;
         case 'b':
-            alpha = atof(optarg);
+            beta = atof(optarg);
             break;
         case 'c':
             x_horizontal_error = atoi(optarg) != 0;
@@ -435,7 +435,7 @@ int main(int argc, char **argv)
             d_logG, d_offset_histogram_per_walker, d_offset_lattice_per_walker, num_iterations, X, 2 * Y,
             seed_run, d_factor, d_offset_iterator_per_walker, d_expected_energy_spectrum, d_newEnergies, d_foundNewEnergyFlag,
             total_walker, beta, d_cond, walker_per_interactions, num_intervals,
-            d_offset_energy_spectrum, d_cond_interactions);
+            d_offset_energy_spectrum, d_cond_interactions, walker_per_interval);
         cudaDeviceSynchronize();
 
         // get max of found new energy flag array to condition break and update the

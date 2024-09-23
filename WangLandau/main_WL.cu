@@ -348,13 +348,13 @@ int main(int argc, char **argv)
 
         if (wang_landau_counter % options.replica_exchange_offset == 0)
         {
-            replica_exchange<<<total_intervals, options.walker_per_interval>>>(
+            replica_exchange<int><<<total_intervals, options.walker_per_interval>>>(
                 d_offset_lattice, d_energy, d_start, d_end, d_indices, d_logG,
                 d_offset_histogram, true, options.seed_run, d_offset_iter,
                 options.num_intervals, walker_per_interactions, d_cond_interactions);
             cudaDeviceSynchronize();
 
-            replica_exchange<<<total_intervals, options.walker_per_interval>>>(
+            replica_exchange<int><<<total_intervals, options.walker_per_interval>>>(
                 d_offset_lattice, d_energy, d_start, d_end, d_indices, d_logG,
                 d_offset_histogram, false, options.seed_run, d_offset_iter,
                 options.num_intervals, walker_per_interactions, d_cond_interactions);

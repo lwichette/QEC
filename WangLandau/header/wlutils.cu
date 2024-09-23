@@ -1119,31 +1119,6 @@ __global__ void find_spin_config_in_energy_range(signed char *d_lattice, signed 
     return;
 }
 
-__device__ void fisher_yates(int *d_shuffle, int seed, unsigned long long *d_offset_iter)
-{
-
-    long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
-
-    int offset = blockDim.x * blockIdx.x;
-
-    curandStatePhilox4_32_10_t st;
-    curand_init(seed, tid, d_offset_iter[tid], &st);
-
-    for (int i = blockDim.x - 1; i > 0; i--)
-    {
-        double randval = curand_uniform(&st);
-        randval *= (i + 0.999999);
-        int random_index = (int)trunc(randval);
-        d_offset_iter[tid] += 1;
-
-        int temp = d_shuffle[offset + i];
-        d_shuffle[offset + i] = d_shuffle[offset + random_index];
-        d_shuffle[offset + random_index] = temp;
-    }
-
-    return;
-}
-
 __device__ void store_lattice(
     signed char *d_lattice, int *d_energy, int *d_found_interval, signed char *d_store_lattice,
     const int E_min, const int nx, const int ny, const long long tid, const int len_interval,
@@ -1251,66 +1226,6 @@ __global__ void init_offsets_lattice(int *d_offset_lattice, int nx, int ny, int 
         return;
 
     d_offset_lattice[tid] = tid * nx * ny;
-
-    return;
-}
-
-__global__ void replica_exchange(
-    int *d_offset_lattice, int *d_energy, int *d_start, int *d_end, int *d_indices,
-    double *d_logG, int *d_offset_histogram, bool even, int seed,
-    unsigned long long *d_offset_iter, const int num_intervals,
-    const int walker_per_interactions, int *d_cond_interaction)
-{
-
-    // if last block in interaction return
-    if (blockIdx.x % num_intervals == (num_intervals - 1))
-        return;
-
-    // if even only even blocks if odd only odd blocks
-    if ((even && (blockIdx.x % 2 != 0)) || (!even && (blockIdx.x % 2 == 0)))
-        return;
-
-    long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
-    const int int_id = tid / walker_per_interactions;
-
-    if (d_cond_interaction[int_id] == -1)
-        return;
-
-    long long cid = static_cast<long long>(blockDim.x) * (blockIdx.x + 1);
-
-    if (threadIdx.x == 0)
-    {
-        fisher_yates(d_indices, seed, d_offset_iter);
-    }
-
-    __syncthreads();
-
-    cid += d_indices[tid];
-
-    if (d_energy[tid] > d_end[blockIdx.x + 1] || d_energy[tid] < d_start[blockIdx.x + 1])
-        return;
-    if (d_energy[cid] > d_end[blockIdx.x] || d_energy[cid] < d_start[blockIdx.x])
-        return;
-
-    double prob = min(1.0, exp(d_logG[d_offset_histogram[tid] + d_energy[tid] - d_start[blockIdx.x]] - d_logG[d_offset_histogram[tid] + d_energy[cid] - d_start[blockIdx.x]]) * exp(d_logG[d_offset_histogram[cid] + d_energy[cid] - d_start[blockIdx.x + 1]] - d_logG[d_offset_histogram[cid] + d_energy[tid] - d_start[blockIdx.x + 1]]));
-
-    curandStatePhilox4_32_10_t st;
-    curand_init(seed, tid, d_offset_iter[tid], &st);
-
-    if (curand_uniform(&st) < prob)
-    {
-
-        int temp_off = d_offset_lattice[tid];
-        int temp_energy = d_energy[tid];
-
-        d_offset_lattice[tid] = d_offset_lattice[cid];
-        d_energy[tid] = d_energy[cid];
-
-        d_offset_lattice[cid] = temp_off;
-        d_energy[cid] = temp_energy;
-    }
-
-    d_offset_iter[tid] += 1;
 
     return;
 }
@@ -2187,26 +2102,195 @@ void write_results(std::vector<std::map<int, double>> rescaled_data, Options opt
     file.close();
 }
 
+// void result_handling_stitched_histogram(
+//     Options options, std::vector<double> h_logG,
+//     std::vector<int> h_start, std::vector<int> h_end, int int_id,
+//     int X, int Y)
+// {
+//     std::vector<std::map<int, double>> interval_data = get_logG_data(h_logG, h_start, h_end, options);
+
+//     std::vector<std::map<int, double>> rescaled_data = rescaleByMinimum(interval_data, options);
+
+//     // std::vector<std::map<int, double>> rescaled_data = interval_data;
+
+//     std::vector<int> stitching_keys = calculate_stitching_points(rescaled_data, options);
+
+//     rescale_intervals_for_concatenation(rescaled_data, stitching_keys);
+
+//     cut_overlapping_histogram_parts(rescaled_data, stitching_keys);
+
+//     rescaleMapValues(rescaled_data, X, Y); // rescaling for high temperature interpretation of partition function
+
+//     write_results(rescaled_data, options, int_id);
+// }
+
 void result_handling_stitched_histogram(
     Options options, std::vector<double> h_logG,
     std::vector<int> h_start, std::vector<int> h_end, int int_id,
     int X, int Y)
 {
-    std::vector<std::map<int, double>> interval_data = get_logG_data(h_logG, h_start, h_end, options);
 
-    std::vector<std::map<int, double>> rescaled_data = rescaleByMinimum(interval_data, options);
+    int index_h_log_g = 0;
 
-    // std::vector<std::map<int, double>> rescaled_data = interval_data;
+    // Store the results of the first walker for each interval as they are averaged already
+    std::vector<std::map<int, double>> interval_data(options.num_intervals);
 
-    std::vector<int> stitching_keys = calculate_stitching_points(rescaled_data, options);
+    for (int i = 0; i < options.num_intervals; i++)
+    {
+        int len_int = h_end[i] - h_start[i] + 1;
 
-    rescale_intervals_for_concatenation(rescaled_data, stitching_keys);
+        for (int j = 0; j < options.walker_per_interval; j++)
+        {
+            if (j == 0)
+            {
+                for (int k = 0; k < len_int; k++)
+                {
 
-    cut_overlapping_histogram_parts(rescaled_data, stitching_keys);
+                    int key = h_start[i] + k;
+                    double value = h_logG[index_h_log_g];
 
-    rescaleMapValues(rescaled_data, X, Y); // rescaling for high temperature interpretation of partition function
+                    if (value != 0)
+                    {
+                        interval_data[i][key] = value; // Store the non-zero value with its key at correct map object according to interval
+                    }
 
-    write_results(rescaled_data, options, int_id);
+                    index_h_log_g += 1;
+                }
+            }
+            else
+            {
+                index_h_log_g += len_int;
+            }
+        }
+    }
+
+    // Here follows rescaling by minimum in each interval to make it compatible with python script (for sanity checking only?)
+    // finding minimum per interval
+    std::vector<double> min_values(options.num_intervals, std::numeric_limits<double>::max());
+    for (int i = 0; i < options.num_intervals; i++)
+    {
+        for (const auto &key_value_pair : interval_data[i])
+        {
+            if (key_value_pair.second < min_values[i])
+            {
+                min_values[i] = key_value_pair.second;
+            }
+        }
+
+        // If no non-zero value was found, reset to 0 (or any other default)
+        if (min_values[i] == std::numeric_limits<double>::max())
+        {
+            min_values[i] = 0;
+        }
+    }
+    // rescaling by minimum
+    for (int i = 0; i < options.num_intervals; i++)
+    {
+        for (auto &key_value_pair : interval_data[i])
+        {
+            key_value_pair.second -= min_values[i]; // each interval has a zero value now
+        }
+    }
+
+    // Calculate best stitching points
+    std::vector<int> stitching_keys;
+    for (int i = 0; i < options.num_intervals - 1; i++)
+    {
+        const auto &current_interval = interval_data[i];
+        const auto &next_interval = interval_data[i + 1];
+
+        int min_key = find_stitching_keys(current_interval, next_interval);
+        if (min_key != -1)
+        {
+            stitching_keys.push_back(min_key);
+        }
+        else
+        {
+            stitching_keys.push_back(current_interval.end()->first); // when no overlap is found only pushback to keep a key per interval but will be catched when normalization of histogram
+            std::cout << "Found no matching key for intervals " << i << " and " << i + 1 << std::endl;
+        }
+    }
+
+    rescale_intervals_for_concatenation(interval_data, stitching_keys);
+
+    cut_overlapping_histogram_parts(interval_data, stitching_keys);
+
+    rescaleMapValues(interval_data, X, Y); // rescaling for high temperature interpretation of partition function
+
+    // From here on only write to csv
+    std::stringstream result_directory;
+
+    std::string boundary;
+
+    if (options.boundary_type == 0)
+    {
+        boundary = "periodic";
+    }
+    else if (options.boundary_type == 1)
+    {
+        boundary = "open";
+    }
+    else if (options.boundary_type == 2)
+    {
+        boundary = "cylinder";
+    }
+    else
+    {
+        boundary = "unknown"; // Handle any unexpected boundary_type values
+    }
+
+    result_directory << "results/" << boundary << "/prob_" << std::fixed << std::setprecision(6) << options.prob_interactions
+                     << "/X_" << options.X
+                     << "_Y_" << options.Y
+                     << "/error_class_" << options.logical_error_type;
+
+    create_directory(result_directory.str());
+
+    result_directory << "/StitchedHistogram_"
+                     << "_intervals_" << options.num_intervals
+                     << "_iterations_" << options.num_iterations
+                     << "_overlap_" << options.overlap_decimal
+                     << "_walkers_" << options.walker_per_interval
+                     << "_alpha_" << options.alpha
+                     << "_beta_" << std::fixed << std::setprecision(10) << options.beta
+                     << "_exchange_offset_" << options.replica_exchange_offset
+                     << ".txt";
+
+    std::ofstream file(result_directory.str(), std::ios::app); // append mode to store multiple interaction results in same file
+
+    if (!file.is_open())
+    {
+        std::cerr << "Error opening file: " << result_directory.str() << std::endl;
+        return;
+    }
+
+    file << "{\n";
+    file << "  \"histogram_seed\": \"" << (options.seed_histogram + int_id) << "\",\n";
+    file << "  \"run_seed\": \"" << options.seed_run << "\",\n";
+    file << "  \"results\": [\n";
+    file << std::fixed << std::setprecision(10);
+    for (size_t i = 0; i < interval_data.size(); ++i)
+    {
+        const auto &interval_map = interval_data[i];
+        for (auto iterator = interval_map.begin(); iterator != interval_map.end(); ++iterator)
+        {
+            int key = iterator->first;
+            double value = iterator->second;
+
+            // Formatting key-value pairs
+            file << "      \"" << key << "\": " << value;
+
+            // Add a comma unless it's the last element
+            if (std::next(iterator) != interval_map.end() || i < interval_data.size() - 1)
+            {
+                file << ",";
+            }
+            file << "\n";
+        }
+    }
+    file << "]\n";
+    file << "}\n";
+    file.close();
 }
 
 __global__ void check_sums(int *d_cond_interactions, int num_intervals, int num_interactions)

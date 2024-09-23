@@ -15,17 +15,14 @@ int main(int argc, char **argv)
     auto start = std::chrono::high_resolution_clock::now();
 
     int X, Y;
-    int boundary_type = 0;
     int num_interactions = 0;
     int num_iterations = 0;
     int num_intervals = 0;
     int walker_per_interval = 0;
-    int histogram_scale = 1;
     int replica_exchange_offset = 0;
     int seed_hist = 0;
     int seed_run = 0;
 
-    float prob_i_err = 0;
     float prob_x_err = 0;
     float prob_y_err = 0;
     float prob_z_err = 0;
@@ -63,7 +60,6 @@ int main(int argc, char **argv)
             {"overlap_decimal", 1, 0, 'o'},
             {"seed_histogram", 1, 0, 'p'},
             {"seed_run", 1, 0, 'q'},
-            {"hist_scale", required_argument, 0, 'r'},
             {"num_interactions", required_argument, 0, 's'},
             {"error_mean", required_argument, 0, 't'},
             {"error_variance", required_argument, 0, 'u'},
@@ -72,7 +68,7 @@ int main(int argc, char **argv)
             {"Y", required_argument, 0, 'y'},
             {0, 0, 0, 0}};
 
-        och = getopt_long(argc, argv, "a:b:c:d:e:f:g:h:i:kl:m:n:o:p:q:r:s:t:u:w:x:y:", long_options, &option_index);
+        och = getopt_long(argc, argv, "a:b:c:d:e:f:g:h:i:kl:m:n:o:p:q:s:t:u:w:x:y:", long_options, &option_index);
 
         if (och == -1)
             break;
@@ -128,9 +124,6 @@ int main(int argc, char **argv)
             break;
         case 'q':
             seed_run = atoi(optarg);
-            break;
-        case 'r':
-            histogram_scale = atoi(optarg);
             break;
         case 's':
             num_interactions = atoi(optarg);
@@ -395,11 +388,7 @@ int main(int argc, char **argv)
     CHECK_CUDA(cudaMemcpy(d_lattice_b, h_lattice_b.data(), total_walker * X * Y * sizeof(*d_lattice_b), cudaMemcpyHostToDevice));
 
     // block counts
-    int blocks_qubit_x_thread = (num_interactions * 2 * X * Y + threads_per_block - 1) / threads_per_block;
-    int blocks_spins_single_color_x_thread = (total_walker * X * Y + threads_per_block - 1) / threads_per_block;
     int blocks_total_walker_x_thread = (total_walker + threads_per_block - 1) / threads_per_block;
-    int blocks_total_intervals_x_thread = (total_intervals + threads_per_block - 1) / threads_per_block;
-    int blocks_toal_len_histogram_x_thread = (total_len_histogram + threads_per_block - 1) / threads_per_block;
 
     // init the energy array
     calc_energy_eight_vertex<<<blocks_total_walker_x_thread, threads_per_block>>>(d_energy, d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, 2 * X * Y, X, 2 * Y, total_walker, walker_per_interactions);
@@ -507,6 +496,44 @@ int main(int argc, char **argv)
                 d_offset_lattice_per_walker, d_energy, d_start, d_end, d_indices, d_logG,
                 d_offset_histogram_per_walker, false, seed_run, d_offset_iterator_per_walker,
                 num_intervals, walker_per_interactions, d_cond_interactions);
+        }
+
+        // results dump out: if a single interaction already finished
+        if (min_cond_interactions == -1)
+        {
+            CHECK_CUDA(cudaMemcpy(h_cond_interactions, d_cond_interactions, num_interactions * sizeof(*d_cond_interactions), cudaMemcpyDeviceToHost));
+
+            for (int i = 0; i < num_interactions; i++)
+            {
+                if (h_cond_interactions[i] == -1 && !h_result_is_dumped[i])
+                {
+
+                    int offset_of_interaction_histogram;
+                    CHECK_CUDA(cudaMemcpy(&offset_of_interaction_histogram, d_offset_histogram_per_walker + i * (num_intervals * walker_per_interval), sizeof(*d_offset_histogram_per_walker), cudaMemcpyDeviceToHost));
+
+                    int len_of_interaction_histogram = len_histogram_int[i];
+
+                    if (offset_of_interaction_histogram + len_of_interaction_histogram > total_len_histogram)
+                    {
+                        std::cerr << "Error: Copy range exceeds histogram bounds" << std::endl;
+                        return -1;
+                    }
+
+                    std::vector<double> h_logG(len_of_interaction_histogram);
+                    CHECK_CUDA(cudaMemcpy(h_logG.data(), d_logG + offset_of_interaction_histogram, len_of_interaction_histogram * sizeof(*d_logG), cudaMemcpyDeviceToHost));
+
+                    h_result_is_dumped[i] = true; // setting flag such that result for this interaction wont be dumped again
+
+                    std::vector<int> run_start(h_start_int.begin() + i * num_intervals, h_start_int.begin() + (i + 1) * num_intervals); // stores start energies of intervals of currently handled interaction
+
+                    std::vector<int> run_end(h_end_int.begin() + i * num_intervals, h_end_int.begin() + (i + 1) * num_intervals); // stores end energies of intervals of currently handled interaction
+
+                    eight_vertex_result_handling_stitched_histogram(
+                        num_intervals, walker_per_interval, h_logG, error_mean, error_variance, prob_x_err, prob_y_err, prob_z_err, run_start, run_end, i, X, Y,
+                        is_qubit_specific_noise, x_horizontal_error, x_vertical_error, z_horizontal_error, z_vertical_error, num_iterations, overlap_decimal, alpha, beta,
+                        replica_exchange_offset, seed_hist, seed_run); // reduced result dump with X, Y needed for rescaling
+                }
+            }
         }
     }
 

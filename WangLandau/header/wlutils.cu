@@ -2239,7 +2239,7 @@ void result_handling_stitched_histogram(
         boundary = "unknown"; // Handle any unexpected boundary_type values
     }
 
-    result_directory << "results/" << boundary << "_head_old_stitched_handling/prob_" << std::fixed << std::setprecision(6) << options.prob_interactions
+    result_directory << "results/" << boundary << "/prob_" << std::fixed << std::setprecision(6) << options.prob_interactions
                      << "/X_" << options.X
                      << "_Y_" << options.Y
                      << "/error_class_" << options.logical_error_type;

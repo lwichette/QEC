@@ -263,7 +263,7 @@ __global__ void check_energy_ranges(T *d_energy, int *d_start, int *d_end, int t
         energy_int = static_cast<int>(d_energy[tid]);
     }
 
-    if (energy_int >= d_end[blockIdx.x] || energy_int <= d_start[blockIdx.x])
+    if (energy_int > d_end[blockIdx.x] || energy_int < d_start[blockIdx.x])
     {
         check = 0;
         printf("tid=%lld energy=%.2f start_interval=%d end_interval=%d  \n", tid, static_cast<double>(d_energy[tid]), d_start[blockIdx.x], d_end[blockIdx.x]);

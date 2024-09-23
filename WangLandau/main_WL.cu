@@ -273,7 +273,7 @@ int main(int argc, char **argv)
     int block_count = (total_len_histogram + max_threads_per_block - 1) / max_threads_per_block;
     long long wang_landau_counter = 1;
 
-    while (max_factor > exp(options.beta))
+    while (max_factor - exp(options.beta) > 1e-10) // hardcoded precision for abort condition
     {
         // printf("Max Factor %8f \n", max_factor);
 

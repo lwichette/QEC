@@ -423,9 +423,6 @@ std::map<std::string, std::vector<signed char>> get_lattice_with_pre_run_result_
 
     for (int interval_iterator = 0; interval_iterator < num_intervals; interval_iterator++)
     {
-        std::vector<std::pair<float, fs::path>> r_files;
-        std::vector<std::pair<float, fs::path>> b_files;
-
         try
         {
             for (const auto &entry : std::filesystem::directory_iterator(lattice_path))
@@ -435,64 +432,33 @@ std::map<std::string, std::vector<signed char>> get_lattice_with_pre_run_result_
                 {
                     std::string filename = entry.path().stem().string(); // Get the filename without extension
 
+                    std::string filename_b = filename;
                     // Check for "r" lattice
                     std::regex regex_r("lattice_r_energy_(-?\\d+(\\.\\d{6})?)");
                     std::smatch match_r;
                     if (std::regex_search(filename, match_r, regex_r))
                     {
                         float energy_r = std::stof(match_r[1]);
-                        r_files.push_back({energy_r, entry.path()});
+                        if (energy_r > h_start[interval_iterator] && energy_r < h_end[interval_iterator])
+                        {
+
+                            // Find the position of the substring "_r_" to replace
+                            std::size_t pos = filename.find("_r_");
+
+                            filename_b.replace(pos, 3, "_b_");
+
+                            // Matching energy and within bounds, process both
+                            for (int walker_per_interval_iterator = 0; walker_per_interval_iterator < num_walkers_per_interval; walker_per_interval_iterator++)
+                            {
+
+                                read(lattices["r"], lattice_path + "/" + filename);
+                                read(lattices["b"], lattice_path + "/" + filename_b);
+                            }
+                            break;
+                        }
+
                         continue;
                     }
-
-                    // Check for "b" lattice
-                    std::regex regex_b("lattice_b_energy_(-?\\d+(\\.\\d{6})?)");
-                    std::smatch match_b;
-                    if (std::regex_search(filename, match_b, regex_b))
-                    {
-                        float energy_b = std::stof(match_b[1]);
-                        b_files.push_back({energy_b, entry.path()});
-                    }
-                }
-            }
-
-            // Sort both r and b files by energy
-            std::sort(r_files.begin(), r_files.end());
-            std::sort(b_files.begin(), b_files.end());
-
-            // Process files only if they have matching energies
-            size_t r_idx = 0, b_idx = 0;
-            while (r_idx < r_files.size() && b_idx < b_files.size())
-            {
-                float r_energy = r_files[r_idx].first;
-                float b_energy = b_files[b_idx].first;
-
-                if (r_energy == b_energy &&
-                    r_energy > h_start[interval_iterator] && r_energy < h_end[interval_iterator])
-                {
-                    // Print the processing message for matching files
-                    std::cout << "Processing files: "
-                              << r_files[r_idx].second << " (r) and "
-                              << b_files[b_idx].second << " (b) with energy: "
-                              << r_energy << " for interval ["
-                              << h_start[interval_iterator] << ", "
-                              << h_end[interval_iterator] << "]" << std::endl;
-
-                    // Matching energy and within bounds, process both
-                    for (int walker_per_interval_iterator = 0; walker_per_interval_iterator < num_walkers_per_interval; walker_per_interval_iterator++)
-                    {
-                        read(lattices["r"], r_files[r_idx].second.string());
-                        read(lattices["b"], b_files[b_idx].second.string());
-                    }
-                    break;
-                }
-                else if (r_energy < b_energy)
-                {
-                    r_idx++;
-                }
-                else
-                {
-                    b_idx++;
                 }
             }
         }

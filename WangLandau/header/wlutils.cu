@@ -2167,10 +2167,9 @@ void eight_vertex_result_handling_stitched_histogram(
         }
     }
 
-    for (int i = 0;)
-        // Here follows rescaling by minimum in each interval to make it compatible with python script (for sanity checking only?)
-        // finding minimum per interval
-        std::vector<double> min_values(num_intervals, std::numeric_limits<double>::max());
+    // Here follows rescaling by minimum in each interval to make it compatible with python script (for sanity checking only?)
+    // finding minimum per interval
+    std::vector<double> min_values(num_intervals, std::numeric_limits<double>::max());
     for (int i = 0; i < num_intervals; i++)
     {
         for (const auto &key_value_pair : interval_data[i])

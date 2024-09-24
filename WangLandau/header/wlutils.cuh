@@ -456,4 +456,10 @@ std::map<std::string, std::vector<signed char>> get_lattice_with_pre_run_result_
     bool is_qubit_specific_noise, float error_mean, float error_variance, bool x_horizontal_error, bool x_vertical_error, bool z_horizontal_error, bool z_vertical_error,
     int X, int Y, std::vector<int> h_start, std::vector<int> h_end, int num_intervals, int num_walkers_per_interval, int seed_hist, float prob_x_err, float prob_y_err, float prob_z_err);
 
+void eight_vertex_result_handling_stitched_histogram(
+    int num_intervals, int walker_per_interval, std::vector<double> h_logG, float error_mean, float error_variance,
+    float prob_x, float prob_y, float prob_z, std::vector<int> h_start, std::vector<int> h_end, int int_id,
+    int X, int Y, bool isQubitSpecificNoise, bool x_horizontal_error, bool x_vertical_error, bool z_horizontal_error,
+    bool z_vertical_error, int num_iterations, float overlap_decimal, float alpha, float beta, int replica_exchange_offset,
+    int seed_histogram, int seed_run);
 #endif // WLUTILS_H

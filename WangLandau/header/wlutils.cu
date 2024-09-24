@@ -423,9 +423,6 @@ std::map<std::string, std::vector<signed char>> get_lattice_with_pre_run_result_
 
     for (int interval_iterator = 0; interval_iterator < num_intervals; interval_iterator++)
     {
-        std::vector<std::pair<float, fs::path>> r_files;
-        std::vector<std::pair<float, fs::path>> b_files;
-
         try
         {
             for (const auto &entry : std::filesystem::directory_iterator(lattice_path))
@@ -435,64 +432,33 @@ std::map<std::string, std::vector<signed char>> get_lattice_with_pre_run_result_
                 {
                     std::string filename = entry.path().stem().string(); // Get the filename without extension
 
+                    std::string filename_b = filename;
                     // Check for "r" lattice
                     std::regex regex_r("lattice_r_energy_(-?\\d+(\\.\\d{6})?)");
                     std::smatch match_r;
                     if (std::regex_search(filename, match_r, regex_r))
                     {
                         float energy_r = std::stof(match_r[1]);
-                        r_files.push_back({energy_r, entry.path()});
+                        if (energy_r > h_start[interval_iterator] && energy_r < h_end[interval_iterator])
+                        {
+
+                            // Find the position of the substring "_r_" to replace
+                            std::size_t pos = filename.find("_r_");
+
+                            filename_b.replace(pos, 3, "_b_");
+
+                            // Matching energy and within bounds, process both
+                            for (int walker_per_interval_iterator = 0; walker_per_interval_iterator < num_walkers_per_interval; walker_per_interval_iterator++)
+                            {
+
+                                read(lattices["r"], lattice_path + "/" + filename);
+                                read(lattices["b"], lattice_path + "/" + filename_b);
+                            }
+                            break;
+                        }
+
                         continue;
                     }
-
-                    // Check for "b" lattice
-                    std::regex regex_b("lattice_b_energy_(-?\\d+(\\.\\d{6})?)");
-                    std::smatch match_b;
-                    if (std::regex_search(filename, match_b, regex_b))
-                    {
-                        float energy_b = std::stof(match_b[1]);
-                        b_files.push_back({energy_b, entry.path()});
-                    }
-                }
-            }
-
-            // Sort both r and b files by energy
-            std::sort(r_files.begin(), r_files.end());
-            std::sort(b_files.begin(), b_files.end());
-
-            // Process files only if they have matching energies
-            size_t r_idx = 0, b_idx = 0;
-            while (r_idx < r_files.size() && b_idx < b_files.size())
-            {
-                float r_energy = r_files[r_idx].first;
-                float b_energy = b_files[b_idx].first;
-
-                if (r_energy == b_energy &&
-                    r_energy > h_start[interval_iterator] && r_energy < h_end[interval_iterator])
-                {
-                    // Print the processing message for matching files
-                    std::cout << "Processing files: "
-                              << r_files[r_idx].second << " (r) and "
-                              << b_files[b_idx].second << " (b) with energy: "
-                              << r_energy << " for interval ["
-                              << h_start[interval_iterator] << ", "
-                              << h_end[interval_iterator] << "]" << std::endl;
-
-                    // Matching energy and within bounds, process both
-                    for (int walker_per_interval_iterator = 0; walker_per_interval_iterator < num_walkers_per_interval; walker_per_interval_iterator++)
-                    {
-                        read(lattices["r"], r_files[r_idx].second.string());
-                        read(lattices["b"], b_files[b_idx].second.string());
-                    }
-                    break;
-                }
-                else if (r_energy < b_energy)
-                {
-                    r_idx++;
-                }
-                else
-                {
-                    b_idx++;
                 }
             }
         }
@@ -1286,7 +1252,7 @@ __global__ void check_histogram(
 
         average = average / len_reduced_energy_spectrum;
 
-        printf("Walker %d in interval %d with min %lld average %.6f alpha %.6f alpha*average %.2f and factor %.10f and d_cond %d and end %d and start %d\n", threadIdx.x, blockIdx.x, min, average, alpha, alpha * average, d_factor[tid], d_cond[blockId], d_end[blockId], d_start[blockId]);
+        // printf("Walker %d in interval %d with min %lld average %.6f alpha %.6f alpha*average %.2f and factor %.10f and d_cond %d and end %d and start %d\n", threadIdx.x, blockIdx.x, min, average, alpha, alpha * average, d_factor[tid], d_cond[blockId], d_end[blockId], d_start[blockId]);
 
         if (min >= alpha * average)
         {
@@ -2125,174 +2091,178 @@ void result_handling_stitched_histogram(
     write_results(rescaled_data, options, int_id);
 }
 
-// void result_handling_stitched_histogram(
-//     Options options, std::vector<double> h_logG,
-//     std::vector<int> h_start, std::vector<int> h_end, int int_id,
-//     int X, int Y)
-// {
+void eight_vertex_result_handling_stitched_histogram(
+    int num_intervals, int walker_per_interval, std::vector<double> h_logG, float error_mean, float error_variance,
+    float prob_x, float prob_y, float prob_z, std::vector<int> h_start, std::vector<int> h_end, int int_id,
+    int X, int Y, bool isQubitSpecificNoise, bool x_horizontal_error, bool x_vertical_error, bool z_horizontal_error,
+    bool z_vertical_error, int num_iterations, float overlap_decimal, float alpha, float beta, int replica_exchange_offset,
+    int seed_histogram, int seed_run)
+{
 
-//     int index_h_log_g = 0;
+    int index_h_log_g = 0;
 
-//     // Store the results of the first walker for each interval as they are averaged already
-//     std::vector<std::map<int, double>> interval_data(options.num_intervals);
+    // Store the results of the first walker for each interval as they are averaged already
+    std::vector<std::map<int, double>> interval_data(num_intervals);
 
-//     for (int i = 0; i < options.num_intervals; i++)
-//     {
-//         int len_int = h_end[i] - h_start[i] + 1;
+    for (int i = 0; i < num_intervals; i++)
+    {
+        int len_int = h_end[i] - h_start[i] + 1;
 
-//         for (int j = 0; j < options.walker_per_interval; j++)
-//         {
-//             if (j == 0)
-//             {
-//                 for (int k = 0; k < len_int; k++)
-//                 {
+        for (int j = 0; j < walker_per_interval; j++)
+        {
+            if (j == 0)
+            {
+                for (int k = 0; k < len_int; k++)
+                {
 
-//                     int key = h_start[i] + k;
-//                     double value = h_logG[index_h_log_g];
+                    int key = h_start[i] + k;
+                    double value = h_logG[index_h_log_g];
 
-//                     if (value != 0)
-//                     {
-//                         interval_data[i][key] = value; // Store the non-zero value with its key at correct map object according to interval
-//                     }
+                    if (value != 0)
+                    {
+                        interval_data[i][key] = value; // Store the non-zero value with its key at correct map object according to interval
+                    }
 
-//                     index_h_log_g += 1;
-//                 }
-//             }
-//             else
-//             {
-//                 index_h_log_g += len_int;
-//             }
-//         }
-//     }
+                    index_h_log_g += 1;
+                }
+            }
+            else
+            {
+                index_h_log_g += len_int;
+            }
+        }
+    }
 
-//     // Here follows rescaling by minimum in each interval to make it compatible with python script (for sanity checking only?)
-//     // finding minimum per interval
-//     std::vector<double> min_values(options.num_intervals, std::numeric_limits<double>::max());
-//     for (int i = 0; i < options.num_intervals; i++)
-//     {
-//         for (const auto &key_value_pair : interval_data[i])
-//         {
-//             if (key_value_pair.second < min_values[i])
-//             {
-//                 min_values[i] = key_value_pair.second;
-//             }
-//         }
+    // Here follows rescaling by minimum in each interval to make it compatible with python script (for sanity checking only?)
+    // finding minimum per interval
+    std::vector<double> min_values(num_intervals, std::numeric_limits<double>::max());
+    for (int i = 0; i < num_intervals; i++)
+    {
+        for (const auto &key_value_pair : interval_data[i])
+        {
+            if (key_value_pair.second < min_values[i])
+            {
+                min_values[i] = key_value_pair.second;
+            }
+        }
 
-//         // If no non-zero value was found, reset to 0 (or any other default)
-//         if (min_values[i] == std::numeric_limits<double>::max())
-//         {
-//             min_values[i] = 0;
-//         }
-//     }
-//     // rescaling by minimum
-//     for (int i = 0; i < options.num_intervals; i++)
-//     {
-//         for (auto &key_value_pair : interval_data[i])
-//         {
-//             key_value_pair.second -= min_values[i]; // each interval has a zero value now
-//         }
-//     }
+        // If no non-zero value was found, reset to 0 (or any other default)
+        if (min_values[i] == std::numeric_limits<double>::max())
+        {
+            min_values[i] = 0;
+        }
+    }
+    // rescaling by minimum
+    for (int i = 0; i < num_intervals; i++)
+    {
+        for (auto &key_value_pair : interval_data[i])
+        {
+            key_value_pair.second -= min_values[i]; // each interval has a zero value now
+        }
+    }
 
-//     // Calculate best stitching points
-//     std::vector<int> stitching_keys;
-//     for (int i = 0; i < options.num_intervals - 1; i++)
-//     {
-//         const auto &current_interval = interval_data[i];
-//         const auto &next_interval = interval_data[i + 1];
+    // Calculate best stitching points
+    std::vector<int> stitching_keys;
+    for (int i = 0; i < num_intervals - 1; i++)
+    {
+        const auto &current_interval = interval_data[i];
+        const auto &next_interval = interval_data[i + 1];
 
-//         int min_key = find_stitching_keys(current_interval, next_interval);
-//         if (min_key != -1)
-//         {
-//             stitching_keys.push_back(min_key);
-//         }
-//         else
-//         {
-//             stitching_keys.push_back(current_interval.end()->first); // when no overlap is found only pushback to keep a key per interval but will be catched when normalization of histogram
-//             std::cout << "Found no matching key for intervals " << i << " and " << i + 1 << std::endl;
-//         }
-//     }
+        int min_key = find_stitching_keys(current_interval, next_interval);
+        if (min_key != -1)
+        {
+            stitching_keys.push_back(min_key);
+        }
+        else
+        {
+            stitching_keys.push_back(current_interval.end()->first); // when no overlap is found only pushback to keep a key per interval but will be catched when normalization of histogram
+            std::cout << "Found no matching key for intervals " << i << " and " << i + 1 << std::endl;
+        }
+    }
 
-//     rescale_intervals_for_concatenation(interval_data, stitching_keys);
+    rescale_intervals_for_concatenation(interval_data, stitching_keys);
 
-//     cut_overlapping_histogram_parts(interval_data, stitching_keys);
+    cut_overlapping_histogram_parts(interval_data, stitching_keys);
 
-//     rescaleMapValues(interval_data, X, Y); // rescaling for high temperature interpretation of partition function
+    rescaleMapValues(interval_data, X, Y); // rescaling for high temperature interpretation of partition function
 
-//     // From here on only write to csv
-//     std::stringstream result_directory;
+    // From here on only write to csv
+    std::stringstream result_directory;
 
-//     std::string boundary;
+    std::string error_string = std::to_string(x_horizontal_error) + std::to_string(x_vertical_error) + std::to_string(z_horizontal_error) + std::to_string(z_vertical_error);
+    std::string boundary = "periodic";
 
-//     if (options.boundary_type == 0)
-//     {
-//         boundary = "periodic";
-//     }
-//     else if (options.boundary_type == 1)
-//     {
-//         boundary = "open";
-//     }
-//     else if (options.boundary_type == 2)
-//     {
-//         boundary = "cylinder";
-//     }
-//     else
-//     {
-//         boundary = "unknown"; // Handle any unexpected boundary_type values
-//     }
+    result_directory << std::fixed << std::setprecision(6);
+    if (isQubitSpecificNoise)
+    {
+        result_directory << "results/" << boundary
+                         << "/qubit_specific_noise_1"
+                         << "/error_mean_" << error_mean
+                         << "/error_variance_" << std::fixed << std::setprecision(6) << error_variance
+                         << "/X_" << X
+                         << "_Y_" << Y
+                         << "/error_class_" << error_string;
+    }
+    else
+    {
+        result_directory << "results/" << boundary
+                         << "qubit_specific_noise_0"
+                         << "/prob_x_" << prob_x
+                         << "/prob_y_" << prob_y
+                         << "/prob_z_" << prob_z
+                         << "/X_" << X
+                         << "_Y_" << Y
+                         << "/error_class_" << error_string;
+    }
 
-//     result_directory << "results/" << boundary << "/prob_" << std::fixed << std::setprecision(6) << options.prob_interactions
-//                      << "/X_" << options.X
-//                      << "_Y_" << options.Y
-//                      << "/error_class_" << options.logical_error_type;
+    create_directory(result_directory.str());
 
-//     create_directory(result_directory.str());
+    result_directory << "/StitchedHistogram_"
+                     << "_intervals_" << num_intervals
+                     << "_iterations_" << num_iterations
+                     << "_overlap_" << overlap_decimal
+                     << "_walkers_" << walker_per_interval
+                     << "_alpha_" << alpha
+                     << "_beta_" << std::fixed << std::setprecision(10) << beta
+                     << "_exchange_offset_" << replica_exchange_offset
+                     << ".txt";
 
-//     result_directory << "/StitchedHistogram_"
-//                      << "_intervals_" << options.num_intervals
-//                      << "_iterations_" << options.num_iterations
-//                      << "_overlap_" << options.overlap_decimal
-//                      << "_walkers_" << options.walker_per_interval
-//                      << "_alpha_" << options.alpha
-//                      << "_beta_" << std::fixed << std::setprecision(10) << options.beta
-//                      << "_exchange_offset_" << options.replica_exchange_offset
-//                      << ".txt";
+    std::ofstream file(result_directory.str(), std::ios::app); // append mode to store multiple interaction results in same file
 
-//     std::ofstream file(result_directory.str(), std::ios::app); // append mode to store multiple interaction results in same file
+    if (!file.is_open())
+    {
+        std::cerr << "Error opening file: " << result_directory.str() << std::endl;
+        return;
+    }
 
-//     if (!file.is_open())
-//     {
-//         std::cerr << "Error opening file: " << result_directory.str() << std::endl;
-//         return;
-//     }
+    file << "{\n";
+    file << "  \"histogram_seed\": \"" << (seed_histogram + int_id) << "\",\n";
+    file << "  \"run_seed\": \"" << seed_run << "\",\n";
+    file << "  \"results\": [\n";
+    file << std::fixed << std::setprecision(10);
+    for (size_t i = 0; i < interval_data.size(); ++i)
+    {
+        const auto &interval_map = interval_data[i];
+        for (auto iterator = interval_map.begin(); iterator != interval_map.end(); ++iterator)
+        {
+            int key = iterator->first;
+            double value = iterator->second;
 
-//     file << "{\n";
-//     file << "  \"histogram_seed\": \"" << (options.seed_histogram + int_id) << "\",\n";
-//     file << "  \"run_seed\": \"" << options.seed_run << "\",\n";
-//     file << "  \"results\": [\n";
-//     file << std::fixed << std::setprecision(10);
-//     for (size_t i = 0; i < interval_data.size(); ++i)
-//     {
-//         const auto &interval_map = interval_data[i];
-//         for (auto iterator = interval_map.begin(); iterator != interval_map.end(); ++iterator)
-//         {
-//             int key = iterator->first;
-//             double value = iterator->second;
+            // Formatting key-value pairs
+            file << "      \"" << key << "\": " << value;
 
-//             // Formatting key-value pairs
-//             file << "      \"" << key << "\": " << value;
-
-//             // Add a comma unless it's the last element
-//             if (std::next(iterator) != interval_map.end() || i < interval_data.size() - 1)
-//             {
-//                 file << ",";
-//             }
-//             file << "\n";
-//         }
-//     }
-//     file << "]\n";
-//     file << "}\n";
-//     file.close();
-// }
+            // Add a comma unless it's the last element
+            if (std::next(iterator) != interval_map.end() || i < interval_data.size() - 1)
+            {
+                file << ",";
+            }
+            file << "\n";
+        }
+    }
+    file << "]\n";
+    file << "}\n";
+    file.close();
+}
 
 __global__ void check_sums(int *d_cond_interactions, int num_intervals, int num_interactions)
 {

@@ -298,20 +298,17 @@ void result_handling(Options options, std::vector<double> h_logG, std::vector<in
 
 void result_handling_stitched_histogram(
     Options options, std::vector<double> h_logG,
-    std::vector<int> h_start, std::vector<int> h_end, int int_id, int X, int Y);
-
-void rescale_intervals_for_concatenation(std::vector<std::map<int, double>> &interval_data, const std::vector<int> &stitching_keys);
+    std::vector<int> h_start, std::vector<int> h_end, int int_id);
 
 void check_interactions_finished(
     signed char *d_cond, int *d_cond_interactions,
-    int *d_offset_intervals, int num_intervals, int num_interactions,
-    void *d_temp_storage, size_t &temp_storage_bytes);
+    int *d_offset_intervals, int num_intervals, int num_interactions);
 
 void cut_overlapping_histogram_parts(
     std::vector<std::map<int, double>> &interval_data,
     const std::vector<int> &stitching_keys);
 
-int find_stitching_keys(const std::map<int, double> &current_interval, const std::map<int, double> &next_interval);
+std::tuple<int, double> find_stitching_keys(const std::map<int, double> &current_interval, const std::map<int, double> &next_interval);
 
 std::string constructFilePath(float prob_interactions, int X, int Y, int seed, std::string type, char error_class, int boundary_type);
 
@@ -360,7 +357,7 @@ __global__ void redistribute_g_values(
     double *d_log_G, double *d_shared_logG, int *d_end, int *d_start, double *d_factor,
     double beta, signed char *d_expected_energy_spectrum, signed char *d_cond,
     int *d_offset_histogram, int num_interactions, long long *d_offset_shared_logG,
-    int *d_cond_interactions);
+    int *d_cond_interactions, int total_len_histogram);
 
 __global__ void calc_average_log_g(
     int num_intervals_per_interaction, int *d_len_histograms,
@@ -369,7 +366,7 @@ __global__ void calc_average_log_g(
     signed char *d_expected_energy_spectrum, signed char *d_cond,
     int *d_offset_histogram, int *d_offset_energy_spectrum,
     int num_interactions, long long *d_offset_shared_logG,
-    int *d_cond_interactions);
+    int *d_cond_interactions, int total_len_histogram);
 
 __global__ void initialize_Gaussian_error_rates(double *d_prob_i, double *d_prob_x, double *d_prob_y, double *d_prob_z, int num_qubits, int num_interactions, double error_rate_mean, double error_rate_variance, unsigned long long seed);
 
@@ -457,9 +454,11 @@ std::map<std::string, std::vector<signed char>> get_lattice_with_pre_run_result_
     int X, int Y, std::vector<int> h_start, std::vector<int> h_end, int num_intervals, int num_walkers_per_interval, int seed_hist, float prob_x_err, float prob_y_err, float prob_z_err);
 
 void eight_vertex_result_handling_stitched_histogram(
-    int num_intervals, int walker_per_interval, std::vector<double> h_logG, float error_mean, float error_variance,
+    Options options, std::vector<double> h_logG, float error_mean, float error_variance,
     float prob_x, float prob_y, float prob_z, std::vector<int> h_start, std::vector<int> h_end, int int_id,
-    int X, int Y, bool isQubitSpecificNoise, bool x_horizontal_error, bool x_vertical_error, bool z_horizontal_error,
-    bool z_vertical_error, int num_iterations, float overlap_decimal, float alpha, float beta, int replica_exchange_offset,
-    int seed_histogram, int seed_run);
+    bool isQubitSpecificNoise, bool x_horizontal_error, bool x_vertical_error, bool z_horizontal_error,
+    bool z_vertical_error);
+
+__global__ void reset_d_cond(signed char *d_cond, double *d_factor, int total_intervals, double beta, int walker_per_interval);
+
 #endif // WLUTILS_H

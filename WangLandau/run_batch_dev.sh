@@ -13,11 +13,11 @@ walker_wl=8
 
 overlap_wl=0.25
 
-seed_hist=854
+seed_hist=1000
 
 seed_run=42
 
-num_interactions=2
+num_interactions=1000
 
 replica_exchange_steps=50
 
@@ -35,7 +35,7 @@ num_walker_prerun=150
 
 num_intervals_prerun=30
 
-end_seed=$(( seed_hist + num_interactions - 1 ))
+end_seed=$((seed_hist + num_interactions - 1))
 
 case $boundary_type in
     1)
@@ -49,13 +49,13 @@ case $boundary_type in
         ;;
 esac
 
-for probability in 0.1
+for probability in 0.1 0.11 0.12
   do
     for size in 4
     do
       xval=$size
       yval=$size
-      for error_type in I
+      for error_type in I X Y Z
       do
         ./prerun_-10 -x $xval -y $yval -p $probability -n $iterations -l $num_loops -w $num_walker_prerun -s $seed_hist -i $num_intervals_prerun -e "$error_type" -b $boundary_type -r $num_interactions
 
@@ -68,7 +68,7 @@ for probability in 0.1
 
         echo "Done with size $size, probability $probability, error type $error_type"
 
-        formatted_prob=$(printf "%.6f" $probability)
+        formatted_prob=$(LC_NUMERIC=C printf "%.6f" "$probability")
 
         base_dir="init/${result}/prob_${formatted_prob}/X_${size}_Y_${size}/error_class_${error_type}"
 

@@ -12,8 +12,6 @@
 
 #SBATCH --time=7-00:00:00
 
-#SBATCH --exclude=qcnode01
-
 #SBATCH -N 1
 #SBATCH --mem=18G
 #SBATCH --cpus-per-task=6

@@ -49,15 +49,15 @@ case $boundary_type in
         ;;
 esac
 
-for probability in 0.1 0.11 0.12
+for probability in 0.1
   do
     for size in 4
     do
       xval=$size
       yval=$size
-      for error_type in I X Y Z
+      for error_type in I
       do
-        ./prerun_-10 -x $xval -y $yval -p $probability -n $iterations -l $num_loops -w $num_walker_prerun -s $seed_hist -i $num_intervals_prerun -e "$error_type" -b $boundary_type -r $num_interactions
+        # ./prerun_-10 -x $xval -y $yval -p $probability -n $iterations -l $num_loops -w $num_walker_prerun -s $seed_hist -i $num_intervals_prerun -e "$error_type" -b $boundary_type -r $num_interactions
 
         timeout $time_limit ./wl_-10 -x $xval -y $yval -n $iterations -p $probability -a $alpha -b $beta -i $intervals_wl -w $walker_wl -o $overlap_wl -s $seed_run -e "$error_type" -t $boundary_type -h $seed_hist -r $num_interactions -c $replica_exchange_steps
         if [ $? -eq 124 ]; then
@@ -72,7 +72,7 @@ for probability in 0.1 0.11 0.12
 
         base_dir="init/${result}/prob_${formatted_prob}/X_${size}_Y_${size}/error_class_${error_type}"
 
-        python3 delete_folders.py $base_dir $seed_hist $end_seed
+        # python3 delete_folders.py $base_dir $seed_hist $end_seed
 
       done
     done

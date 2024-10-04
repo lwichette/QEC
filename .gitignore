@@ -24,5 +24,13 @@ prerun_*
 **/lattice/*
 **/wl_*
 **/prerun_*
+<<<<<<< HEAD
 **/init/*
 !WangLandau/prerun_eight_vertex.cu
+=======
+**/init*/*
+!WangLandau/prerun_eight_vertex.cu
+WangLandau/prerun_-10
+**/eight_vertex_*
+WangLandau/main_eight_vertex_-10
+>>>>>>> 5d20b7902a58f1ee1d3108761e1d3237e3049c0c

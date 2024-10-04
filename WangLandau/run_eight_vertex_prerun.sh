@@ -1,8 +1,14 @@
 #!/bin/bash
 
+<<<<<<< HEAD
 prob_x_default=0.2
 prob_z_default=0.2
 prob_y_default=0.2
+=======
+prob_x_default=0.1
+prob_z_default=0.1
+prob_y_default=0.1
+>>>>>>> 5d20b7902a58f1ee1d3108761e1d3237e3049c0c
 
 # Check if arguments for pX pZ are provided for decoupled scenario
 if [ "$#" -eq 2 ]; then
@@ -43,7 +49,11 @@ seed_hist=1
 
 seed_run=1000
 
+<<<<<<< HEAD
 num_interactions=1
+=======
+num_interactions=2
+>>>>>>> 5d20b7902a58f1ee1d3108761e1d3237e3049c0c
 
 replica_exchange_steps=50
 
@@ -61,11 +71,23 @@ z_horizontal_error=0
 
 z_vertical_error=0
 
+<<<<<<< HEAD
 xval=6
 
 yval=6
 
 timeout $time_limit ./prerun_eight_vertex_-10 -x $xval -y $yval --prob_x $prob_x --prob_y $prob_y --prob_z $prob_z --nit 1000 --nl 100 -w 128 --seed $seed_hist --num_intervals 20  --hist_scale 1 --replicas $num_interactions --x_horizontal_error $x_horizontal_error  --x_vertical_error $x_vertical_error  --z_horizontal_error $z_horizontal_error --z_vertical_error $z_vertical_error
+=======
+error_mean=0.3
+
+error_variance=0.001
+
+xval=4
+
+yval=4
+
+timeout $time_limit ./prerun_eight_vertex_-10 -x $xval -y $yval --prob_x $prob_x --prob_y $prob_y --prob_z $prob_z --nit 1000 --nl 100 -w 128 --seed $seed_hist --num_intervals 20  --hist_scale 1 --replicas $num_interactions --x_horizontal_error $x_horizontal_error  --x_vertical_error $x_vertical_error  --z_horizontal_error $z_horizontal_error --z_vertical_error $z_vertical_error --qubit_specific_noise --error_mean $error_mean --error_variance $error_variance
+>>>>>>> 5d20b7902a58f1ee1d3108761e1d3237e3049c0c
 if [ $? -eq 124 ]; then
     echo "prerun timed out after $time_limit seconds."
 fi

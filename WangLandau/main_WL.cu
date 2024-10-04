@@ -19,10 +19,6 @@ https://www.osti.gov/servlets/purl/1567362
 int main(int argc, char **argv)
 {
 
-    // Temporary storage size
-    void *d_temp_storage = NULL;
-    size_t temp_storage_bytes = 0;
-
     // Get the device properties
     cudaDeviceProp prop;
     cudaGetDeviceProperties(&prop, 0); // Assuming device 0
@@ -49,6 +45,7 @@ int main(int argc, char **argv)
             constructFilePath(options.prob_interactions, options.X, options.Y,
                               options.seed_histogram + i, "histogram",
                               options.logical_error_type, options.boundary_type);
+
         std::vector<signed char> energy_spectrum = read_histogram(hist_path, options.E_min, options.E_max);
 
         h_expected_energy_spectrum.insert(h_expected_energy_spectrum.end(),
@@ -273,10 +270,8 @@ int main(int argc, char **argv)
     int block_count = (total_len_histogram + max_threads_per_block - 1) / max_threads_per_block;
     long long wang_landau_counter = 1;
 
-    while (max_factor > exp(options.beta))
+    while (max_factor - exp(options.beta) > 1e-10) // hardcoded precision for abort condition
     {
-        // printf("Max Factor %8f \n", max_factor);
-
         wang_landau<<<total_intervals, options.walker_per_interval>>>(
             d_lattice, d_interactions, d_energy, d_start, d_end, d_H, d_logG,
             d_offset_histogram, d_offset_lattice, options.num_iterations,
@@ -320,21 +315,25 @@ int main(int argc, char **argv)
                                                                    d_len_histograms, options.walker_per_interval,
                                                                    d_logG, d_shared_logG, d_end, d_start, d_expected_energy_spectrum, d_cond,
                                                                    d_offset_histogram, d_offset_energy_spectrum, options.num_interactions,
-                                                                   d_offset_shared_logG, d_cond_interactions);
+                                                                   d_offset_shared_logG, d_cond_interactions, total_len_histogram);
         cudaDeviceSynchronize();
 
         redistribute_g_values<<<block_count, max_threads_per_block>>>(options.num_intervals,
                                                                       d_len_histograms, options.walker_per_interval, d_logG, d_shared_logG,
                                                                       d_end, d_start, d_factor, options.beta, d_expected_energy_spectrum, d_cond,
-                                                                      d_offset_histogram, options.num_interactions, d_offset_shared_logG, d_cond_interactions);
+                                                                      d_offset_histogram, options.num_interactions, d_offset_shared_logG,
+                                                                      d_cond_interactions, total_len_histogram);
         cudaDeviceSynchronize();
 
         CHECK_CUDA(cudaMemset(d_shared_logG, 0, size_shared_log_G * sizeof(*d_shared_logG)));
 
+        reset_d_cond<<<options.num_interactions, options.num_intervals>>>(d_cond, d_factor, total_intervals, options.beta, options.walker_per_interval);
+        cudaDeviceSynchronize();
+
         check_interactions_finished(
             d_cond, d_cond_interactions, d_offset_intervals,
-            options.num_intervals, options.num_interactions,
-            d_temp_storage, temp_storage_bytes);
+            options.num_intervals, options.num_interactions);
+        cudaDeviceSynchronize();
 
         // get max factor over walkers for abort condition of while loop
         thrust::device_ptr<double> d_factor_ptr(d_factor);
@@ -348,13 +347,13 @@ int main(int argc, char **argv)
 
         if (wang_landau_counter % options.replica_exchange_offset == 0)
         {
-            replica_exchange<<<total_intervals, options.walker_per_interval>>>(
+            replica_exchange<int><<<total_intervals, options.walker_per_interval>>>(
                 d_offset_lattice, d_energy, d_start, d_end, d_indices, d_logG,
                 d_offset_histogram, true, options.seed_run, d_offset_iter,
                 options.num_intervals, walker_per_interactions, d_cond_interactions);
             cudaDeviceSynchronize();
 
-            replica_exchange<<<total_intervals, options.walker_per_interval>>>(
+            replica_exchange<int><<<total_intervals, options.walker_per_interval>>>(
                 d_offset_lattice, d_energy, d_start, d_end, d_indices, d_logG,
                 d_offset_histogram, false, options.seed_run, d_offset_iter,
                 options.num_intervals, walker_per_interactions, d_cond_interactions);
@@ -391,15 +390,12 @@ int main(int argc, char **argv)
 
                     std::vector<int> run_end(h_end_int.begin() + i * options.num_intervals, h_end_int.begin() + (i + 1) * options.num_intervals); // stores end energies of intervals of currently handled interaction
 
-                    result_handling_stitched_histogram(options, h_logG, run_start, run_end, i, options.X, options.Y); // reduced result dump with X, Y needed for rescaling
+                    result_handling_stitched_histogram(options, h_logG, run_start, run_end, i); // reduced result dump with X, Y needed for rescaling
                     // result_handling(options, h_logG, run_start, run_end, i); // extended result dump
                 }
             }
         }
     }
-
-    // Free temporary storage
-    CHECK_CUDA(cudaFree(d_temp_storage));
 
     // Free allocated device memory
     CHECK_CUDA(cudaFree(d_H));

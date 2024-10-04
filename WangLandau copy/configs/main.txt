@@ -1,3 +1,0 @@
-  ArrayTaskID    X    Y    num_iterations    p    alpha    beta    intervals    walker    overlap    seed_hist    seed_run  error      boundary
-            1   10  200             10000    0      0.8   1e-08          500         5       0.25           42          42  I                 0
-            2   10  200             10000    0      0.8   1e-08          500         5       0.25           42          42  I                 1

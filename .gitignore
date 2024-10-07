@@ -25,6 +25,7 @@ prerun_*
 **/wl_*
 **/prerun_*
 **/init*/*
+**/results/eight_vertex/J_scale/*
 !WangLandau/prerun_eight_vertex.cu
 WangLandau/prerun_-10
 **/eight_vertex_*

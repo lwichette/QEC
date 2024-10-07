@@ -915,7 +915,8 @@ __global__ void wang_landau_eight_vertex(
     if (tid >= num_lattices)
         return;
 
-    const int interval_id = (tid % walker_per_interactions) / walker_per_interval;
+    // const int interval_id_x_interaction = (tid % walker_per_interactions) / walker_per_interval;
+    const int interval_id = tid / walker_per_interval;
     const int interaction_id = tid / walker_per_interactions;
 
     if (d_cond_interaction[interaction_id] == -1)

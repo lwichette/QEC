@@ -19,7 +19,7 @@
 
 #SBATCH -D /mnt/beegfs/data/QuDA-KI/qec/WangLandau
 
-config="configs/combined.txt"
+config="configs/combined_torus.txt"
 
 SECONDS=0
 

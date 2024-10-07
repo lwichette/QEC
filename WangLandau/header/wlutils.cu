@@ -450,7 +450,6 @@ std::map<std::string, std::vector<signed char>> get_lattice_with_pre_run_result_
                             // Matching energy and within bounds, process both
                             for (int walker_per_interval_iterator = 0; walker_per_interval_iterator < num_walkers_per_interval; walker_per_interval_iterator++)
                             {
-
                                 read(lattices["r"], lattice_path + "/" + filename);
                                 read(lattices["b"], lattice_path + "/" + filename_b);
                             }

@@ -439,7 +439,7 @@ std::map<std::string, std::vector<signed char>> get_lattice_with_pre_run_result_
                     if (std::regex_search(filename, match_r, regex_r))
                     {
                         float energy_r = std::stof(match_r[1]);
-                        if (energy_r > h_start[interval_iterator] && energy_r < h_end[interval_iterator])
+                        if (energy_r >= h_start[interval_iterator] && energy_r <= h_end[interval_iterator])
                         {
 
                             // Find the position of the substring "_r_" to replace
@@ -450,8 +450,11 @@ std::map<std::string, std::vector<signed char>> get_lattice_with_pre_run_result_
                             // Matching energy and within bounds, process both
                             for (int walker_per_interval_iterator = 0; walker_per_interval_iterator < num_walkers_per_interval; walker_per_interval_iterator++)
                             {
-                                read(lattices["r"], lattice_path + "/" + filename);
-                                read(lattices["b"], lattice_path + "/" + filename_b);
+                                read(lattices["r"], lattice_path + "/" + filename + ".txt");
+                                read(lattices["b"], lattice_path + "/" + filename_b + ".txt");
+                                std::string file_b = lattice_path + "/" + filename_b + ".txt";
+                                std::string file_r = lattice_path + "/" + filename + ".txt";
+                                // printf("interval %d start %d stop %d energy %.2f path %s \n", interval_iterator, h_start[interval_iterator], h_end[interval_iterator], energy_r, filename.c_str());
                             }
                             break;
                         }
@@ -885,8 +888,7 @@ __global__ void wang_landau_pre_run_eight_vertex(
                 {
                     // IMPORTANT: order of calling the store functions is necessary in order of the color parameter : 1st color false -> 2nd color true
                     // color parameter here does not have to coincide with the actual color it only remembers that a second color must still be processed.
-                    store_lattice(d_lattice_r, d_energy, d_found_interval, d_store_lattice_r, E_min, X, Y / 2, tid, len_interval, num_interval, int_id, false);
-                    store_lattice(d_lattice_b, d_energy, d_found_interval, d_store_lattice_b, E_min, X, Y / 2, tid, len_interval, num_interval, int_id, true);
+                    store_lattice(d_lattice_r, d_lattice_b, d_energy, d_found_interval, d_store_lattice_r, d_store_lattice_b, E_min, X, Y / 2, tid, len_interval, num_interval, int_id);
                 }
             }
             else
@@ -1108,33 +1110,24 @@ __device__ void store_lattice(
 }
 
 __device__ void store_lattice(
-    signed char *d_lattice, double *d_energy, int *d_found_interval, signed char *d_store_lattice,
+    signed char *d_lattice_r, signed char *d_lattice_b, double *d_energy, int *d_found_interval, signed char *d_store_lattice_r, signed char *d_store_lattice_b,
     const int E_min, const int nx, const int ny, const long long tid, const int len_interval,
-    const int num_interval, const int int_id, bool color)
+    const int num_interval, const int int_id)
 {
 
     int interval_index = ((static_cast<int>(round(d_energy[tid])) - E_min) / len_interval < num_interval) ? (static_cast<int>(round(d_energy[tid])) - E_min) / len_interval : num_interval - 1;
 
-    if (color)
-    {
-        // Perform atomicCAS if color is true
-        if (atomicCAS(&d_found_interval[int_id * num_interval + interval_index], 0, 1) != 0)
-            return; // If CAS failed, interval was already claimed
-    }
-    else
-    {
-        // For color == false, just check if the value is already 1
-        if (d_found_interval[int_id * num_interval + interval_index] == 1)
-        {
-            return; // Return if the interval is already claimed
-        }
-    }
+    // Perform atomicCAS if color is true
+    if (atomicCAS(&d_found_interval[int_id * num_interval + interval_index], 0, 1) != 0)
+        return; // If CAS failed, interval was already claimed
 
+    // printf("found in global %d local %d with E=%.2f \n", int_id * num_interval + interval_index, interval_index, d_energy[tid]);
     for (int i = 0; i < nx; i++)
     {
         for (int j = 0; j < ny; j++)
         {
-            d_store_lattice[int_id * num_interval * nx * ny + interval_index * nx * ny + i * ny + j] = d_lattice[tid * nx * ny + i * ny + j];
+            d_store_lattice_r[int_id * num_interval * nx * ny + interval_index * nx * ny + i * ny + j] = d_lattice_r[tid * nx * ny + i * ny + j];
+            d_store_lattice_b[int_id * num_interval * nx * ny + interval_index * nx * ny + i * ny + j] = d_lattice_b[tid * nx * ny + i * ny + j];
         }
     }
 
@@ -2281,7 +2274,8 @@ void eight_vertex_result_handling_stitched_histogram(
     result_directory << std::fixed << std::setprecision(6);
     if (isQubitSpecificNoise)
     {
-        result_directory << "results/" << boundary
+        result_directory << "results/eight_vertex/"
+                         << boundary
                          << "/qubit_specific_noise_1"
                          << "/error_mean_" << error_mean
                          << "/error_variance_" << std::fixed << std::setprecision(6) << error_variance
@@ -2291,8 +2285,9 @@ void eight_vertex_result_handling_stitched_histogram(
     }
     else
     {
-        result_directory << "results/" << boundary
-                         << "qubit_specific_noise_0"
+        result_directory << "results/eight_vertex/"
+                         << boundary
+                         << "/qubit_specific_noise_0"
                          << "/prob_x_" << prob_x
                          << "/prob_y_" << prob_y
                          << "/prob_z_" << prob_z

@@ -380,9 +380,9 @@ __device__ void store_lattice(
 
 // Overload for double type (with color argument)
 __device__ void store_lattice(
-    signed char *d_lattice, double *d_energy, int *d_found_interval, signed char *d_store_lattice,
+    signed char *d_lattice_r, signed char *d_lattice_b, double *d_energy, int *d_found_interval, signed char *d_store_lattice_r, signed char *d_store_lattice_b,
     const int E_min, const int nx, const int ny, const long long tid, const int len_interval,
-    const int num_interval, const int int_id, bool color);
+    const int num_interval, const int int_id);
 
 __global__ void init_indices(int *d_indices, int total_walker);
 

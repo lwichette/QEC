@@ -294,6 +294,7 @@ int main(int argc, char **argv)
     int blocks_total_walker_x_thread = (total_walker + threads_per_block - 1) / threads_per_block;
     int blocks_total_intervals_x_thread = (total_intervals + threads_per_block - 1) / threads_per_block;
 
+    double max_J;
     if (is_qubit_specific_noise && (error_mean * error_variance != 0))
     {
         // initialize error probability array with qubit specific error rates
@@ -321,19 +322,19 @@ int main(int argc, char **argv)
         double J_Z = std::log((prob_i_err * prob_z_err) / (prob_x_err * prob_y_err)) / 4;
 
         // Find the maximum absolute value of J_X, J_Y, J_Z to bound the energy range
-        double max_J = std::max({std::abs(J_X), std::abs(J_Y), std::abs(J_Z)});
+        max_J = std::max({std::abs(J_X), std::abs(J_Y), std::abs(J_Z)});
 
         // Rescale the J values
         J_I *= (histogram_scale / max_J);
-        J_X *= (histogram_scale / max_J);
-        J_Y *= (histogram_scale / max_J);
-        J_Z *= (histogram_scale / max_J);
+        // J_X *= (histogram_scale / max_J);
+        // J_Y *= (histogram_scale / max_J);
+        // J_Z *= (histogram_scale / max_J);
 
         // // TEST BLOCK
         // // -----------
-        // J_X = 1;
-        // J_Y = 1;
-        // J_Z = 1;
+        J_X = 0;
+        J_Y = 0;
+        J_Z = 1;
         // // -----------
 
         std::cout << "Unique noise model for all qubits" << std::endl;
@@ -476,6 +477,22 @@ int main(int argc, char **argv)
         create_directory(path + "/interactions");
         create_directory(path + "/lattice");
         create_directory(path + "/histogram");
+
+        std::string j_scale_path = "results/eight_vertex/J_scale/periodic/qubit_specific_noise_0/prob_X_" + std::to_string(prob_x_err) + "_prob_Y_" + std::to_string(prob_y_err) + "_prob_Z_" + std::to_string(prob_z_err) + "/X_" + std::to_string(X) + "_Y_" + std::to_string(Y) + "/error_class_" + error_string + "/seed_" + std::to_string(seed + i);
+        create_directory(j_scale_path);
+        std::ofstream scale_file(j_scale_path + "/scale.txt");
+        // Check if the file was successfully opened
+        if (scale_file.is_open())
+        {
+            // Calculate the value to write
+            float value = histogram_scale / max_J;
+
+            // Write the value to the file
+            scale_file << value << std::endl;
+
+            // Close the file
+            scale_file.close();
+        }
 
         write(h_interactions_b.data() + offset_interactions, path + "/interactions/interactions_b", 2 * Y, X, 1, false);
         write(h_interactions_r.data() + offset_interactions, path + "/interactions/interactions_r", 2 * Y, X, 1, false);

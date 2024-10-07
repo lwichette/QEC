@@ -338,6 +338,14 @@ int main(int argc, char **argv)
         h_interactions_b.insert(h_interactions_b.end(), run_interactions_b.begin(), run_interactions_b.end());
         h_interactions_four_body_down.insert(h_interactions_four_body_down.end(), run_interactions_four_body_down.begin(), run_interactions_four_body_down.end());
         h_interactions_four_body_right.insert(h_interactions_four_body_right.end(), run_interactions_four_body_right.begin(), run_interactions_four_body_right.end());
+
+        // std::string error_string = std::to_string(x_horizontal_error) + std::to_string(x_vertical_error) + std::to_string(z_horizontal_error) + std::to_string(z_vertical_error);
+        // std::string path = "test/interactions/" + std::to_string(options.seed_histogram) + "_" + std::to_string(i) + "_" + error_string;
+        // create_directory(path);
+        // write(h_interactions_b.data(), path + "/interactions_b", 2 * options.Y, options.X, 1, false);
+        // write(h_interactions_r.data(), path + "/interactions_r", 2 * options.Y, options.X, 1, false);
+        // write(h_interactions_four_body_right.data(), path + "/interactions_four_body_right", options.Y, options.X, 1, false);
+        // write(h_interactions_four_body_down.data(), path + "/interactions_four_body_down", options.Y, options.X, 1, false);
     }
 
     // Load lattices from init
@@ -355,7 +363,7 @@ int main(int argc, char **argv)
         std::map<std::string, std::vector<signed char>> run_lattices = get_lattice_with_pre_run_result_eight_vertex(
             is_qubit_specific_noise, error_mean, error_variance, x_horizontal_error, x_vertical_error,
             z_horizontal_error, z_vertical_error, options.X, options.Y, run_start, run_end, options.num_intervals, options.walker_per_interval,
-            options.seed_histogram, prob_x_err, prob_y_err, prob_z_err);
+            options.seed_histogram + i, prob_x_err, prob_y_err, prob_z_err);
 
         // Access the "r" and "b" lattices from the map
         std::vector<signed char> run_lattice_r = run_lattices["r"];
@@ -363,6 +371,33 @@ int main(int argc, char **argv)
 
         h_lattice_r.insert(h_lattice_r.end(), run_lattice_r.begin(), run_lattice_r.end());
         h_lattice_b.insert(h_lattice_b.end(), run_lattice_b.begin(), run_lattice_b.end());
+
+        // if (i == 1)
+        // {
+        //     std::cout << "r lattice 6th walker second interaction:" << std::endl;
+        //     for (int x = 0; x < options.X; x++)
+        //     {
+        //         for (int y = 0; y < options.Y; y++)
+        //         {
+        //             std::cout << static_cast<int>(run_lattice_r[5 * options.X * options.Y + x * options.Y + y]);
+        //         }
+        //         std::cout << std::endl;
+        //     }
+        //     std::cout << "b lattice 6th walker second interaction:" << std::endl;
+        //     for (int x = 0; x < options.X; x++)
+        //     {
+        //         for (int y = 0; y < options.Y; y++)
+        //         {
+        //             std::cout << static_cast<int>(run_lattice_b[5 * options.X * options.Y + x * options.Y + y]);
+        //         }
+        //         std::cout << std::endl;
+        //     }
+        // }
+
+        // std::string error_string = std::to_string(x_horizontal_error) + std::to_string(x_vertical_error) + std::to_string(z_horizontal_error) + std::to_string(z_vertical_error);
+        // create_directory("test/lattice/interaction_" + std::to_string(options.seed_histogram) + "_" + std::to_string(i) + "_" + error_string);
+        // write(run_lattice_b.data(), "test/lattice/interaction_" + std::to_string(options.seed_histogram) + "_" + std::to_string(i) + "_" + error_string + "/lattice_b", options.Y, options.X, options.num_intervals, true);
+        // write(run_lattice_r.data(), "test/lattice/interaction_" + std::to_string(options.seed_histogram) + "_" + std::to_string(i) + "_" + error_string + "/lattice_r", options.Y, options.X, options.num_intervals, true);
     }
 
     // Init device arrays with host lattices and interactions

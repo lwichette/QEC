@@ -258,6 +258,12 @@ int main(int argc, char **argv)
     double *d_energy;
     CHECK_CUDA(cudaMalloc(&d_energy, total_walker * sizeof(*d_energy)));
 
+    // // TEST BLOCK
+    // // ---------------------
+    double *d_energy_test;
+    CHECK_CUDA(cudaMalloc(&d_energy_test, total_walker * sizeof(*d_energy_test)));
+    // // ---------------------
+
     // Binary indicator of energies were found or not
     signed char *d_expected_energy_spectrum;
     CHECK_CUDA(cudaMalloc(&d_expected_energy_spectrum, h_expected_energy_spectrum.size() * sizeof(*d_expected_energy_spectrum)));
@@ -339,6 +345,8 @@ int main(int argc, char **argv)
         h_interactions_four_body_down.insert(h_interactions_four_body_down.end(), run_interactions_four_body_down.begin(), run_interactions_four_body_down.end());
         h_interactions_four_body_right.insert(h_interactions_four_body_right.end(), run_interactions_four_body_right.begin(), run_interactions_four_body_right.end());
 
+        // // TEST BLOCK
+        // //-----------
         // std::string error_string = std::to_string(x_horizontal_error) + std::to_string(x_vertical_error) + std::to_string(z_horizontal_error) + std::to_string(z_vertical_error);
         // std::string path = "test/interactions/" + std::to_string(options.seed_histogram) + "_" + std::to_string(i) + "_" + error_string;
         // create_directory(path);
@@ -346,6 +354,7 @@ int main(int argc, char **argv)
         // write(h_interactions_r.data(), path + "/interactions_r", 2 * options.Y, options.X, 1, false);
         // write(h_interactions_four_body_right.data(), path + "/interactions_four_body_right", options.Y, options.X, 1, false);
         // write(h_interactions_four_body_down.data(), path + "/interactions_four_body_down", options.Y, options.X, 1, false);
+        // //-----------
     }
 
     // Load lattices from init
@@ -372,6 +381,8 @@ int main(int argc, char **argv)
         h_lattice_r.insert(h_lattice_r.end(), run_lattice_r.begin(), run_lattice_r.end());
         h_lattice_b.insert(h_lattice_b.end(), run_lattice_b.begin(), run_lattice_b.end());
 
+        // // TEST BLOCK
+        // //-----------
         // if (i == 1)
         // {
         //     std::cout << "r lattice 6th walker second interaction:" << std::endl;
@@ -398,6 +409,7 @@ int main(int argc, char **argv)
         // create_directory("test/lattice/interaction_" + std::to_string(options.seed_histogram) + "_" + std::to_string(i) + "_" + error_string);
         // write(run_lattice_b.data(), "test/lattice/interaction_" + std::to_string(options.seed_histogram) + "_" + std::to_string(i) + "_" + error_string + "/lattice_b", options.Y, options.X, options.num_intervals, true);
         // write(run_lattice_r.data(), "test/lattice/interaction_" + std::to_string(options.seed_histogram) + "_" + std::to_string(i) + "_" + error_string + "/lattice_r", options.Y, options.X, options.num_intervals, true);
+        // //-----------
     }
 
     // Init device arrays with host lattices and interactions
@@ -412,7 +424,7 @@ int main(int argc, char **argv)
     int blocks_total_walker_x_thread = (total_walker + threads_per_block - 1) / threads_per_block;
 
     // init the energy array
-    calc_energy_eight_vertex<<<blocks_total_walker_x_thread, threads_per_block>>>(d_energy, d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, 2 * options.X * options.Y, options.X, 2 * options.Y, total_walker, walker_per_interactions);
+    calc_energy_eight_vertex<<<blocks_total_walker_x_thread, threads_per_block>>>(d_energy, d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, 2 * options.X * options.Y, options.X, 2 * options.Y, total_walker, walker_per_interactions, d_offset_lattice_per_walker);
     cudaDeviceSynchronize();
 
     // check if read of lattices matches expected energy range of intervals
@@ -430,7 +442,9 @@ int main(int argc, char **argv)
     // Stop timing
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = end - start;
-    std::cout << "Execution time before Wang Landau has started: "
+    std::cout << "Execution time before Wang Landau with "
+              << "X=" << options.X << " Y=" << options.Y << " probX=" << prob_x_err << " probY=" << prob_y_err << " probZ=" << prob_z_err << " xh=" << x_horizontal_error << " xv=" << x_vertical_error << " zh=" << z_horizontal_error << " zv=" << z_vertical_error
+              << " has started: "
               << elapsed.count() << " seconds" << std::endl;
 
     /*
@@ -449,6 +463,23 @@ int main(int argc, char **argv)
             total_walker, options.beta, d_cond, walker_per_interactions, options.num_intervals,
             d_offset_energy_spectrum, d_cond_interactions, options.walker_per_interval);
         cudaDeviceSynchronize();
+
+        // // TEST BLOCK
+        // //-----------
+        // std::vector<double> test_energies(total_walker);
+        // std::vector<double> test_energies_wl(total_walker);
+        // CHECK_CUDA(cudaMemcpy(test_energies_wl.data(), d_energy, total_walker * sizeof(*d_energy), cudaMemcpyDeviceToHost)); // get energies from wl step with energy diff calc
+        // calc_energy_eight_vertex<<<blocks_total_walker_x_thread, threads_per_block>>>(d_energy_test, d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, 2 * options.X * options.Y, options.X, 2 * options.Y, total_walker, walker_per_interactions, d_offset_lattice_per_walker);
+        // cudaDeviceSynchronize();
+        // CHECK_CUDA(cudaMemcpy(test_energies.data(), d_energy_test, total_walker * sizeof(*d_energy_test), cudaMemcpyDeviceToHost)); // get energies from calc energy function
+        // for (int idx = 0; idx < total_walker; idx++)
+        // {
+        //     if (std::abs(test_energies_wl[idx] - test_energies[idx]) > 1e-10)
+        //     {
+        //         std::cerr << " walker idx: " << idx << " calc energy: " << test_energies[idx] << " wl calc energy: " << test_energies_wl[idx] << " Diff: " << std::abs(test_energies_wl[idx] - test_energies[idx]) << std::endl;
+        //     }
+        // }
+        // //-----------
 
         // get max of found new energy flag array to condition break and update the
         // histogramm file with value in new energy array
@@ -510,6 +541,17 @@ int main(int argc, char **argv)
         thrust::device_ptr<int> min_cond_interactions_ptr = thrust::min_element(d_cond_interactions_ptr, d_cond_interactions_ptr + options.num_interactions);
         min_cond_interactions = *min_cond_interactions_ptr;
 
+        // // TEST BLOCK
+        // //-----------
+        // CHECK_CUDA(cudaMemcpy(test_energies_wl.data(), d_energy, total_walker * sizeof(*d_energy), cudaMemcpyDeviceToHost)); // get energies from wl step with energy diff calc
+        // calc_energy_eight_vertex<<<blocks_total_walker_x_thread, threads_per_block>>>(d_energy_test, d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, 2 * options.X * options.Y, options.X, 2 * options.Y, total_walker, walker_per_interactions, d_offset_lattice_per_walker);
+        // cudaDeviceSynchronize();
+        // CHECK_CUDA(cudaMemcpy(test_energies.data(), d_energy_test, total_walker * sizeof(*d_energy_test), cudaMemcpyDeviceToHost)); // get energies from calc energy function
+        // if (iterator == 0)
+        // {
+        //     std::cerr << "Before Replica Exchange - iterator: " << iterator << " walker idx: " << "0" << " calc energy: " << test_energies[0] << " wl calc energy: " << test_energies_wl[0] << " Diff: " << std::abs(test_energies_wl[0] - test_energies[0]) << std::endl;
+        // }
+        // //-----------
         if (wang_landau_counter % options.replica_exchange_offset == 0)
         {
             replica_exchange<double><<<total_intervals, options.walker_per_interval>>>(
@@ -522,6 +564,17 @@ int main(int argc, char **argv)
                 d_offset_histogram_per_walker, false, options.seed_run, d_offset_iterator_per_walker,
                 options.num_intervals, walker_per_interactions, d_cond_interactions);
         }
+        // // TEST BLOCK
+        // //-----------
+        // CHECK_CUDA(cudaMemcpy(test_energies_wl.data(), d_energy, total_walker * sizeof(*d_energy), cudaMemcpyDeviceToHost)); // get energies from wl step with energy diff calc
+        // calc_energy_eight_vertex<<<blocks_total_walker_x_thread, threads_per_block>>>(d_energy_test, d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, 2 * options.X * options.Y, options.X, 2 * options.Y, total_walker, walker_per_interactions, d_offset_lattice_per_walker);
+        // cudaDeviceSynchronize();
+        // CHECK_CUDA(cudaMemcpy(test_energies.data(), d_energy_test, total_walker * sizeof(*d_energy_test), cudaMemcpyDeviceToHost)); // get energies from calc energy function
+        // if (iterator == 0)
+        // {
+        //     std::cerr << "After Replica Exchange - iterator: " << iterator << " walker idx: " << "0" << " calc energy: " << test_energies[0] << " wl calc energy: " << test_energies_wl[0] << " Diff: " << std::abs(test_energies_wl[0] - test_energies[0]) << std::endl;
+        // }
+        // //-----------
 
         // results dump out: if a single interaction already finished
         if (min_cond_interactions == -1)

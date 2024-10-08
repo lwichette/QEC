@@ -362,7 +362,7 @@ int main(int argc, char **argv)
     init_offsets_lattice<<<blocks_total_walker_x_thread, threads_per_block>>>(d_offset_lattice_per_interval, X, Y, total_intervals);
     cudaDeviceSynchronize();
 
-    calc_energy_eight_vertex<<<blocks_total_walker_x_thread, threads_per_block>>>(d_energy, d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, num_qubits, X, 2 * Y, total_walker, walker_per_interaction);
+    calc_energy_eight_vertex<<<blocks_total_walker_x_thread, threads_per_block>>>(d_energy, d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, num_qubits, X, 2 * Y, total_walker, walker_per_interaction, d_offset_lattice_per_walker);
     cudaDeviceSynchronize();
 
     // //-------------------------
@@ -408,13 +408,13 @@ int main(int argc, char **argv)
 
     for (int i = 0; i < num_wl_loops; i++)
     {
-        wang_landau_pre_run_eight_vertex<<<blocks_total_walker_x_thread, threads_per_block>>>(d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, d_energy, d_H, d_iter, d_found_interval, d_store_lattice_b, d_store_lattice_r, E_min, E_max, num_iterations, num_qubits, X, 2 * Y, seed, interval_result.len_interval, found_interval, total_walker, num_intervals_per_interaction, walker_per_interaction);
+        wang_landau_pre_run_eight_vertex<<<blocks_total_walker_x_thread, threads_per_block>>>(d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, d_energy, d_H, d_iter, d_found_interval, d_store_lattice_b, d_store_lattice_r, E_min, E_max, num_iterations, num_qubits, X, 2 * Y, seed, interval_result.len_interval, found_interval, total_walker, num_intervals_per_interaction, walker_per_interaction, d_offset_lattice_per_walker);
         cudaDeviceSynchronize();
 
         // TEST BLOCK
         //-----------
         CHECK_CUDA(cudaMemcpy(test_energies_wl.data(), d_energy, total_walker * sizeof(*d_energy), cudaMemcpyDeviceToHost)); // get energies from wl step with energy diff calc
-        calc_energy_eight_vertex<<<blocks_total_walker_x_thread, threads_per_block>>>(d_energy, d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, num_qubits, X, 2 * Y, total_walker, walker_per_interaction);
+        calc_energy_eight_vertex<<<blocks_total_walker_x_thread, threads_per_block>>>(d_energy, d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, num_qubits, X, 2 * Y, total_walker, walker_per_interaction, d_offset_lattice_per_walker);
         cudaDeviceSynchronize();
         CHECK_CUDA(cudaMemcpy(test_energies.data(), d_energy, total_walker * sizeof(*d_energy), cudaMemcpyDeviceToHost)); // get energies from calc energy function
         for (int idx = 0; idx < total_walker; idx++)
@@ -434,7 +434,7 @@ int main(int argc, char **argv)
         }
     }
 
-    calc_energy_eight_vertex<<<blocks_total_intervals_x_thread, threads_per_block>>>(d_interval_energies, d_store_lattice_b, d_store_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, num_qubits, X, 2 * Y, total_intervals, num_intervals_per_interaction);
+    calc_energy_eight_vertex<<<blocks_total_intervals_x_thread, threads_per_block>>>(d_interval_energies, d_store_lattice_b, d_store_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, num_qubits, X, 2 * Y, total_intervals, num_intervals_per_interaction, d_offset_lattice_per_walker);
     cudaDeviceSynchronize();
 
     std::vector<double> h_interval_energies(total_intervals);

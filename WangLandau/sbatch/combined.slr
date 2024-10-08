@@ -12,6 +12,10 @@
 
 #SBATCH --time=7-00:00:00
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+#SBATCH --exclude=qcnode01
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 #SBATCH --exclude=qcnode01
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc

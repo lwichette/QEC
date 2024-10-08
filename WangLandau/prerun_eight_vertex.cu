@@ -34,10 +34,13 @@ int main(int argc, char **argv)
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
     int boundary_type = 0;
 
 =======
 >>>>>>> 5d20b7902a58f1ee1d3108761e1d3237e3049c0c
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
     int och;
@@ -48,7 +51,10 @@ int main(int argc, char **argv)
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
     bool is_qubit_specific_noise = false;
@@ -57,7 +63,10 @@ int main(int argc, char **argv)
     float error_variance = 0;
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> 5d20b7902a58f1ee1d3108761e1d3237e3049c0c
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
     while (1)
@@ -80,6 +89,7 @@ int main(int argc, char **argv)
             {"z_vertical_error", required_argument, 0, 'p'},
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
             {"boundary", required_argument, 0, 'b'},
             {"replicas", required_argument, 0, 'r'},
             {"hist_scale", required_argument, 0, 'q'},
@@ -87,6 +97,8 @@ int main(int argc, char **argv)
 
         och = getopt_long(argc, argv, "x:y:f:g:h:n:l:w:s:i:c:d:o:p:b:r:q:", long_options, &option_index);
 =======
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
             {"replicas", required_argument, 0, 'r'},
@@ -98,7 +110,10 @@ int main(int argc, char **argv)
 
         och = getopt_long(argc, argv, "x:y:f:g:h:n:l:w:s:i:c:d:o:p:r:q:t:u:a", long_options, &option_index);
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> 5d20b7902a58f1ee1d3108761e1d3237e3049c0c
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 
@@ -152,6 +167,7 @@ int main(int argc, char **argv)
             break;
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
         case 'b':
             boundary_type = atoi(optarg);
             if (boundary_type != 0 && boundary_type != 1)
@@ -160,6 +176,8 @@ int main(int argc, char **argv)
                 exit(EXIT_FAILURE);
             }
 =======
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
         case 'a': // qubit_specific_noise flag
@@ -172,7 +190,10 @@ int main(int argc, char **argv)
         case 'u':
             error_variance = atof(optarg);
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> 5d20b7902a58f1ee1d3108761e1d3237e3049c0c
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
             break;
@@ -208,6 +229,7 @@ int main(int argc, char **argv)
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
     // Coupling strength from Nishimori condition in https://arxiv.org/pdf/1809.10704 eq 15 with beta = 1.
     double J_I = std::log(prob_i_err * prob_x_err * prob_y_err * prob_z_err) / 4;
     double J_X = std::log((prob_i_err * prob_x_err) / (prob_y_err * prob_z_err)) / 4;
@@ -237,6 +259,8 @@ int main(int argc, char **argv)
 >>>>>>> 5d20b7902a58f1ee1d3108761e1d3237e3049c0c
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
     // declaration of Pauli error over grid of qubits
     int *d_pauli_errors;
     CHECK_CUDA(cudaMalloc(&d_pauli_errors, num_interactions * num_qubits * sizeof(*d_pauli_errors)));
@@ -262,6 +286,7 @@ int main(int argc, char **argv)
             X                       (X and Y measured in ising spins per row/column)
 
 <<<<<<< HEAD
+<<<<<<< HEAD
         o-b-o-b-o-b
         | | | | | |
         r-o-r-o-r-o
@@ -274,6 +299,8 @@ int main(int argc, char **argv)
         | | | | | |
         r-o-r-o-r-o
 =======
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
         o-b-o-b-o-b-o-b
         | | | | | | | |
         r-o-r-o-r-o-r-o
@@ -285,6 +312,9 @@ int main(int argc, char **argv)
         o-b-o-b-o-b-o-b
         | | | | | | | |
         r-o-r-o-r-o-r-o
+<<<<<<< HEAD
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
+=======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 
     The four body interactions are imagined to be rooted on the b lattice.
@@ -309,11 +339,14 @@ int main(int argc, char **argv)
     CHECK_CUDA(cudaMalloc(&d_lattice_r, total_walker * X * Y * sizeof(*d_lattice_r)));
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
     // // init lattices for testing with spin up
     // CHECK_CUDA(cudaMemset(d_lattice_b, 1, total_walker * X * Y * sizeof(*d_lattice_b)));
     // CHECK_CUDA(cudaMemset(d_lattice_r, 1, total_walker * X * Y * sizeof(*d_lattice_r)));
 =======
 >>>>>>> 5d20b7902a58f1ee1d3108761e1d3237e3049c0c
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 
@@ -344,7 +377,10 @@ int main(int argc, char **argv)
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
     double *d_prob_I;
@@ -374,7 +410,10 @@ int main(int argc, char **argv)
     CHECK_CUDA(cudaMemset(d_J_Z, 0, total_walker * sizeof(*d_J_Z)));
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> 5d20b7902a58f1ee1d3108761e1d3237e3049c0c
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
     float *d_probs; // for lattice init
@@ -407,6 +446,7 @@ int main(int argc, char **argv)
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
     generate_pauli_errors<<<blocks_qubit_x_thread, threads_per_block>>>(d_pauli_errors, num_qubits, X, num_interactions, seed - 1, prob_i_err, prob_x_err, prob_y_err, prob_z_err, x_horizontal_error, x_vertical_error, z_horizontal_error, z_vertical_error);
     cudaDeviceSynchronize();
 
@@ -419,6 +459,9 @@ int main(int argc, char **argv)
     init_lattice<<<blocks_spins_single_color_x_thread, threads_per_block>>>(d_lattice_b, d_probs, X, Y, total_walker, seed - 2);
     init_lattice<<<blocks_spins_single_color_x_thread, threads_per_block>>>(d_lattice_r, d_probs, X, Y, total_walker, seed - 3);
 =======
+=======
+    double max_J;
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
     double max_J;
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
@@ -450,7 +493,11 @@ int main(int argc, char **argv)
 
         // Find the maximum absolute value of J_X, J_Y, J_Z to bound the energy range
 <<<<<<< HEAD
+<<<<<<< HEAD
         double max_J = std::max({std::abs(J_X), std::abs(J_Y), std::abs(J_Z)});
+=======
+        max_J = std::max({std::abs(J_X), std::abs(J_Y), std::abs(J_Z)});
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
         max_J = std::max({std::abs(J_X), std::abs(J_Y), std::abs(J_Z)});
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
@@ -464,8 +511,13 @@ int main(int argc, char **argv)
         // // TEST BLOCK
         // // -----------
 <<<<<<< HEAD
+<<<<<<< HEAD
         // J_X = 1;
         // J_Y = 1;
+=======
+        // J_X = 0;
+        // J_Y = 0;
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
         // J_X = 0;
         // J_Y = 0;
@@ -495,7 +547,10 @@ int main(int argc, char **argv)
     init_lattice<<<blocks_spins_single_color_x_thread, threads_per_block>>>(d_lattice_b, d_probs, X, Y, total_walker, seed - 3);
     init_lattice<<<blocks_spins_single_color_x_thread, threads_per_block>>>(d_lattice_r, d_probs, X, Y, total_walker, seed - 4);
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> 5d20b7902a58f1ee1d3108761e1d3237e3049c0c
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
     init_offsets_lattice<<<blocks_total_walker_x_thread, threads_per_block>>>(d_offset_lattice_per_walker, X, Y, total_walker);
@@ -550,10 +605,14 @@ int main(int argc, char **argv)
     {
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
         wang_landau_pre_run_eight_vertex<<<blocks_total_walker_x_thread, threads_per_block>>>(d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, d_energy, d_H, d_iter, d_found_interval, d_store_lattice_b, d_store_lattice_r, E_min, E_max, num_iterations, num_qubits, X, 2 * Y, seed, interval_result.len_interval, found_interval, total_walker, num_intervals_per_interaction, boundary_type, walker_per_interaction);
 =======
         wang_landau_pre_run_eight_vertex<<<blocks_total_walker_x_thread, threads_per_block>>>(d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, d_energy, d_H, d_iter, d_found_interval, d_store_lattice_b, d_store_lattice_r, E_min, E_max, num_iterations, num_qubits, X, 2 * Y, seed, interval_result.len_interval, found_interval, total_walker, num_intervals_per_interaction, walker_per_interaction);
 >>>>>>> 5d20b7902a58f1ee1d3108761e1d3237e3049c0c
+=======
+        wang_landau_pre_run_eight_vertex<<<blocks_total_walker_x_thread, threads_per_block>>>(d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, d_energy, d_H, d_iter, d_found_interval, d_store_lattice_b, d_store_lattice_r, E_min, E_max, num_iterations, num_qubits, X, 2 * Y, seed, interval_result.len_interval, found_interval, total_walker, num_intervals_per_interaction, walker_per_interaction);
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
         wang_landau_pre_run_eight_vertex<<<blocks_total_walker_x_thread, threads_per_block>>>(d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, d_energy, d_H, d_iter, d_found_interval, d_store_lattice_b, d_store_lattice_r, E_min, E_max, num_iterations, num_qubits, X, 2 * Y, seed, interval_result.len_interval, found_interval, total_walker, num_intervals_per_interaction, walker_per_interaction);
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
@@ -569,6 +628,7 @@ int main(int argc, char **argv)
         {
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
             // if (idx == 0)
             // {
             //     std::cout << "calc energy: " << test_energies[idx] << " wl calc energy: " << test_energies_wl[idx] << " Diff: " << std::abs(test_energies_wl[idx] - test_energies[idx]) << std::endl;
@@ -577,6 +637,9 @@ int main(int argc, char **argv)
 =======
             if (std::abs(test_energies_wl[idx] - test_energies[idx]) > 1e-10)
 >>>>>>> 5d20b7902a58f1ee1d3108761e1d3237e3049c0c
+=======
+            if (std::abs(test_energies_wl[idx] - test_energies[idx]) > 1e-10)
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
             if (std::abs(test_energies_wl[idx] - test_energies[idx]) > 1e-10)
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
@@ -617,10 +680,13 @@ int main(int argc, char **argv)
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
     for (int i = 0; i < num_interactions; i++)
     {
         std::string path = "init/eight_vertex/periodic/prob_X_" + std::to_string(prob_x_err) + "__prob_Y_" + std::to_string(prob_y_err) + "__prob_Z_" + std::to_string(prob_z_err) + "/X_" + std::to_string(X) + "_Y_" + std::to_string(Y) + "/seed_" + std::to_string(seed + i) + "/error_class_I";
 =======
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
     std::string error_string = std::to_string(x_horizontal_error) + std::to_string(x_vertical_error) + std::to_string(z_horizontal_error) + std::to_string(z_vertical_error);
@@ -637,7 +703,10 @@ int main(int argc, char **argv)
             path = "init/eight_vertex/periodic/qubit_specific_noise_0/prob_X_" + std::to_string(prob_x_err) + "_prob_Y_" + std::to_string(prob_y_err) + "_prob_Z_" + std::to_string(prob_z_err) + "/X_" + std::to_string(X) + "_Y_" + std::to_string(Y) + "/error_class_" + error_string + "/seed_" + std::to_string(seed + i);
         }
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> 5d20b7902a58f1ee1d3108761e1d3237e3049c0c
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 
@@ -651,7 +720,10 @@ int main(int argc, char **argv)
         create_directory(path + "/histogram");
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
         std::string j_scale_path = "results/eight_vertex/J_scale/periodic/qubit_specific_noise_0/prob_X_" + std::to_string(prob_x_err) + "_prob_Y_" + std::to_string(prob_y_err) + "_prob_Z_" + std::to_string(prob_z_err) + "/X_" + std::to_string(X) + "_Y_" + std::to_string(Y) + "/error_class_" + error_string + "/seed_" + std::to_string(seed + i);
         create_directory(j_scale_path);
         std::ofstream scale_file(j_scale_path + "/scale.txt");
@@ -668,6 +740,9 @@ int main(int argc, char **argv)
             scale_file.close();
         }
 
+<<<<<<< HEAD
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
+=======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
         write(h_interactions_b.data() + offset_interactions, path + "/interactions/interactions_b", 2 * Y, X, 1, false);
         write(h_interactions_r.data() + offset_interactions, path + "/interactions/interactions_r", 2 * Y, X, 1, false);

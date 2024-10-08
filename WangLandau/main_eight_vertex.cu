@@ -339,7 +339,10 @@ int main(int argc, char **argv)
         h_interactions_four_body_down.insert(h_interactions_four_body_down.end(), run_interactions_four_body_down.begin(), run_interactions_four_body_down.end());
         h_interactions_four_body_right.insert(h_interactions_four_body_right.end(), run_interactions_four_body_right.begin(), run_interactions_four_body_right.end());
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 
         // std::string error_string = std::to_string(x_horizontal_error) + std::to_string(x_vertical_error) + std::to_string(z_horizontal_error) + std::to_string(z_vertical_error);
         // std::string path = "test/interactions/" + std::to_string(options.seed_histogram) + "_" + std::to_string(i) + "_" + error_string;
@@ -348,6 +351,9 @@ int main(int argc, char **argv)
         // write(h_interactions_r.data(), path + "/interactions_r", 2 * options.Y, options.X, 1, false);
         // write(h_interactions_four_body_right.data(), path + "/interactions_four_body_right", options.Y, options.X, 1, false);
         // write(h_interactions_four_body_down.data(), path + "/interactions_four_body_down", options.Y, options.X, 1, false);
+<<<<<<< HEAD
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
+=======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
     }
 
@@ -367,7 +373,11 @@ int main(int argc, char **argv)
             is_qubit_specific_noise, error_mean, error_variance, x_horizontal_error, x_vertical_error,
             z_horizontal_error, z_vertical_error, options.X, options.Y, run_start, run_end, options.num_intervals, options.walker_per_interval,
 <<<<<<< HEAD
+<<<<<<< HEAD
             options.seed_histogram, prob_x_err, prob_y_err, prob_z_err);
+=======
+            options.seed_histogram + i, prob_x_err, prob_y_err, prob_z_err);
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
             options.seed_histogram + i, prob_x_err, prob_y_err, prob_z_err);
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
@@ -379,7 +389,10 @@ int main(int argc, char **argv)
         h_lattice_r.insert(h_lattice_r.end(), run_lattice_r.begin(), run_lattice_r.end());
         h_lattice_b.insert(h_lattice_b.end(), run_lattice_b.begin(), run_lattice_b.end());
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 
         // if (i == 1)
         // {
@@ -407,6 +420,9 @@ int main(int argc, char **argv)
         // create_directory("test/lattice/interaction_" + std::to_string(options.seed_histogram) + "_" + std::to_string(i) + "_" + error_string);
         // write(run_lattice_b.data(), "test/lattice/interaction_" + std::to_string(options.seed_histogram) + "_" + std::to_string(i) + "_" + error_string + "/lattice_b", options.Y, options.X, options.num_intervals, true);
         // write(run_lattice_r.data(), "test/lattice/interaction_" + std::to_string(options.seed_histogram) + "_" + std::to_string(i) + "_" + error_string + "/lattice_r", options.Y, options.X, options.num_intervals, true);
+<<<<<<< HEAD
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
+=======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
     }
 
@@ -452,6 +468,10 @@ int main(int argc, char **argv)
     while (max_factor - exp(options.beta) > 1e-10) // set precision for abort condition
     {
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+        // std::cout << max_factor << std::setprecision(7) << std::endl;
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
         // std::cout << max_factor << std::setprecision(7) << std::endl;
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
@@ -569,7 +589,11 @@ int main(int argc, char **argv)
                     eight_vertex_result_handling_stitched_histogram(
                         options, h_logG, error_mean, error_variance, prob_x_err, prob_y_err, prob_z_err, run_start, run_end, i,
 <<<<<<< HEAD
+<<<<<<< HEAD
                         is_qubit_specific_noise, x_horizontal_error, x_vertical_error, z_horizontal_error, z_vertical_error); // reduced result dump with X, Y needed for rescaling
+=======
+                        is_qubit_specific_noise, x_horizontal_error, x_vertical_error, z_horizontal_error, z_vertical_error);
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
                         is_qubit_specific_noise, x_horizontal_error, x_vertical_error, z_horizontal_error, z_vertical_error);
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc

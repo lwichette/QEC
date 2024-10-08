@@ -441,7 +441,11 @@ std::map<std::string, std::vector<signed char>> get_lattice_with_pre_run_result_
                     {
                         float energy_r = std::stof(match_r[1]);
 <<<<<<< HEAD
+<<<<<<< HEAD
                         if (energy_r > h_start[interval_iterator] && energy_r < h_end[interval_iterator])
+=======
+                        if (energy_r >= h_start[interval_iterator] && energy_r <= h_end[interval_iterator])
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
                         if (energy_r >= h_start[interval_iterator] && energy_r <= h_end[interval_iterator])
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
@@ -456,15 +460,21 @@ std::map<std::string, std::vector<signed char>> get_lattice_with_pre_run_result_
                             for (int walker_per_interval_iterator = 0; walker_per_interval_iterator < num_walkers_per_interval; walker_per_interval_iterator++)
                             {
 <<<<<<< HEAD
+<<<<<<< HEAD
 
                                 read(lattices["r"], lattice_path + "/" + filename);
                                 read(lattices["b"], lattice_path + "/" + filename_b);
 =======
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
                                 read(lattices["r"], lattice_path + "/" + filename + ".txt");
                                 read(lattices["b"], lattice_path + "/" + filename_b + ".txt");
                                 std::string file_b = lattice_path + "/" + filename_b + ".txt";
                                 std::string file_r = lattice_path + "/" + filename + ".txt";
                                 // printf("interval %d start %d stop %d energy %.2f path %s \n", interval_iterator, h_start[interval_iterator], h_end[interval_iterator], energy_r, filename.c_str());
+<<<<<<< HEAD
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
+=======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
                             }
                             break;
@@ -823,10 +833,14 @@ __global__ void wang_landau_pre_run_eight_vertex(
     const int num_iterations, const int num_qubits, const int X, const int Y, const int seed, const int len_interval, const int found_interval,
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
     const int num_walker, const int num_interval, const int boundary_type, const int walker_per_interaction)
 =======
     const int num_walker, const int num_interval, const int walker_per_interaction)
 >>>>>>> 5d20b7902a58f1ee1d3108761e1d3237e3049c0c
+=======
+    const int num_walker, const int num_interval, const int walker_per_interaction)
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
     const int num_walker, const int num_interval, const int walker_per_interaction)
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
@@ -908,8 +922,12 @@ __global__ void wang_landau_pre_run_eight_vertex(
                     // IMPORTANT: order of calling the store functions is necessary in order of the color parameter : 1st color false -> 2nd color true
                     // color parameter here does not have to coincide with the actual color it only remembers that a second color must still be processed.
 <<<<<<< HEAD
+<<<<<<< HEAD
                     store_lattice(d_lattice_r, d_energy, d_found_interval, d_store_lattice_r, E_min, X, Y / 2, tid, len_interval, num_interval, int_id, false);
                     store_lattice(d_lattice_b, d_energy, d_found_interval, d_store_lattice_b, E_min, X, Y / 2, tid, len_interval, num_interval, int_id, true);
+=======
+                    store_lattice(d_lattice_r, d_lattice_b, d_energy, d_found_interval, d_store_lattice_r, d_store_lattice_b, E_min, X, Y / 2, tid, len_interval, num_interval, int_id);
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
                     store_lattice(d_lattice_r, d_lattice_b, d_energy, d_found_interval, d_store_lattice_r, d_store_lattice_b, E_min, X, Y / 2, tid, len_interval, num_interval, int_id);
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
@@ -922,7 +940,10 @@ __global__ void wang_landau_pre_run_eight_vertex(
             d_iter[tid] += 1;
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
         }
@@ -945,7 +966,12 @@ __global__ void wang_landau_eight_vertex(
         return;
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     const int interval_id = (tid % walker_per_interactions) / walker_per_interval;
+=======
+    // const int interval_id_x_interaction = (tid % walker_per_interactions) / walker_per_interval;
+    const int interval_id = tid / walker_per_interval;
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
     // const int interval_id_x_interaction = (tid % walker_per_interactions) / walker_per_interval;
     const int interval_id = tid / walker_per_interval;
@@ -971,12 +997,18 @@ __global__ void wang_landau_eight_vertex(
             const int new_energy_int = static_cast<int>(round(result.new_energy));
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
             // if (interval_id == 37 && result.i == 1 && result.j == 3 && result.color == 1)
             // {
             //     printf("old E: %.2f  new E: %.2f\n", d_energy[tid], result.new_energy);
             // }
 
+<<<<<<< HEAD
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
+=======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
             // If no new energy is found, set it to 0, else to tid + 1
             foundFlag[tid] = (d_expected_energy_spectrum[d_offset_energy_spectrum[interaction_id] + new_energy_int - d_start[interaction_id * num_intervals]] == 1) ? 0 : tid + 1;
@@ -1079,7 +1111,10 @@ __global__ void wang_landau_eight_vertex(
                 d_offset_iter[tid] += 1;
             }
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> 5d20b7902a58f1ee1d3108761e1d3237e3049c0c
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
         }
@@ -1157,6 +1192,7 @@ __device__ void store_lattice(
 
 __device__ void store_lattice(
 <<<<<<< HEAD
+<<<<<<< HEAD
     signed char *d_lattice, double *d_energy, int *d_found_interval, signed char *d_store_lattice,
     const int E_min, const int nx, const int ny, const long long tid, const int len_interval,
     const int num_interval, const int int_id, bool color)
@@ -1184,6 +1220,8 @@ __device__ void store_lattice(
     }
 
 =======
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
     signed char *d_lattice_r, signed char *d_lattice_b, double *d_energy, int *d_found_interval, signed char *d_store_lattice_r, signed char *d_store_lattice_b,
     const int E_min, const int nx, const int ny, const long long tid, const int len_interval,
     const int num_interval, const int int_id)
@@ -1196,13 +1234,21 @@ __device__ void store_lattice(
         return; // If CAS failed, interval was already claimed
 
     // printf("found in global %d local %d with E=%.2f \n", int_id * num_interval + interval_index, interval_index, d_energy[tid]);
+<<<<<<< HEAD
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
+=======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
     for (int i = 0; i < nx; i++)
     {
         for (int j = 0; j < ny; j++)
         {
 <<<<<<< HEAD
+<<<<<<< HEAD
             d_store_lattice[int_id * num_interval * nx * ny + interval_index * nx * ny + i * ny + j] = d_lattice[tid * nx * ny + i * ny + j];
+=======
+            d_store_lattice_r[int_id * num_interval * nx * ny + interval_index * nx * ny + i * ny + j] = d_lattice_r[tid * nx * ny + i * ny + j];
+            d_store_lattice_b[int_id * num_interval * nx * ny + interval_index * nx * ny + i * ny + j] = d_lattice_b[tid * nx * ny + i * ny + j];
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
             d_store_lattice_r[int_id * num_interval * nx * ny + interval_index * nx * ny + i * ny + j] = d_lattice_r[tid * nx * ny + i * ny + j];
             d_store_lattice_b[int_id * num_interval * nx * ny + interval_index * nx * ny + i * ny + j] = d_lattice_b[tid * nx * ny + i * ny + j];
@@ -1330,9 +1376,14 @@ __global__ void check_histogram(
 
         average = average / len_reduced_energy_spectrum;
 <<<<<<< HEAD
+<<<<<<< HEAD
 
         // printf("Walker %d in interval %d with min %lld average %.6f alpha %.6f alpha*average %.2f and factor %.10f and d_cond %d and end %d and start %d\n", threadIdx.x, blockIdx.x, min, average, alpha, alpha * average, d_factor[tid], d_cond[blockId], d_end[blockId], d_start[blockId]);
 
+=======
+        // if (blockIdx.x == 1)
+        printf("Walker %d in interval %d with min %lld average %.6f alpha %.6f alpha*average %.2f and factor %.10f and d_cond %d and end %d and start %d\n", threadIdx.x, blockIdx.x, min, average, alpha, alpha * average, d_factor[tid], d_cond[blockId], d_end[blockId], d_start[blockId]);
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
         // if (blockIdx.x == 1)
         printf("Walker %d in interval %d with min %lld average %.6f alpha %.6f alpha*average %.2f and factor %.10f and d_cond %d and end %d and start %d\n", threadIdx.x, blockIdx.x, min, average, alpha, alpha * average, d_factor[tid], d_cond[blockId], d_end[blockId], d_start[blockId]);
@@ -2366,7 +2417,12 @@ void eight_vertex_result_handling_stitched_histogram(
     if (isQubitSpecificNoise)
     {
 <<<<<<< HEAD
+<<<<<<< HEAD
         result_directory << "results/" << boundary
+=======
+        result_directory << "results/eight_vertex/"
+                         << boundary
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
         result_directory << "results/eight_vertex/"
                          << boundary
@@ -2381,8 +2437,14 @@ void eight_vertex_result_handling_stitched_histogram(
     else
     {
 <<<<<<< HEAD
+<<<<<<< HEAD
         result_directory << "results/" << boundary
                          << "qubit_specific_noise_0"
+=======
+        result_directory << "results/eight_vertex/"
+                         << boundary
+                         << "/qubit_specific_noise_0"
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
         result_directory << "results/eight_vertex/"
                          << boundary
@@ -2484,7 +2546,10 @@ void check_interactions_finished(
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 __global__ void generate_pauli_errors(int *pauli_errors, const int num_qubits, const int X, const int num_interactions, const unsigned long seed, const double *p_I, const double *p_X, const double *p_Y, const double *p_Z, const bool x_horizontal_error, const bool x_vertical_error, const bool z_horizontal_error, const bool z_vertical_error)
@@ -2561,7 +2626,10 @@ __global__ void generate_pauli_errors(int *pauli_errors, const int num_qubits, c
 }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> 5d20b7902a58f1ee1d3108761e1d3237e3049c0c
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 __global__ void generate_pauli_errors(int *pauli_errors, const int num_qubits, const int X, const int num_interactions, const unsigned long seed, const double p_I, const double p_X, const double p_Y, const double p_Z, const bool x_horizontal_error, const bool x_vertical_error, const bool z_horizontal_error, const bool z_vertical_error)
@@ -2687,10 +2755,13 @@ __global__ void get_interaction_from_commutator(int *pauli_errors, double *int_X
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
         int_X[idx] = comm_result_X * J_X;
         int_Y[idx] = comm_result_Y * J_Y;
         int_Z[idx] = comm_result_Z * J_Z;
 =======
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
         int_X[idx] = -comm_result_X * J_X;
@@ -2717,7 +2788,10 @@ __global__ void get_interaction_from_commutator(int *pauli_errors, double *int_X
         int_Y[idx] = -comm_result_Y * J_Y[qubit_id];
         int_Z[idx] = -comm_result_Z * J_Z[qubit_id];
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> 5d20b7902a58f1ee1d3108761e1d3237e3049c0c
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 
@@ -2835,7 +2909,10 @@ __device__ double calc_energy_periodic_eight_vertex(signed char *lattice_b, sign
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
     // if (tid == 0)
@@ -2843,7 +2920,10 @@ __device__ double calc_energy_periodic_eight_vertex(signed char *lattice_b, sign
     //     printf("%.2f energies in calc_energy \n", energy);
     // }
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> 5d20b7902a58f1ee1d3108761e1d3237e3049c0c
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
     return energy;
@@ -2854,6 +2934,7 @@ __global__ void calc_energy_eight_vertex(double *energy_out, signed char *lattic
     long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
     if (tid < num_lattices)
     {
         energy_out[tid] = calc_energy_periodic_eight_vertex(lattice_b, lattice_r, interactions_b, interactions_r, interactions_four_body_right, interactions_four_body_down, num_qubits, X, Y, num_lattices_x_interaction);
@@ -2861,12 +2942,17 @@ __global__ void calc_energy_eight_vertex(double *energy_out, signed char *lattic
 =======
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 
     if (tid < num_lattices)
     {
         energy_out[tid] = calc_energy_periodic_eight_vertex(lattice_b, lattice_r, interactions_b, interactions_r, interactions_four_body_right, interactions_four_body_down, num_qubits, X, Y, num_lattices_x_interaction);
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> 5d20b7902a58f1ee1d3108761e1d3237e3049c0c
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
     }
@@ -2902,9 +2988,13 @@ __device__ RBIM_eight_vertex eight_vertex_periodic_wl_step(
     double energy_diff = 0;
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 
 >>>>>>> 5d20b7902a58f1ee1d3108761e1d3237e3049c0c
+=======
+
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
@@ -2940,12 +3030,18 @@ __device__ RBIM_eight_vertex eight_vertex_periodic_wl_step(
         int right_four_body_term_up_version_down_r = i_dn * X + j;
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
         // if (tid == 148 && i == 1 && j == 3)
         // {
         //     printf("lb %d rb %d dr %d\n", right_four_body_term_up_version_left_b, right_four_body_term_up_version_right_b, right_four_body_term_up_version_down_r);
         // }
 
+<<<<<<< HEAD
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
+=======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
         // these indices are used for right four body interaction (the one with blue spins on horizontal line) with red root spin at down position
         int right_four_body_term_down_version_left_b = i * X + j_ln; // roots the coupling strength
@@ -2953,12 +3049,18 @@ __device__ RBIM_eight_vertex eight_vertex_periodic_wl_step(
         int right_four_body_term_down_version_up_r = i_un * X + j;
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
         // if (tid == 148 && i == 1 && j == 3)
         // {
         //     printf("lb %d rb %d ur %d\n", right_four_body_term_down_version_left_b, right_four_body_term_down_version_right_b, right_four_body_term_down_version_up_r);
         // }
 
+<<<<<<< HEAD
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
+=======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
         // these indices are used for down four body interaction (the one with blue spin on vertical line and the down refers to storage of coupling strength labeled by blue spin at up most end of the cross term) with red root spin at left position
         int down_four_body_term_left_version_right_r = i * X + j_rn;
@@ -2966,12 +3068,18 @@ __device__ RBIM_eight_vertex eight_vertex_periodic_wl_step(
         int down_four_body_term_left_version_down_b = i_dn * X + j;
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
         // if (tid == 148 && i == 1 && j == 3)
         // {
         //     printf("rr %d ub %d db %d\n", down_four_body_term_left_version_right_r, down_four_body_term_left_version_up_b, down_four_body_term_left_version_down_b);
         // }
 
+<<<<<<< HEAD
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
+=======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
         // these indices are used for down four body interaction (the one with blue spin on vertical line) with red root spin at right position
         int down_four_body_term_right_version_left_r = i * X + j_ln;
@@ -2979,12 +3087,18 @@ __device__ RBIM_eight_vertex eight_vertex_periodic_wl_step(
         int down_four_body_term_right_version_down_b = i_dn * X + j_ln;
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
         // if (tid == 148 && i == 1 && j == 3)
         // {
         //     printf("lr %d ub %d db %d\n", down_four_body_term_right_version_left_r, down_four_body_term_right_version_up_b, down_four_body_term_right_version_down_b);
         // }
 
+<<<<<<< HEAD
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
+=======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
         double E_up = d_lattice_r[offset_lattice + i * X + j] * (d_lattice_r[offset_lattice + i_un * X + j] * d_interactions_r[offset_interactions_closed_on_sublattice + num_qubits / 2 + i_un * X + j]);
         double E_down = d_lattice_r[offset_lattice + i * X + j] * (d_lattice_r[offset_lattice + i_dn * X + j] * d_interactions_r[offset_interactions_closed_on_sublattice + num_qubits / 2 + i * X + j]);
@@ -2999,10 +3113,13 @@ __device__ RBIM_eight_vertex eight_vertex_periodic_wl_step(
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
         // energy_diff = -2 * d_lattice_r[offset_lattice + i * X + j] * (d_lattice_r[offset_lattice + i_un * X + j] * d_interactions_r[offset_interactions_closed_on_sublattice + num_qubits / 2 + i_un * X + j] + d_lattice_r[offset_lattice + i_dn * X + j] * d_interactions_r[offset_interactions_closed_on_sublattice + num_qubits / 2 + i * X + j] + d_lattice_r[offset_lattice + i * X + j_rn] * d_interactions_r[offset_interactions_closed_on_sublattice + i * X + j] + d_lattice_r[offset_lattice + i * X + j_ln] * d_interactions_r[offset_interactions_closed_on_sublattice + i * X + j_ln] + d_interactions_four_body_right[offset_interactions_four_body + right_four_body_term_up_version_left_b] * (d_lattice_b[offset_lattice + right_four_body_term_up_version_left_b] * d_lattice_b[offset_lattice + right_four_body_term_up_version_right_b] * d_lattice_r[offset_lattice + right_four_body_term_up_version_down_r]) + d_interactions_four_body_right[offset_interactions_four_body + right_four_body_term_down_version_left_b] * (d_lattice_b[offset_lattice + right_four_body_term_down_version_left_b] * d_lattice_b[offset_lattice + right_four_body_term_down_version_right_b] * d_lattice_r[offset_lattice + right_four_body_term_down_version_up_r]) + d_interactions_four_body_down[offset_interactions_four_body + down_four_body_term_left_version_up_b] * (d_lattice_b[offset_lattice + down_four_body_term_left_version_up_b] * d_lattice_b[offset_lattice + down_four_body_term_left_version_down_b] * d_lattice_r[offset_lattice + down_four_body_term_left_version_right_r]) + d_interactions_four_body_down[offset_interactions_four_body + down_four_body_term_right_version_up_b] * (d_lattice_b[offset_lattice + down_four_body_term_right_version_up_b] * d_lattice_b[offset_lattice + down_four_body_term_right_version_down_b] * d_lattice_r[offset_lattice + down_four_body_term_right_version_left_r]));
 
 =======
 >>>>>>> 5d20b7902a58f1ee1d3108761e1d3237e3049c0c
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
         // if (tid == 0)
@@ -3027,8 +3144,11 @@ __device__ RBIM_eight_vertex eight_vertex_periodic_wl_step(
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
     // printf("walker idx = %lld old energy = %.6f new energy = %.6f energy diff = %.6f\n", tid, d_energy[tid], d_new_energy, energy_diff);
 =======
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
     // if (tid == 0 || tid == 1)
@@ -3036,7 +3156,10 @@ __device__ RBIM_eight_vertex eight_vertex_periodic_wl_step(
     //     printf("walker idx = %lld old energy = %.6f new energy = %.6f energy diff = %.6f\n", tid, d_energy[tid], d_new_energy, energy_diff);
     // }
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> 5d20b7902a58f1ee1d3108761e1d3237e3049c0c
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 
@@ -3048,6 +3171,7 @@ __device__ RBIM_eight_vertex eight_vertex_periodic_wl_step(
     return rbim;
 }
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 // gets called with a thread per walker
@@ -3143,6 +3267,8 @@ __global__ void test_eight_vertex_periodic_wl_step(
     double d_new_energy = d_energy[tid] + energy_diff;
     printf("interaction_id=%d tid=%lld energy diff=%.6f new energy=%.6f\n", int_id, tid, energy_diff, d_new_energy);
 =======
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 __global__ void initialize_Gaussian_error_rates(double *d_prob_i, double *d_prob_x, double *d_prob_y, double *d_prob_z, int num_qubits, int num_interactions, double error_rate_mean, double error_rate_variance, unsigned long long seed)
@@ -3318,7 +3444,10 @@ __global__ void reset_d_cond(signed char *d_cond, double *d_factor, int total_in
         }
     }
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> 5d20b7902a58f1ee1d3108761e1d3237e3049c0c
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 }

@@ -156,7 +156,10 @@ inline void write(
 }
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 
@@ -283,7 +286,10 @@ void read(std::vector<signed char> &lattice, std::string filename);
 
 void read(std::vector<double> &lattice, std::string filename);
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> 5d20b7902a58f1ee1d3108761e1d3237e3049c0c
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 
@@ -379,7 +385,10 @@ __global__ void calc_average_log_g(
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 __global__ void initialize_Gaussian_error_rates(double *d_prob_i, double *d_prob_x, double *d_prob_y, double *d_prob_z, int num_qubits, int num_interactions, double error_rate_mean, double error_rate_variance, unsigned long long seed);
@@ -387,7 +396,10 @@ __global__ void initialize_Gaussian_error_rates(double *d_prob_i, double *d_prob
 __global__ void initialize_coupling_factors(double *prob_i_err, double *prob_x_err, double *prob_y_err, double *prob_z_err, int num_qubits, int num_interactions, int histogram_scale, double *d_J_i, double *d_J_x, double *d_J_y, double *d_J_z);
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> 5d20b7902a58f1ee1d3108761e1d3237e3049c0c
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 // Overload for int type (no color argument)
@@ -399,9 +411,15 @@ __device__ void store_lattice(
 // Overload for double type (with color argument)
 __device__ void store_lattice(
 <<<<<<< HEAD
+<<<<<<< HEAD
     signed char *d_lattice, double *d_energy, int *d_found_interval, signed char *d_store_lattice,
     const int E_min, const int nx, const int ny, const long long tid, const int len_interval,
     const int num_interval, const int int_id, bool color);
+=======
+    signed char *d_lattice_r, signed char *d_lattice_b, double *d_energy, int *d_found_interval, signed char *d_store_lattice_r, signed char *d_store_lattice_b,
+    const int E_min, const int nx, const int ny, const long long tid, const int len_interval,
+    const int num_interval, const int int_id);
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
     signed char *d_lattice_r, signed char *d_lattice_b, double *d_energy, int *d_found_interval, signed char *d_store_lattice_r, signed char *d_store_lattice_b,
     const int E_min, const int nx, const int ny, const long long tid, const int len_interval,
@@ -420,9 +438,12 @@ __global__ void generate_pauli_errors(int *pauli_errors, const int num_qubits, c
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 __global__ void get_interaction_from_commutator(int *pauli_errors, double *int_X, double *int_Y, double *int_Z, const int num_qubits, const int num_interactions, double J_X, double J_Y, double J_Z);
 
 =======
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 __global__ void generate_pauli_errors(int *pauli_errors, const int num_qubits, const int X, const int num_interactions, const unsigned long seed, const double *p_I, const double *p_X, const double *p_Y, const double *p_Z, const bool x_horizontal_error, const bool x_vertical_error, const bool z_horizontal_error, const bool z_vertical_error);
@@ -434,7 +455,10 @@ __global__ void get_interaction_from_commutator(int *pauli_errors, double *int_X
 __global__ void initialize_Gaussian_error_rates(double *prob_i_err, double *prob_x_err, double *prob_y_err, double *prob_z_err, int num_qubits, int num_interactions, int histogram_scale, double *d_J_i, double *d_J_x, double *d_J_y, double *d_J_z);
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> 5d20b7902a58f1ee1d3108761e1d3237e3049c0c
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 __global__ void init_interactions_eight_vertex(double *int_X, double *int_Y, double *int_Z, const int num_qubits, const int num_interactions, int X, int Y, double *int_r, double *int_b, double *d_interactions_down_four_body, double *d_interactions_right_four_body);
@@ -447,8 +471,11 @@ __global__ void wang_landau_pre_run_eight_vertex(
     const int num_iterations, const int num_qubits, const int X, const int Y, const int seed, const int len_interval, const int found_interval,
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
     const int num_walker, const int num_interval, const int boundary_type, const int walker_per_interaction);
 =======
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
     const int num_walker, const int num_interval, const int walker_per_interaction);
@@ -460,7 +487,10 @@ __global__ void wang_landau_eight_vertex(
     const int num_lattices, const double beta, signed char *d_cond, const int walker_per_interactions, const int num_intervals,
     int *d_offset_energy_spectrum, int *d_cond_interaction, const int walker_per_interval);
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> 5d20b7902a58f1ee1d3108761e1d3237e3049c0c
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 
@@ -489,7 +519,10 @@ __device__ int commutator(int pauli1, int pauli2);
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 std::string eight_vertex_histogram_path(
@@ -515,7 +548,10 @@ void eight_vertex_result_handling_stitched_histogram(
 __global__ void reset_d_cond(signed char *d_cond, double *d_factor, int total_intervals, double beta, int walker_per_interval);
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> 5d20b7902a58f1ee1d3108761e1d3237e3049c0c
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 #endif // WLUTILS_H

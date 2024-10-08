@@ -182,17 +182,17 @@ int main(int argc, char **argv)
     Example X=3, Y=3:
             X                       (X and Y measured in ising spins per row/column)
 
-        o-b-o-b-o-b
-        | | | | | |
-        r-o-r-o-r-o
-        | | | | | |
-        o-b-o-b-o-b
-    Y   | | | | | |
-        r-o-r-o-r-o
-        | | | | | |
-        o-b-o-b-o-b
-        | | | | | |
-        r-o-r-o-r-o
+        o-b-o-b-o-b-o-b
+        | | | | | | | |
+        r-o-r-o-r-o-r-o
+        | | | | | | | |
+        o-b-o-b-o-b-o-b
+    Y   | | | | | | | |
+        r-o-r-o-r-o-r-o
+        | | | | | | | |
+        o-b-o-b-o-b-o-b
+        | | | | | | | |
+        r-o-r-o-r-o-r-o
 
     The four body interactions are imagined to be rooted on the b lattice.
     for each b ising spin exist two types of four body interactions.

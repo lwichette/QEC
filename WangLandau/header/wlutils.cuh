@@ -448,16 +448,16 @@ __device__ int commutator(int pauli1, int pauli2);
 std::string eight_vertex_histogram_path(
     bool is_qubit_specific_noise, float error_mean, float error_variance,
     int X, int Y, int seed_hist, bool x_horizontal_error, bool x_vertical_error,
-    bool z_horizontal_error, bool z_vertical_error, float prob_x_err, float prob_y_err, float prob_z_err);
+    bool z_horizontal_error, bool z_vertical_error, float prob_x_err, float prob_y_err, float prob_z_err, int task_id);
 
 std::string eight_vertex_interaction_path(
     bool is_qubit_specific_noise, float error_mean, float error_variance,
     int X, int Y, int seed_hist, bool x_horizontal_error, bool x_vertical_error,
-    bool z_horizontal_error, bool z_vertical_error, std::string interaction_type, float prob_x_err, float prob_y_err, float prob_z_err);
+    bool z_horizontal_error, bool z_vertical_error, std::string interaction_type, float prob_x_err, float prob_y_err, float prob_z_err, int task_id);
 
 std::map<std::string, std::vector<signed char>> get_lattice_with_pre_run_result_eight_vertex(
     bool is_qubit_specific_noise, float error_mean, float error_variance, bool x_horizontal_error, bool x_vertical_error, bool z_horizontal_error, bool z_vertical_error,
-    int X, int Y, std::vector<int> h_start, std::vector<int> h_end, int num_intervals, int num_walkers_per_interval, int seed_hist, float prob_x_err, float prob_y_err, float prob_z_err);
+    int X, int Y, std::vector<int> h_start, std::vector<int> h_end, int num_intervals, int num_walkers_per_interval, int seed_hist, float prob_x_err, float prob_y_err, float prob_z_err, int task_id);
 
 void eight_vertex_result_handling_stitched_histogram(
     Options options, std::vector<double> h_logG, float error_mean, float error_variance,

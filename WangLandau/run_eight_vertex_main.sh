@@ -7,6 +7,8 @@ SECONDS=0
 
 alpha=0.8
 
+task_id=1
+
 beta=0.000001
 
 walker_wl=4
@@ -47,9 +49,9 @@ do
                 do
                     for zv_err in 0 #1
                     do
-                        ./prerun_eight_vertex_-10 -x $xval -y $yval --prob_x $prob --prob_y $prob --prob_z $prob --nit 1000 --nl 100 -w 512 --seed $seed_hist --num_intervals 64  --hist_scale $histogram_scale --replicas $num_interactions --x_horizontal_error $xh_err  --x_vertical_error $xv_err  --z_horizontal_error $zh_err --z_vertical_error $zv_err
+                        ./prerun_eight_vertex_-10 -x $xval -y $yval --prob_x $prob --prob_y $prob --prob_z $prob --nit 1000 --nl 100 -w 512 --seed $seed_hist --num_intervals 64  --hist_scale $histogram_scale --replicas $num_interactions --x_horizontal_error $xh_err  --x_vertical_error $xv_err  --z_horizontal_error $zh_err --z_vertical_error $zv_err -v $task_id
 
-                        timeout $time_limit ./main_eight_vertex_-10 -a $alpha -b $beta -c $xh_err -d $xv_err -e $zh_err -f $zv_err --prob_x $prob --prob_y $prob --prob_z $prob --replica_exchange_offsets $replica_exchange_steps --num_intervals $intervals_main --num_iterations $iterations --overlap_decimal $overlap_wl --seed_histogram $seed_hist --seed_run $seed_run --num_interactions $num_interactions --walker_per_interval $walker_wl -x $xval -y $yval
+                        timeout $time_limit ./main_eight_vertex_-10 -a $alpha -b $beta -c $xh_err -d $xv_err -e $zh_err -f $zv_err --prob_x $prob --prob_y $prob --prob_z $prob --replica_exchange_offsets $replica_exchange_steps --num_intervals $intervals_main --num_iterations $iterations --overlap_decimal $overlap_wl --seed_histogram $seed_hist --seed_run $seed_run --num_interactions $num_interactions --walker_per_interval $walker_wl -x $xval -y $yval -v $task_id
                         if [ $? -eq 124 ]; then
                             echo "prerun timed out after $time_limit seconds."
                         fi

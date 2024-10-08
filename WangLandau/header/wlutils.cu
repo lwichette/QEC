@@ -396,13 +396,13 @@ std::vector<signed char> get_lattice_with_pre_run_result(float prob, int seed, i
 
 std::map<std::string, std::vector<signed char>> get_lattice_with_pre_run_result_eight_vertex(
     bool is_qubit_specific_noise, float error_mean, float error_variance, bool x_horizontal_error, bool x_vertical_error, bool z_horizontal_error, bool z_vertical_error,
-    int X, int Y, std::vector<int> h_start, std::vector<int> h_end, int num_intervals, int num_walkers_per_interval, int seed_hist, float prob_x_err, float prob_y_err, float prob_z_err)
+    int X, int Y, std::vector<int> h_start, std::vector<int> h_end, int num_intervals, int num_walkers_per_interval, int seed_hist, float prob_x_err, float prob_y_err, float prob_z_err, int task_id)
 {
     std::string error_string = std::to_string(x_horizontal_error) + std::to_string(x_vertical_error) + std::to_string(z_horizontal_error) + std::to_string(z_vertical_error);
 
     namespace fs = std::filesystem;
     std::ostringstream oss;
-    oss << "init/eight_vertex/periodic/qubit_specific_noise_" << std::to_string(is_qubit_specific_noise) << "/" << std::fixed << std::setprecision(6);
+    oss << "init/task_id_" + std::to_string(task_id) + "/eight_vertex/periodic/qubit_specific_noise_" << std::to_string(is_qubit_specific_noise) << "/" << std::fixed << std::setprecision(6);
 
     if (is_qubit_specific_noise)
     {
@@ -1774,7 +1774,7 @@ void result_handling(
 
     f_log_density.open(result_directory.str());
 
-    f_log_density << std::fixed << std::setprecision(10);
+    f_log_density << std::fixed << std::setprecision(15);
 
     int index_h_log_g = 0;
     if (f_log_density.is_open())
@@ -2103,7 +2103,7 @@ void write_results(std::vector<std::map<int, double>> rescaled_data, Options opt
     file << "  \"histogram_seed\": \"" << (options.seed_histogram + int_id) << "\",\n";
     file << "  \"run_seed\": \"" << options.seed_run << "\",\n";
     file << "  \"results\": {\n";
-    file << std::fixed << std::setprecision(10);
+    file << std::fixed << std::setprecision(15);
     for (size_t i = 0; i < rescaled_data.size(); ++i)
     {
         const auto &interval_map = rescaled_data[i];
@@ -2331,7 +2331,7 @@ void eight_vertex_result_handling_stitched_histogram(
     file << "  \"histogram_seed\": \"" << (options.seed_histogram + int_id) << "\",\n";
     file << "  \"run_seed\": \"" << options.seed_run << "\",\n";
     file << "  \"results\": [\n";
-    file << std::fixed << std::setprecision(10);
+    file << std::fixed << std::setprecision(15);
     for (size_t i = 0; i < cut_data.size(); ++i)
     {
         const auto &interval_map = cut_data[i];
@@ -2795,40 +2795,20 @@ __device__ RBIM_eight_vertex eight_vertex_periodic_wl_step(
         int right_four_body_term_up_version_right_b = i_dn * X + j;
         int right_four_body_term_up_version_down_r = i_dn * X + j;
 
-        // if (tid == 148 && i == 1 && j == 3)
-        // {
-        //     printf("lb %d rb %d dr %d\n", right_four_body_term_up_version_left_b, right_four_body_term_up_version_right_b, right_four_body_term_up_version_down_r);
-        // }
-
         // these indices are used for right four body interaction (the one with blue spins on horizontal line) with red root spin at down position
         int right_four_body_term_down_version_left_b = i * X + j_ln; // roots the coupling strength
         int right_four_body_term_down_version_right_b = i * X + j;
         int right_four_body_term_down_version_up_r = i_un * X + j;
-
-        // if (tid == 148 && i == 1 && j == 3)
-        // {
-        //     printf("lb %d rb %d ur %d\n", right_four_body_term_down_version_left_b, right_four_body_term_down_version_right_b, right_four_body_term_down_version_up_r);
-        // }
 
         // these indices are used for down four body interaction (the one with blue spin on vertical line and the down refers to storage of coupling strength labeled by blue spin at up most end of the cross term) with red root spin at left position
         int down_four_body_term_left_version_right_r = i * X + j_rn;
         int down_four_body_term_left_version_up_b = i * X + j; // roots the coupling strength
         int down_four_body_term_left_version_down_b = i_dn * X + j;
 
-        // if (tid == 148 && i == 1 && j == 3)
-        // {
-        //     printf("rr %d ub %d db %d\n", down_four_body_term_left_version_right_r, down_four_body_term_left_version_up_b, down_four_body_term_left_version_down_b);
-        // }
-
         // these indices are used for down four body interaction (the one with blue spin on vertical line) with red root spin at right position
         int down_four_body_term_right_version_left_r = i * X + j_ln;
         int down_four_body_term_right_version_up_b = i * X + j_ln; // roots the coupling strength
         int down_four_body_term_right_version_down_b = i_dn * X + j_ln;
-
-        // if (tid == 148 && i == 1 && j == 3)
-        // {
-        //     printf("lr %d ub %d db %d\n", down_four_body_term_right_version_left_r, down_four_body_term_right_version_up_b, down_four_body_term_right_version_down_b);
-        // }
 
         double E_up = d_lattice_r[offset_lattice + i * X + j] * (d_lattice_r[offset_lattice + i_un * X + j] * d_interactions_r[offset_interactions_closed_on_sublattice + num_qubits / 2 + i_un * X + j]);
         double E_down = d_lattice_r[offset_lattice + i * X + j] * (d_lattice_r[offset_lattice + i_dn * X + j] * d_interactions_r[offset_interactions_closed_on_sublattice + num_qubits / 2 + i * X + j]);
@@ -2840,31 +2820,9 @@ __device__ RBIM_eight_vertex eight_vertex_periodic_wl_step(
         double E_down_four_body_right_version = d_lattice_r[offset_lattice + i * X + j] * (d_interactions_four_body_down[offset_interactions_four_body + down_four_body_term_left_version_up_b] * (d_lattice_b[offset_lattice + down_four_body_term_left_version_up_b] * d_lattice_b[offset_lattice + down_four_body_term_left_version_down_b] * d_lattice_r[offset_lattice + down_four_body_term_left_version_right_r]));
 
         energy_diff = -2 * (E_up + E_down + E_right + E_left + E_right_four_body_down_version + E_right_four_body_up_version + E_down_four_body_left_version + E_down_four_body_right_version);
-
-        // if (tid == 0)
-        // {
-        // printf("E_up=%.6f E_down=%.6f E_right=%.6f E_left=%.6f E_right_four_body_up_version=%.6f E_right_four_body_down_version=%.6f E_down_four_body_left_version=%.6f E_down_four_body_right_version=%.6f \n", E_up, E_down, E_right, E_left, E_right_four_body_up_version, E_right_four_body_down_version, E_down_four_body_left_version, E_down_four_body_right_version);
-        // printf("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d \n", d_lattice_r[offset_lattice + i * X + j], d_lattice_r[offset_lattice + i_un * X + j], d_lattice_r[offset_lattice + i_dn * X + j], d_lattice_r[offset_lattice + i * X + j_rn], d_lattice_r[offset_lattice + i * X + j_ln], d_lattice_b[offset_lattice + right_four_body_term_up_version_left_b], d_lattice_b[offset_lattice + right_four_body_term_up_version_right_b], d_lattice_r[offset_lattice + right_four_body_term_up_version_down_r], d_lattice_b[offset_lattice + right_four_body_term_down_version_left_b], d_lattice_b[offset_lattice + right_four_body_term_down_version_right_b], d_lattice_r[offset_lattice + right_four_body_term_down_version_up_r], d_lattice_b[offset_lattice + down_four_body_term_left_version_up_b], d_lattice_b[offset_lattice + down_four_body_term_left_version_down_b], d_lattice_r[offset_lattice + down_four_body_term_left_version_right_r], d_lattice_b[offset_lattice + down_four_body_term_right_version_up_b], d_lattice_b[offset_lattice + down_four_body_term_right_version_down_b], d_lattice_r[offset_lattice + down_four_body_term_right_version_left_r]);
-        // // print indices for spin and interactions
-        // printf("spin neighbor indices:\n");
-        // printf("color=%d i=%d j=%d i_dn=%d i_un=%d j_rn=%d j_ln=%d \n", color, i, j, i_dn, i_un, j_rn, j_ln);
-        // printf("right_four_body_term_up_version_left_b=%d right_four_body_term_up_version_right_b=%d right_four_body_term_up_version_down_r=%d\n", right_four_body_term_up_version_left_b, right_four_body_term_up_version_right_b, right_four_body_term_up_version_down_r);
-        // printf("right_four_body_term_down_version_left_b=%d right_four_body_term_down_version_right_b=%d right_four_body_term_down_version_up_r=%d \n", right_four_body_term_down_version_left_b, right_four_body_term_down_version_right_b, right_four_body_term_down_version_up_r);
-        // printf("down_four_body_term_left_version_right_r=%d down_four_body_term_left_version_up_b=%d down_four_body_term_left_version_down_b=%d \n", down_four_body_term_left_version_right_r, down_four_body_term_left_version_up_b, down_four_body_term_left_version_down_b);
-        // printf("down_four_body_term_right_version_left_r=%d down_four_body_term_right_version_up_b=%d down_four_body_term_right_version_down_b=%d \n", down_four_body_term_right_version_left_r, down_four_body_term_right_version_up_b, down_four_body_term_right_version_down_b);
-        // printf("interaction indices:\n");
-        // printf("interactions_r: u_inter=%d d_inter=%d l_inter=%d right_inter=%d\n", offset_interactions_closed_on_sublattice + num_qubits / 2 + i_un * X + j, offset_interactions_closed_on_sublattice + num_qubits / 2 + i * X + j, offset_interactions_closed_on_sublattice + i * X + j_ln, offset_interactions_closed_on_sublattice + i * X + j);
-        // printf("blue spins on horizontal line four body interactions: root_spin_up_inter=%d root_spin_down_inter=%d \n", offset_interactions_four_body + right_four_body_term_up_version_left_b, offset_interactions_four_body + right_four_body_term_down_version_left_b);
-        // printf("blue spins on vertical line four body interactions: root_spin_left_inter=%d root_spin_right_inter=%d \n", offset_interactions_four_body + down_four_body_term_left_version_up_b, offset_interactions_four_body + down_four_body_term_right_version_up_b);
-        // }
     }
 
     double d_new_energy = d_energy[tid] + energy_diff;
-
-    // if (tid == 0 || tid == 1)
-    // {
-    //     printf("walker idx = %lld old energy = %.6f new energy = %.6f energy diff = %.6f\n", tid, d_energy[tid], d_new_energy, energy_diff);
-    // }
 
     RBIM_eight_vertex rbim;
     rbim.new_energy = d_new_energy;
@@ -2945,11 +2903,11 @@ __global__ void initialize_coupling_factors(double *prob_i_err, double *prob_x_e
 std::string eight_vertex_histogram_path(
     bool is_qubit_specific_noise, float error_mean, float error_variance,
     int X, int Y, int seed_hist, bool x_horizontal_error, bool x_vertical_error,
-    bool z_horizontal_error, bool z_vertical_error, float prob_x_err, float prob_y_err, float prob_z_err)
+    bool z_horizontal_error, bool z_vertical_error, float prob_x_err, float prob_y_err, float prob_z_err, int task_id)
 {
     std::string error_string = std::to_string(x_horizontal_error) + std::to_string(x_vertical_error) + std::to_string(z_horizontal_error) + std::to_string(z_vertical_error);
     std::stringstream strstr;
-    strstr << "init/eight_vertex/periodic/qubit_specific_noise_" << std::to_string(is_qubit_specific_noise) << "/";
+    strstr << "init/task_id_" + std::to_string(task_id) + "/eight_vertex/periodic/qubit_specific_noise_" << std::to_string(is_qubit_specific_noise) << "/";
     if (is_qubit_specific_noise)
     {
         strstr << "error_mean_" << std::fixed << std::setprecision(6) << error_mean << "_error_variance_" << error_variance;
@@ -2969,11 +2927,11 @@ std::string eight_vertex_histogram_path(
 std::string eight_vertex_interaction_path(
     bool is_qubit_specific_noise, float error_mean, float error_variance,
     int X, int Y, int seed_hist, bool x_horizontal_error, bool x_vertical_error,
-    bool z_horizontal_error, bool z_vertical_error, std::string interaction_type, float prob_x_err, float prob_y_err, float prob_z_err)
+    bool z_horizontal_error, bool z_vertical_error, std::string interaction_type, float prob_x_err, float prob_y_err, float prob_z_err, int task_id)
 {
     std::string error_string = std::to_string(x_horizontal_error) + std::to_string(x_vertical_error) + std::to_string(z_horizontal_error) + std::to_string(z_vertical_error);
     std::stringstream strstr;
-    strstr << "init/eight_vertex/periodic/qubit_specific_noise_" << std::to_string(is_qubit_specific_noise) << "/" << std::fixed << std::setprecision(6);
+    strstr << "init/task_id_" + std::to_string(task_id) + "/eight_vertex/periodic/qubit_specific_noise_" << std::to_string(is_qubit_specific_noise) << "/" << std::fixed << std::setprecision(6);
     if (is_qubit_specific_noise)
     {
         strstr << "error_mean_" << error_mean << "_error_variance_" << error_variance;

@@ -25,12 +25,20 @@ prerun_*
 **/wl_*
 **/prerun_*
 <<<<<<< HEAD
+<<<<<<< HEAD
 **/init/*
 !WangLandau/prerun_eight_vertex.cu
 =======
 **/init*/*
+=======
+**/init*/*
+**/results/eight_vertex/J_scale/*
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 !WangLandau/prerun_eight_vertex.cu
 WangLandau/prerun_-10
 **/eight_vertex_*
 WangLandau/main_eight_vertex_-10
+<<<<<<< HEAD
 >>>>>>> 5d20b7902a58f1ee1d3108761e1d3237e3049c0c
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc

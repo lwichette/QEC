@@ -186,8 +186,6 @@ void create_directory(std::string path)
 void write_histograms(unsigned long long *h_histogram, std::string path_histograms, int len_histogram, int seed, int E_min)
 {
 
-    // printf("Writing to %s ...\n", path_histograms.c_str());
-
     std::ofstream f;
     f.open(std::string(path_histograms + "/histogram.txt"));
 

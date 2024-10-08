@@ -182,17 +182,17 @@ int main(int argc, char **argv)
     Example X=3, Y=3:
             X                       (X and Y measured in ising spins per row/column)
 
-        o-b-o-b-o-b
-        | | | | | |
-        r-o-r-o-r-o
-        | | | | | |
-        o-b-o-b-o-b
-    Y   | | | | | |
-        r-o-r-o-r-o
-        | | | | | |
-        o-b-o-b-o-b
-        | | | | | |
-        r-o-r-o-r-o
+        o-b-o-b-o-b-o-b
+        | | | | | | | |
+        r-o-r-o-r-o-r-o
+        | | | | | | | |
+        o-b-o-b-o-b-o-b
+    Y   | | | | | | | |
+        r-o-r-o-r-o-r-o
+        | | | | | | | |
+        o-b-o-b-o-b-o-b
+        | | | | | | | |
+        r-o-r-o-r-o-r-o
 
     The four body interactions are imagined to be rooted on the b lattice.
     for each b ising spin exist two types of four body interactions.
@@ -326,15 +326,15 @@ int main(int argc, char **argv)
 
         // Rescale the J values
         J_I *= (histogram_scale / max_J);
-        // J_X *= (histogram_scale / max_J);
-        // J_Y *= (histogram_scale / max_J);
-        // J_Z *= (histogram_scale / max_J);
+        J_X *= (histogram_scale / max_J);
+        J_Y *= (histogram_scale / max_J);
+        J_Z *= (histogram_scale / max_J);
 
         // // TEST BLOCK
         // // -----------
-        J_X = 0;
-        J_Y = 0;
-        J_Z = 1;
+        // J_X = 0;
+        // J_Y = 0;
+        // J_Z = 1;
         // // -----------
 
         std::cout << "Unique noise model for all qubits" << std::endl;

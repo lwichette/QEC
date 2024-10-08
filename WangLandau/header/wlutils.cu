@@ -915,7 +915,8 @@ __global__ void wang_landau_eight_vertex(
     if (tid >= num_lattices)
         return;
 
-    const int interval_id = (tid % walker_per_interactions) / walker_per_interval;
+    // const int interval_id_x_interaction = (tid % walker_per_interactions) / walker_per_interval;
+    const int interval_id = tid / walker_per_interval;
     const int interaction_id = tid / walker_per_interactions;
 
     if (d_cond_interaction[interaction_id] == -1)
@@ -935,6 +936,11 @@ __global__ void wang_landau_eight_vertex(
 
             const int old_energy_int = static_cast<int>(round(d_energy[tid])); // Int cast for indexing via energy
             const int new_energy_int = static_cast<int>(round(result.new_energy));
+
+            // if (interval_id == 37 && result.i == 1 && result.j == 3 && result.color == 1)
+            // {
+            //     printf("old E: %.2f  new E: %.2f\n", d_energy[tid], result.new_energy);
+            // }
 
             // If no new energy is found, set it to 0, else to tid + 1
             foundFlag[tid] = (d_expected_energy_spectrum[d_offset_energy_spectrum[interaction_id] + new_energy_int - d_start[interaction_id * num_intervals]] == 1) ? 0 : tid + 1;
@@ -1225,6 +1231,13 @@ __global__ void check_histogram(
     // Here is average and min calculation over all bins in histogram which correspond to values in expected energy spectrum
     for (int i = 0; i < (d_end[blockId] - d_start[blockId] + 1); i++)
     {
+        // if (blockIdx.x == 37)
+        // {
+        //     for (int e = 0; e < (d_end[blockIdx.x] - d_start[blockIdx.x] + 1); e++)
+        //     {
+        //         printf("%d : %lld \n", d_start[blockIdx.x] + e, d_H[d_offset_histogramm[tid] + e]);
+        //     }
+        // }
         if (d_expected_energy_spectrum[d_offset_energy_spectrum[int_id] + d_start[blockId] + i - d_start[int_id * num_intervals]] == 1)
         {
             if (d_H[d_offset_histogramm[tid] + i] < min)
@@ -1243,9 +1256,8 @@ __global__ void check_histogram(
     {
 
         average = average / len_reduced_energy_spectrum;
-
-        // printf("Walker %d in interval %d with min %lld average %.6f alpha %.6f alpha*average %.2f and factor %.10f and d_cond %d and end %d and start %d\n", threadIdx.x, blockIdx.x, min, average, alpha, alpha * average, d_factor[tid], d_cond[blockId], d_end[blockId], d_start[blockId]);
-
+        // if (blockIdx.x == 1)
+        printf("Walker %d in interval %d with min %lld average %.6f alpha %.6f alpha*average %.2f and factor %.10f and d_cond %d and end %d and start %d\n", threadIdx.x, blockIdx.x, min, average, alpha, alpha * average, d_factor[tid], d_cond[blockId], d_end[blockId], d_start[blockId]);
         if (min >= alpha * average)
         {
             atomicAdd(&walkers_finished, 1);
@@ -2789,20 +2801,40 @@ __device__ RBIM_eight_vertex eight_vertex_periodic_wl_step(
         int right_four_body_term_up_version_right_b = i_dn * X + j;
         int right_four_body_term_up_version_down_r = i_dn * X + j;
 
+        // if (tid == 148 && i == 1 && j == 3)
+        // {
+        //     printf("lb %d rb %d dr %d\n", right_four_body_term_up_version_left_b, right_four_body_term_up_version_right_b, right_four_body_term_up_version_down_r);
+        // }
+
         // these indices are used for right four body interaction (the one with blue spins on horizontal line) with red root spin at down position
         int right_four_body_term_down_version_left_b = i * X + j_ln; // roots the coupling strength
         int right_four_body_term_down_version_right_b = i * X + j;
         int right_four_body_term_down_version_up_r = i_un * X + j;
+
+        // if (tid == 148 && i == 1 && j == 3)
+        // {
+        //     printf("lb %d rb %d ur %d\n", right_four_body_term_down_version_left_b, right_four_body_term_down_version_right_b, right_four_body_term_down_version_up_r);
+        // }
 
         // these indices are used for down four body interaction (the one with blue spin on vertical line and the down refers to storage of coupling strength labeled by blue spin at up most end of the cross term) with red root spin at left position
         int down_four_body_term_left_version_right_r = i * X + j_rn;
         int down_four_body_term_left_version_up_b = i * X + j; // roots the coupling strength
         int down_four_body_term_left_version_down_b = i_dn * X + j;
 
+        // if (tid == 148 && i == 1 && j == 3)
+        // {
+        //     printf("rr %d ub %d db %d\n", down_four_body_term_left_version_right_r, down_four_body_term_left_version_up_b, down_four_body_term_left_version_down_b);
+        // }
+
         // these indices are used for down four body interaction (the one with blue spin on vertical line) with red root spin at right position
         int down_four_body_term_right_version_left_r = i * X + j_ln;
         int down_four_body_term_right_version_up_b = i * X + j_ln; // roots the coupling strength
         int down_four_body_term_right_version_down_b = i_dn * X + j_ln;
+
+        // if (tid == 148 && i == 1 && j == 3)
+        // {
+        //     printf("lr %d ub %d db %d\n", down_four_body_term_right_version_left_r, down_four_body_term_right_version_up_b, down_four_body_term_right_version_down_b);
+        // }
 
         double E_up = d_lattice_r[offset_lattice + i * X + j] * (d_lattice_r[offset_lattice + i_un * X + j] * d_interactions_r[offset_interactions_closed_on_sublattice + num_qubits / 2 + i_un * X + j]);
         double E_down = d_lattice_r[offset_lattice + i * X + j] * (d_lattice_r[offset_lattice + i_dn * X + j] * d_interactions_r[offset_interactions_closed_on_sublattice + num_qubits / 2 + i * X + j]);

@@ -441,6 +441,7 @@ int main(int argc, char **argv)
 
     while (max_factor - exp(options.beta) > 1e-10) // set precision for abort condition
     {
+        // std::cout << max_factor << std::setprecision(7) << std::endl;
         wang_landau_eight_vertex<<<blocks_total_walker_x_thread, threads_per_block>>>(
             d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, d_energy, d_start, d_end, d_H,
             d_logG, d_offset_histogram_per_walker, d_offset_lattice_per_walker, options.num_iterations, options.X, 2 * options.Y,
@@ -554,7 +555,7 @@ int main(int argc, char **argv)
 
                     eight_vertex_result_handling_stitched_histogram(
                         options, h_logG, error_mean, error_variance, prob_x_err, prob_y_err, prob_z_err, run_start, run_end, i,
-                        is_qubit_specific_noise, x_horizontal_error, x_vertical_error, z_horizontal_error, z_vertical_error); // reduced result dump with X, Y needed for rescaling
+                        is_qubit_specific_noise, x_horizontal_error, x_vertical_error, z_horizontal_error, z_vertical_error);
                 }
             }
         }

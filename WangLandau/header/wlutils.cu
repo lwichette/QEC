@@ -829,7 +829,7 @@ __global__ void wang_landau_pre_run_eight_vertex(
 
         double d_new_energy = result.new_energy;
 
-        if (d_new_energy > E_max || d_new_energy < E_min)
+        if (d_new_energy > E_max + 1e-10 || d_new_energy + 1e-10 < E_min)
         {
             printf("Iterator %d \n", it);
             printf("Thread Id %lld \n", tid);

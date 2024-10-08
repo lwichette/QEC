@@ -186,8 +186,6 @@ void create_directory(std::string path)
 void write_histograms(unsigned long long *h_histogram, std::string path_histograms, int len_histogram, int seed, int E_min)
 {
 
-    // printf("Writing to %s ...\n", path_histograms.c_str());
-
     std::ofstream f;
     f.open(std::string(path_histograms + "/histogram.txt"));
 
@@ -1257,7 +1255,7 @@ __global__ void check_histogram(
 
         average = average / len_reduced_energy_spectrum;
         // if (blockIdx.x == 1)
-        printf("Walker %d in interval %d with min %lld average %.6f alpha %.6f alpha*average %.2f and factor %.10f and d_cond %d and end %d and start %d\n", threadIdx.x, blockIdx.x, min, average, alpha, alpha * average, d_factor[tid], d_cond[blockId], d_end[blockId], d_start[blockId]);
+        // printf("Walker %d in interval %d with min %lld average %.6f alpha %.6f alpha*average %.2f and factor %.10f and d_cond %d and end %d and start %d\n", threadIdx.x, blockIdx.x, min, average, alpha, alpha * average, d_factor[tid], d_cond[blockId], d_end[blockId], d_start[blockId]);
         if (min >= alpha * average)
         {
             atomicAdd(&walkers_finished, 1);

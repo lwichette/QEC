@@ -157,7 +157,10 @@ inline void write(
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
@@ -287,7 +290,10 @@ void read(std::vector<signed char> &lattice, std::string filename);
 void read(std::vector<double> &lattice, std::string filename);
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> 5d20b7902a58f1ee1d3108761e1d3237e3049c0c
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
@@ -386,7 +392,10 @@ __global__ void calc_average_log_g(
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
@@ -397,7 +406,10 @@ __global__ void initialize_coupling_factors(double *prob_i_err, double *prob_x_e
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> 5d20b7902a58f1ee1d3108761e1d3237e3049c0c
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
@@ -412,9 +424,15 @@ __device__ void store_lattice(
 __device__ void store_lattice(
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
     signed char *d_lattice, double *d_energy, int *d_found_interval, signed char *d_store_lattice,
     const int E_min, const int nx, const int ny, const long long tid, const int len_interval,
     const int num_interval, const int int_id, bool color);
+=======
+    signed char *d_lattice_r, signed char *d_lattice_b, double *d_energy, int *d_found_interval, signed char *d_store_lattice_r, signed char *d_store_lattice_b,
+    const int E_min, const int nx, const int ny, const long long tid, const int len_interval,
+    const int num_interval, const int int_id);
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
     signed char *d_lattice_r, signed char *d_lattice_b, double *d_energy, int *d_found_interval, signed char *d_store_lattice_r, signed char *d_store_lattice_b,
     const int E_min, const int nx, const int ny, const long long tid, const int len_interval,
@@ -439,9 +457,12 @@ __global__ void generate_pauli_errors(int *pauli_errors, const int num_qubits, c
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 __global__ void get_interaction_from_commutator(int *pauli_errors, double *int_X, double *int_Y, double *int_Z, const int num_qubits, const int num_interactions, double J_X, double J_Y, double J_Z);
 
 =======
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
@@ -456,7 +477,10 @@ __global__ void initialize_Gaussian_error_rates(double *prob_i_err, double *prob
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> 5d20b7902a58f1ee1d3108761e1d3237e3049c0c
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
@@ -472,8 +496,11 @@ __global__ void wang_landau_pre_run_eight_vertex(
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
     const int num_walker, const int num_interval, const int boundary_type, const int walker_per_interaction);
 =======
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
@@ -488,7 +515,10 @@ __global__ void wang_landau_eight_vertex(
     int *d_offset_energy_spectrum, int *d_cond_interaction, const int walker_per_interval);
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> 5d20b7902a58f1ee1d3108761e1d3237e3049c0c
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
@@ -520,7 +550,10 @@ __device__ int commutator(int pauli1, int pauli2);
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
@@ -549,7 +582,10 @@ __global__ void reset_d_cond(signed char *d_cond, double *d_factor, int total_in
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> 5d20b7902a58f1ee1d3108761e1d3237e3049c0c
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======

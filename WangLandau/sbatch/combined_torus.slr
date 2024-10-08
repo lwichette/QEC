@@ -21,7 +21,11 @@
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 config="configs/combined.txt"
+=======
+config="configs/combined_torus.txt"
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 config="configs/combined_torus.txt"
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc

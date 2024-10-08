@@ -340,7 +340,10 @@ int main(int argc, char **argv)
         h_interactions_four_body_right.insert(h_interactions_four_body_right.end(), run_interactions_four_body_right.begin(), run_interactions_four_body_right.end());
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 
@@ -352,6 +355,9 @@ int main(int argc, char **argv)
         // write(h_interactions_four_body_right.data(), path + "/interactions_four_body_right", options.Y, options.X, 1, false);
         // write(h_interactions_four_body_down.data(), path + "/interactions_four_body_down", options.Y, options.X, 1, false);
 <<<<<<< HEAD
+<<<<<<< HEAD
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
+=======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
@@ -374,7 +380,11 @@ int main(int argc, char **argv)
             z_horizontal_error, z_vertical_error, options.X, options.Y, run_start, run_end, options.num_intervals, options.walker_per_interval,
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
             options.seed_histogram, prob_x_err, prob_y_err, prob_z_err);
+=======
+            options.seed_histogram + i, prob_x_err, prob_y_err, prob_z_err);
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
             options.seed_histogram + i, prob_x_err, prob_y_err, prob_z_err);
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
@@ -390,7 +400,10 @@ int main(int argc, char **argv)
         h_lattice_b.insert(h_lattice_b.end(), run_lattice_b.begin(), run_lattice_b.end());
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 
@@ -421,6 +434,9 @@ int main(int argc, char **argv)
         // write(run_lattice_b.data(), "test/lattice/interaction_" + std::to_string(options.seed_histogram) + "_" + std::to_string(i) + "_" + error_string + "/lattice_b", options.Y, options.X, options.num_intervals, true);
         // write(run_lattice_r.data(), "test/lattice/interaction_" + std::to_string(options.seed_histogram) + "_" + std::to_string(i) + "_" + error_string + "/lattice_r", options.Y, options.X, options.num_intervals, true);
 <<<<<<< HEAD
+<<<<<<< HEAD
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
+=======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
@@ -469,6 +485,10 @@ int main(int argc, char **argv)
     {
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+        // std::cout << max_factor << std::setprecision(7) << std::endl;
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
         // std::cout << max_factor << std::setprecision(7) << std::endl;
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
@@ -590,7 +610,11 @@ int main(int argc, char **argv)
                         options, h_logG, error_mean, error_variance, prob_x_err, prob_y_err, prob_z_err, run_start, run_end, i,
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
                         is_qubit_specific_noise, x_horizontal_error, x_vertical_error, z_horizontal_error, z_vertical_error); // reduced result dump with X, Y needed for rescaling
+=======
+                        is_qubit_specific_noise, x_horizontal_error, x_vertical_error, z_horizontal_error, z_vertical_error);
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
                         is_qubit_specific_noise, x_horizontal_error, x_vertical_error, z_horizontal_error, z_vertical_error);
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc

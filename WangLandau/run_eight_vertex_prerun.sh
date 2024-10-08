@@ -3,6 +3,7 @@
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 prob_x_default=0.2
 prob_z_default=0.2
 prob_y_default=0.2
@@ -11,6 +12,11 @@ prob_x_default=0.1
 prob_z_default=0.1
 prob_y_default=0.1
 >>>>>>> 5d20b7902a58f1ee1d3108761e1d3237e3049c0c
+=======
+prob_x_default=0.1
+prob_z_default=0.1
+prob_y_default=0.1
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 prob_x_default=0.1
 prob_z_default=0.1
@@ -64,10 +70,14 @@ seed_run=1000
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 num_interactions=1
 =======
 num_interactions=2
 >>>>>>> 5d20b7902a58f1ee1d3108761e1d3237e3049c0c
+=======
+num_interactions=2
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 num_interactions=2
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
@@ -94,12 +104,15 @@ z_vertical_error=0
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 xval=6
 
 yval=6
 
 timeout $time_limit ./prerun_eight_vertex_-10 -x $xval -y $yval --prob_x $prob_x --prob_y $prob_y --prob_z $prob_z --nit 1000 --nl 100 -w 128 --seed $seed_hist --num_intervals 20  --hist_scale 1 --replicas $num_interactions --x_horizontal_error $x_horizontal_error  --x_vertical_error $x_vertical_error  --z_horizontal_error $z_horizontal_error --z_vertical_error $z_vertical_error
 =======
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
@@ -115,7 +128,10 @@ yval=4
 timeout $time_limit ./prerun_eight_vertex_-10 -x $xval -y $yval --prob_x $prob_x --prob_y $prob_y --prob_z $prob_z --nit 1000 --nl 100 -w 128 --seed $seed_hist --num_intervals 20  --hist_scale 1 --replicas $num_interactions --x_horizontal_error $x_horizontal_error  --x_vertical_error $x_vertical_error  --z_horizontal_error $z_horizontal_error --z_vertical_error $z_vertical_error --qubit_specific_noise --error_mean $error_mean --error_variance $error_variance
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> 5d20b7902a58f1ee1d3108761e1d3237e3049c0c
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======

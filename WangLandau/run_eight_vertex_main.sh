@@ -2,6 +2,7 @@
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 # # This block triggers decoupled scenario from Flammia Chubb paper when handing two params to shell execution from cli
 
 # prob_x_default=0.1
@@ -34,6 +35,8 @@
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 LOGFILE="script.log"
 exec > >(tee -a "$LOGFILE") 2>&1
 
@@ -45,7 +48,11 @@ beta=0.000001
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 walker_wl=1
+=======
+walker_wl=4
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 walker_wl=4
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
@@ -57,6 +64,7 @@ overlap_wl=0.25
 
 seed_hist=1
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 seed_run=1000
@@ -107,6 +115,8 @@ fi
 duration=$SECONDS
 echo "Total runtime: $((duration / 60)) minutes and $((duration % 60)) seconds."
 =======
+=======
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 seed_run=1
@@ -161,6 +171,9 @@ done
 duration=$SECONDS
 echo "Total runtime: $((duration / 60)) minutes and $((duration % 60)) seconds."
 <<<<<<< HEAD
+<<<<<<< HEAD
+>>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
+=======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 =======
 >>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc

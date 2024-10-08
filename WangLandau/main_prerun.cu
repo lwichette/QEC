@@ -17,6 +17,8 @@ int main(int argc, char **argv)
 
     int seed;
 
+    int task_id;
+
     int num_intervals;
 
     char logical_error_type = 'I';
@@ -42,9 +44,10 @@ int main(int argc, char **argv)
             {"logical_error", required_argument, 0, 'e'},
             {"boundary", required_argument, 0, 'b'},
             {"replicas", required_argument, 0, 'r'},
+            {"task_id", required_argument, 0, 'd'},
             {0, 0, 0, 0}};
 
-        och = getopt_long(argc, argv, "x:y:p:n:l:w:s:i:e:b:r:", long_options, &option_index);
+        och = getopt_long(argc, argv, "x:y:p:n:l:w:s:i:e:b:r:d:", long_options, &option_index);
 
         if (och == -1)
             break;
@@ -84,6 +87,8 @@ int main(int argc, char **argv)
             break;
         case 'r':
             num_interactions = atoi(optarg);
+        case 'd':
+            task_id = atoi(optarg);
             break;
         case '?':
             exit(EXIT_FAILURE);
@@ -216,7 +221,7 @@ int main(int argc, char **argv)
 
     for (int i = 0; i < num_interactions; i++)
     {
-        std::string path = "init/" + boundary + "/prob_" + std::to_string(prob_interactions) + "/X_" + std::to_string(X) + "_Y_" + std::to_string(Y) + "/error_class_" + logical_error_type + "/seed_" + std::to_string(seed + i);
+        std::string path = "init/task_id_" + std::to_string(task_id) + "/" + boundary + "/prob_" + std::to_string(prob_interactions) + "/X_" + std::to_string(X) + "_Y_" + std::to_string(Y) + "/error_class_" + logical_error_type + "/seed_" + std::to_string(seed + i);
 
         int offset_interactions = i * X * Y * 2;
         int offset_lattice = i * num_intervals * X * Y;

@@ -32,9 +32,10 @@ void parse_args(int argc, char *argv[], Options *options)
             {"boundary_type", 1, 0, 't'},
             {"repetitions_interactions", 1, 0, 'r'},
             {"replica_exchange_offsets", 1, 0, 'c'},
+            {"task_id", 1, 0, 'd'},
             {0, 0, 0, 0}};
 
-        opt = getopt_long(argc, argv, "x:y:n:p:a:b:i:w:o:h:s:e:t:r:c:", long_options, &option_index);
+        opt = getopt_long(argc, argv, "x:y:n:p:a:b:i:w:o:h:s:e:t:r:c:d:", long_options, &option_index);
 
         if (opt == -1)
             break;
@@ -84,6 +85,9 @@ void parse_args(int argc, char *argv[], Options *options)
             break;
         case 'c':
             options->replica_exchange_offset = std::atoi(optarg);
+            break;
+        case 'd':
+            options->task_id = std::atoi(optarg);
             break;
         default:
             fprintf(stderr, "Usage: %s [-i num_intervals] [-m E_min] [-M E_max] [-w walker_per_interval] [-o overlap_decimal] [-r num_iterations]\n", argv[0]);
@@ -285,7 +289,7 @@ void handleNewEnergyError(int *new_energies, int *new_energies_flag, char *histo
     return;
 }
 
-std::string constructFilePath(float prob_interactions, int X, int Y, int seed, std::string type, char error_class, int boundary_type)
+std::string constructFilePath(float prob_interactions, int X, int Y, int seed, std::string type, char error_class, int boundary_type, int task_id)
 {
     std::string boundary;
 
@@ -307,7 +311,7 @@ std::string constructFilePath(float prob_interactions, int X, int Y, int seed, s
     }
 
     std::stringstream strstr;
-    strstr << "init/" << boundary << "/prob_" << std::fixed << std::setprecision(6) << prob_interactions;
+    strstr << "init/task_id_" << task_id << "/" << boundary << "/prob_" << std::fixed << std::setprecision(6) << prob_interactions;
     strstr << "/X_" << X << "_Y_" << Y;
     strstr << "/error_class_" << error_class;
     strstr << "/seed_" << seed;
@@ -316,7 +320,7 @@ std::string constructFilePath(float prob_interactions, int X, int Y, int seed, s
     return strstr.str();
 }
 
-std::vector<signed char> get_lattice_with_pre_run_result(float prob, int seed, int x, int y, std::vector<int> h_start, std::vector<int> h_end, int num_intervals, int num_walkers_total, int num_walkers_per_interval, char error_class, int boundary_type)
+std::vector<signed char> get_lattice_with_pre_run_result(float prob, int seed, int x, int y, std::vector<int> h_start, std::vector<int> h_end, int num_intervals, int num_walkers_total, int num_walkers_per_interval, char error_class, int boundary_type, int task_id)
 {
     std::string boundary;
 
@@ -339,7 +343,7 @@ std::vector<signed char> get_lattice_with_pre_run_result(float prob, int seed, i
 
     namespace fs = std::filesystem;
     std::ostringstream oss;
-    oss << "init/" << boundary << "/prob_" << std::fixed << std::setprecision(6) << prob;
+    oss << "init/task_id_" << task_id << "/" << boundary << "/prob_" << std::fixed << std::setprecision(6) << prob;
     oss << "/X_" << x << "_Y_" << y;
     oss << "/error_class_" << error_class;
     oss << "/seed_" << seed;

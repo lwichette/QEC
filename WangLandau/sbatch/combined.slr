@@ -11,18 +11,7 @@
 #SBATCH --output=/mnt/beegfs/data/QuDA-KI/qec/WangLandau/slurm/slurm_%j.out   # Standard output file
 
 #SBATCH --time=7-00:00:00
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
 #SBATCH --exclude=qcnode01
->>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
-=======
-#SBATCH --exclude=qcnode01
->>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
-=======
-#SBATCH --exclude=qcnode01
->>>>>>> a885bb030b31175c0fbcbee1361f09a4c13701fc
 
 #SBATCH -N 1
 #SBATCH --mem=18G
@@ -82,7 +71,7 @@ case $boundary_type in
     0)
         result="periodic"
         ;;
-    2)	
+    2)
 	result="cylinder"
         ;;
 esac

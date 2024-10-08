@@ -234,6 +234,11 @@ __global__ void replica_exchange(
 
         d_offset_lattice[cid] = temp_off;
         d_energy[cid] = temp_energy;
+
+        // if (tid == 0 || cid == 0)
+        // {
+        //     printf("replica exchange: cid %d tid %lld e_cid %.2f e_tid %.2f\n", cid, tid, d_energy[tid], temp_energy);
+        // }
     }
 
     d_offset_iter[tid] += 1;
@@ -404,13 +409,13 @@ __global__ void initialize_Gaussian_error_rates(double *prob_i_err, double *prob
 
 __global__ void init_interactions_eight_vertex(double *int_X, double *int_Y, double *int_Z, const int num_qubits, const int num_interactions, int X, int Y, double *int_r, double *int_b, double *d_interactions_down_four_body, double *d_interactions_right_four_body);
 
-__global__ void calc_energy_eight_vertex(double *energy_out, signed char *lattice_b, signed char *lattice_r, double *interactions_b, double *interactions_r, double *interactions_four_body_right, double *interactions_four_body_down, const int num_qubits, const int X, const int Y, const int num_lattices, const int num_lattices_x_interaction);
+__global__ void calc_energy_eight_vertex(double *energy_out, signed char *lattice_b, signed char *lattice_r, double *interactions_b, double *interactions_r, double *interactions_four_body_right, double *interactions_four_body_down, const int num_qubits, const int X, const int Y, const int num_lattices, const int num_lattices_x_interaction, int *d_offset_lattice_per_walker);
 
 __global__ void wang_landau_pre_run_eight_vertex(
     signed char *d_lattice_b, signed char *d_lattice_r, double *d_interactions_b, double *d_interactions_r, double *d_interactions_right_four_body, double *d_interactions_down_four_body, double *d_energy, unsigned long long *d_H, unsigned long long *d_iter,
     int *d_found_interval, signed char *d_store_lattice_b, signed char *d_store_lattice_r, const int E_min, const int E_max,
     const int num_iterations, const int num_qubits, const int X, const int Y, const int seed, const int len_interval, const int found_interval,
-    const int num_walker, const int num_interval, const int walker_per_interaction);
+    const int num_walker, const int num_interval, const int walker_per_interaction, int *d_offset_lattice_per_walker);
 
 __global__ void wang_landau_eight_vertex(
     signed char *d_lattice_b, signed char *d_lattice_r, double *d_interactions_b, double *d_interactions_r, double *d_interactions_right_four_body, double *d_interactions_down_four_body, double *d_energy, int *d_start, int *d_end, unsigned long long *d_H,
@@ -425,7 +430,7 @@ __device__ RBIM periodic_boundary_random_bond_ising(signed char *d_lattice, sign
 
 __device__ RBIM open_boundary_random_bond_ising(signed char *d_lattice, signed char *d_interactions, int *d_energy, int *d_offset_lattice, unsigned long long *d_offset_iter, curandStatePhilox4_32_10_t *st, const long long tid, const int nx, const int ny, const int interaction_offset);
 
-__device__ double calc_energy_periodic_eight_vertex(signed char *lattice_b, signed char *lattice_r, double *interactions_b, double *interactions_r, double *interactions_four_body_right, double *interactions_four_body_down, const int num_qubits, const int X, const int Y, const int num_lattices_x_interaction);
+__device__ double calc_energy_periodic_eight_vertex(signed char *lattice_b, signed char *lattice_r, double *interactions_b, double *interactions_r, double *interactions_four_body_right, double *interactions_four_body_down, const int num_qubits, const int X, const int Y, const int num_lattices_x_interaction, int *d_offset_lattice_per_walker);
 
 __device__ int scalar_commutator(int pauli1, int pauli2);
 
@@ -435,7 +440,7 @@ __device__ RBIM cylinder_random_bond_ising(signed char *d_lattice, signed char *
 
 __device__ RBIM_eight_vertex eight_vertex_periodic_wl_step(
     signed char *d_lattice_b, signed char *d_lattice_r, double *d_interactions_b, double *d_interactions_r, double *d_interactions_four_body_right, double *d_interactions_four_body_down, double *d_energy, unsigned long long *d_offset_iter,
-    curandStatePhilox4_32_10_t *st, const long long tid, const int num_qubits, const int X, const int Y, const int num_lattices, const int num_lattices_x_interaction);
+    curandStatePhilox4_32_10_t *st, const long long tid, const int num_qubits, const int X, const int Y, const int num_lattices, const int num_lattices_x_interaction, int *d_offset_lattice_per_walker);
 
 __device__ int commutator(int pauli1, int pauli2);
 

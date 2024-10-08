@@ -44,7 +44,7 @@ int main(int argc, char **argv)
         std::string hist_path =
             constructFilePath(options.prob_interactions, options.X, options.Y,
                               options.seed_histogram + i, "histogram",
-                              options.logical_error_type, options.boundary_type);
+                              options.logical_error_type, options.boundary_type, options.task_id);
 
         std::vector<signed char> energy_spectrum = read_histogram(hist_path, options.E_min, options.E_max);
 
@@ -216,7 +216,7 @@ int main(int argc, char **argv)
     std::vector<signed char> h_interactions;
     for (int i = 0; i < options.num_interactions; i++)
     {
-        std::string run_int_path = constructFilePath(options.prob_interactions, options.X, options.Y, options.seed_histogram + i, "interactions", options.logical_error_type, options.boundary_type);
+        std::string run_int_path = constructFilePath(options.prob_interactions, options.X, options.Y, options.seed_histogram + i, "interactions", options.logical_error_type, options.boundary_type, options.task_id);
         std::vector<signed char> run_interactions;
         read(run_interactions, run_int_path);
 
@@ -240,7 +240,7 @@ int main(int argc, char **argv)
             options.prob_interactions, options.seed_histogram + i, options.X,
             options.Y, run_start, run_end, options.num_intervals, total_walker,
             options.walker_per_interval, options.logical_error_type,
-            options.boundary_type);
+            options.boundary_type, options.task_id);
 
         h_lattice.insert(h_lattice.end(), run_lattice.begin(), run_lattice.end());
     }

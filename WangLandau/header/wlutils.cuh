@@ -52,6 +52,7 @@ typedef struct
     int boundary_type;
     int num_interactions;
     int replica_exchange_offset;
+    int task_id;
 } Options;
 
 typedef struct
@@ -315,9 +316,9 @@ void cut_overlapping_histogram_parts(
 
 std::tuple<int, double> find_stitching_keys(const std::map<int, double> &current_interval, const std::map<int, double> &next_interval);
 
-std::string constructFilePath(float prob_interactions, int X, int Y, int seed, std::string type, char error_class, int boundary_type);
+std::string constructFilePath(float prob_interactions, int X, int Y, int seed, std::string type, char error_class, int boundary_type, int task_id);
 
-std::vector<signed char> get_lattice_with_pre_run_result(float prob, int seed, int x, int y, std::vector<int> h_start, std::vector<int> h_end, int num_intervals, int num_walkers_total, int num_walkers_per_interval, char error_class, int boundary_type);
+std::vector<signed char> get_lattice_with_pre_run_result(float prob, int seed, int x, int y, std::vector<int> h_start, std::vector<int> h_end, int num_intervals, int num_walkers_total, int num_walkers_per_interval, char error_class, int boundary_type, int task_id);
 
 __global__ void init_lattice(signed char *lattice, float *d_probs, const int nx, const int ny, const int num_lattices, const int seed);
 

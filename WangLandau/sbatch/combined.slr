@@ -11,7 +11,6 @@
 #SBATCH --output=/mnt/beegfs/data/QuDA-KI/qec/WangLandau/slurm/slurm_%j.out   # Standard output file
 
 #SBATCH --time=7-00:00:00
-#SBATCH --exclude=qcnode01
 
 #SBATCH -N 1
 #SBATCH --mem=18G
@@ -56,9 +55,11 @@ num_intervals_prerun=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID 
 
 prob=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $17}' $config)
 
-size=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $18}' $config)
+x=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $18}' $config)
 
-error_type=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $19}' $config)
+y=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $19}' $config)
+
+error_type=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $20}' $config)
 
 formatted_prob=$(printf "%.6f" $prob)
 
@@ -71,18 +72,18 @@ case $boundary_type in
     0)
         result="periodic"
         ;;
-    2)	
+    2)
 	result="cylinder"
         ;;
 esac
 
-base_dir="init/${result}/prob_${formatted_prob}/X_${size}_Y_${size}/error_class_${error_type}"
+base_dir="init/task_id_${$SLURM_JOB_ID}/${result}/prob_${formatted_prob}/X_${x}_Y_${y}/error_class_${error_type}"
 
 singularity exec --home /mnt/beegfs/data/QuDA-KI/qec/WangLandau --nv /mnt/beegfs/public/images/boost.sif /bin/bash -c "
 make prerun ID=$SLURM_ARRAY_TASK_ID \
 && make wl ID=$SLURM_ARRAY_TASK_ID \
-&& ./prerun_$SLURM_ARRAY_TASK_ID -x $size -y $size -p $prob -n $iterations -l $num_loops -w $num_walker_prerun -s $seed_hist -i $num_intervals_prerun -e "$error_type" -b $boundary_type -r $num_interactions \
-&& timeout $time_limit ./wl_$SLURM_ARRAY_TASK_ID -x $size -y $size -n $iterations -p $prob -a $alpha -b $beta -i $intervals_wl -w $walker_wl -o $overlap -s $seed_run -e "$error_type" -t $boundary_type -h $seed_hist -r $num_interactions -c $replica_exchange_offset \
+&& ./prerun_$SLURM_ARRAY_TASK_ID -x $x -y $y -p $prob -n $iterations -l $num_loops -w $num_walker_prerun -s $seed_hist -i $num_intervals_prerun -e "$error_type" -b $boundary_type -r $num_interactions -d $SLURM_JOB_ID\
+&& timeout $time_limit ./wl_$SLURM_ARRAY_TASK_ID -x $x -y $y -n $iterations -p $prob -a $alpha -b $beta -i $intervals_wl -w $walker_wl -o $overlap -s $seed_run -e "$error_type" -t $boundary_type -h $seed_hist -r $num_interactions -c $replica_exchange_offset -d $SLURM_JOB_ID\
 && python3 delete_folders.py "$base_dir" $seed_hist $end_seed \
 && make clean ID=$SLURM_ARRAY_TASK_ID"
 

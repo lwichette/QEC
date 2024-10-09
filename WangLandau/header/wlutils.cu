@@ -2920,7 +2920,7 @@ std::string eight_vertex_histogram_path(
     strstr << "/error_class_" << error_string;
     strstr << "/seed_" << seed_hist;
     strstr << "/histogram/histogram.txt";
-
+    std::cout << strstr.str() << std::endl;
     return strstr.str();
 }
 
@@ -2944,7 +2944,7 @@ std::string eight_vertex_interaction_path(
     strstr << "/error_class_" << error_string;
     strstr << "/seed_" << seed_hist;
     strstr << "/interactions/interactions_" << interaction_type << ".txt";
-
+    std::cout << strstr.str() << std::endl;
     return strstr.str();
 }
 

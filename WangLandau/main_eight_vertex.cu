@@ -49,12 +49,13 @@ int main(int argc, char **argv)
             {"num_interactions", required_argument, 0, 's'},
             {"error_mean", required_argument, 0, 't'},
             {"error_variance", required_argument, 0, 'u'},
+            {"task_id", required_argument, 0, 'v'},
             {"walker_per_interval", required_argument, 0, 'w'},
             {"X", required_argument, 0, 'x'},
             {"Y", required_argument, 0, 'y'},
             {0, 0, 0, 0}};
 
-        och = getopt_long(argc, argv, "a:b:c:d:e:f:g:h:i:kl:m:n:o:p:q:s:t:u:w:x:y:", long_options, &option_index);
+        och = getopt_long(argc, argv, "a:b:c:d:e:f:g:h:i:kl:m:n:o:p:q:s:t:u:v:w:x:y:", long_options, &option_index);
 
         if (och == -1)
             break;
@@ -120,6 +121,9 @@ int main(int argc, char **argv)
         case 'u':
             error_variance = atof(optarg);
             break;
+        case 'v':
+            options.task_id = atoi(optarg);
+            break;
         case 'w':
             options.walker_per_interval = atoi(optarg);
             break;
@@ -151,7 +155,7 @@ int main(int argc, char **argv)
 
     for (int i = 0; i < options.num_interactions; i++)
     {
-        std::string hist_path = eight_vertex_histogram_path(is_qubit_specific_noise, error_mean, error_variance, options.X, options.Y, options.seed_histogram + i, x_horizontal_error, x_vertical_error, z_horizontal_error, z_vertical_error, prob_x_err, prob_y_err, prob_z_err);
+        std::string hist_path = eight_vertex_histogram_path(is_qubit_specific_noise, error_mean, error_variance, options.X, options.Y, options.seed_histogram + i, x_horizontal_error, x_vertical_error, z_horizontal_error, z_vertical_error, prob_x_err, prob_y_err, prob_z_err, options.task_id);
 
         std::vector<signed char> energy_spectrum = read_histogram(hist_path, E_min, E_max);
 
@@ -325,10 +329,10 @@ int main(int argc, char **argv)
 
     for (int i = 0; i < options.num_interactions; i++)
     {
-        std::string run_int_path_b = eight_vertex_interaction_path(is_qubit_specific_noise, error_mean, error_variance, options.X, options.Y, options.seed_histogram + i, x_horizontal_error, x_vertical_error, z_horizontal_error, z_vertical_error, "b", prob_x_err, prob_y_err, prob_z_err);
-        std::string run_int_path_r = eight_vertex_interaction_path(is_qubit_specific_noise, error_mean, error_variance, options.X, options.Y, options.seed_histogram + i, x_horizontal_error, x_vertical_error, z_horizontal_error, z_vertical_error, "r", prob_x_err, prob_y_err, prob_z_err);
-        std::string run_int_path_four_body_down = eight_vertex_interaction_path(is_qubit_specific_noise, error_mean, error_variance, options.X, options.Y, options.seed_histogram + i, x_horizontal_error, x_vertical_error, z_horizontal_error, z_vertical_error, "four_body_down", prob_x_err, prob_y_err, prob_z_err);
-        std::string run_int_path_four_body_right = eight_vertex_interaction_path(is_qubit_specific_noise, error_mean, error_variance, options.X, options.Y, options.seed_histogram + i, x_horizontal_error, x_vertical_error, z_horizontal_error, z_vertical_error, "four_body_right", prob_x_err, prob_y_err, prob_z_err);
+        std::string run_int_path_b = eight_vertex_interaction_path(is_qubit_specific_noise, error_mean, error_variance, options.X, options.Y, options.seed_histogram + i, x_horizontal_error, x_vertical_error, z_horizontal_error, z_vertical_error, "b", prob_x_err, prob_y_err, prob_z_err, options.task_id);
+        std::string run_int_path_r = eight_vertex_interaction_path(is_qubit_specific_noise, error_mean, error_variance, options.X, options.Y, options.seed_histogram + i, x_horizontal_error, x_vertical_error, z_horizontal_error, z_vertical_error, "r", prob_x_err, prob_y_err, prob_z_err, options.task_id);
+        std::string run_int_path_four_body_down = eight_vertex_interaction_path(is_qubit_specific_noise, error_mean, error_variance, options.X, options.Y, options.seed_histogram + i, x_horizontal_error, x_vertical_error, z_horizontal_error, z_vertical_error, "four_body_down", prob_x_err, prob_y_err, prob_z_err, options.task_id);
+        std::string run_int_path_four_body_right = eight_vertex_interaction_path(is_qubit_specific_noise, error_mean, error_variance, options.X, options.Y, options.seed_histogram + i, x_horizontal_error, x_vertical_error, z_horizontal_error, z_vertical_error, "four_body_right", prob_x_err, prob_y_err, prob_z_err, options.task_id);
 
         std::vector<double> run_interactions_r;
         std::vector<double> run_interactions_b;
@@ -372,7 +376,7 @@ int main(int argc, char **argv)
         std::map<std::string, std::vector<signed char>> run_lattices = get_lattice_with_pre_run_result_eight_vertex(
             is_qubit_specific_noise, error_mean, error_variance, x_horizontal_error, x_vertical_error,
             z_horizontal_error, z_vertical_error, options.X, options.Y, run_start, run_end, options.num_intervals, options.walker_per_interval,
-            options.seed_histogram + i, prob_x_err, prob_y_err, prob_z_err);
+            options.seed_histogram + i, prob_x_err, prob_y_err, prob_z_err, options.task_id);
 
         // Access the "r" and "b" lattices from the map
         std::vector<signed char> run_lattice_r = run_lattices["r"];

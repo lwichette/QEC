@@ -24,7 +24,7 @@ int main(int argc, char **argv)
     int walker_per_interaction = 1;
 
     int seed = 42;
-
+    int task_id;
     int num_intervals_per_interaction = 1;
 
     bool x_horizontal_error = false;
@@ -66,9 +66,10 @@ int main(int argc, char **argv)
             {"qubit_specific_noise", no_argument, 0, 'a'},
             {"error_mean", required_argument, 0, 't'},
             {"error_variance", required_argument, 0, 'u'},
+            {"task_id", required_argument, 0, 'v'},
             {0, 0, 0, 0}};
 
-        och = getopt_long(argc, argv, "x:y:f:g:h:n:l:w:s:i:c:d:o:p:r:q:t:u:a", long_options, &option_index);
+        och = getopt_long(argc, argv, "x:y:f:g:h:n:l:w:s:i:c:d:o:p:r:q:t:u:v:a", long_options, &option_index);
 
         if (och == -1)
             break;
@@ -133,6 +134,9 @@ int main(int argc, char **argv)
             break;
         case 'q':
             histogram_scale = atoi(optarg);
+            break;
+        case 'v':
+            task_id = atoi(optarg);
             break;
         case '?':
             exit(EXIT_FAILURE);
@@ -376,55 +380,12 @@ int main(int argc, char **argv)
     std::vector<signed char> test_lattice_b(X * Y * total_walker);
     std::vector<signed char> test_lattice_r(X * Y * total_walker);
 
-    // CHECK_CUDA(cudaMemcpy(test_energies.data(), d_energy, total_walker * sizeof(*d_energy), cudaMemcpyDeviceToHost));
-    // CHECK_CUDA(cudaMemcpy(test_interactions_b.data(), d_interactions_b, 2 * X * Y * num_interactions * sizeof(*d_interactions_b), cudaMemcpyDeviceToHost));
-    // CHECK_CUDA(cudaMemcpy(test_interactions_r.data(), d_interactions_r, 2 * X * Y * num_interactions * sizeof(*d_interactions_r), cudaMemcpyDeviceToHost));
-    // CHECK_CUDA(cudaMemcpy(test_interactions_four_body_right.data(), d_interactions_right_four_body, X * Y * num_interactions * sizeof(*d_interactions_right_four_body), cudaMemcpyDeviceToHost));
-    // CHECK_CUDA(cudaMemcpy(test_interactions_four_body_down.data(), d_interactions_down_four_body, X * Y * num_interactions * sizeof(*d_interactions_down_four_body), cudaMemcpyDeviceToHost));
-    // CHECK_CUDA(cudaMemcpy(test_lattice_b.data(), d_lattice_b, X * Y * total_walker * sizeof(*d_lattice_b), cudaMemcpyDeviceToHost));
-    // CHECK_CUDA(cudaMemcpy(test_lattice_r.data(), d_lattice_r, X * Y * total_walker * sizeof(*d_lattice_r), cudaMemcpyDeviceToHost));
-
-    // std::string path = "test/eight_vertex/periodic/prob_X_" + std::to_string(prob_x_err) + "__prob_Y_" + std::to_string(prob_y_err) + "__prob_Z_" + std::to_string(prob_z_err) + "/X_" + std::to_string(X) + "_Y_" + std::to_string(Y);
-    // create_directory(path + "/interactions");
-    // create_directory(path + "/lattices");
-    // write(test_lattice_b.data(), path + "/lattice/lattice_b", Y, X, total_walker, true);
-    // write(test_lattice_r.data(), path + "/lattice/lattice_b", Y, X, total_walker, true);
-    // write(test_interactions_b.data(), path + "/interactions/interactions_b", 2 * Y, X, num_interactions, false);
-    // write(test_interactions_r.data(), path + "/interactions/interactions_r", 2 * Y, X, num_interactions, false);
-    // write(test_interactions_four_body_right.data(), path + "/interactions/interactions_four_body_right", Y, X, num_interactions, false);
-    // write(test_interactions_four_body_down.data(), path + "/interactions/interactions_four_body_down", Y, X, num_interactions, false);
-    //
-    // test_eight_vertex_periodic_wl_step<<<blocks_total_walker_x_thread, threads_per_block>>>(d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, d_energy, d_iter, num_qubits, X, 2 * Y, total_walker, walker_per_interaction);
-    // cudaDeviceSynchronize();
-    // CHECK_CUDA(cudaMemcpy(test_energies.data(), d_energy, total_walker * sizeof(*d_energy), cudaMemcpyDeviceToHost));
-    // std::cout << "Before iterations:" << std::endl;
-    // for (int idx = 0; idx < total_walker; idx++)
-    // {
-    //     std::cout << " walker idx: " << idx << " calc energy: " << test_energies[idx] << std::endl;
-    // }
-    //-------------------------
-
     int found_interval = 0;
 
     for (int i = 0; i < num_wl_loops; i++)
     {
         wang_landau_pre_run_eight_vertex<<<blocks_total_walker_x_thread, threads_per_block>>>(d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, d_energy, d_H, d_iter, d_found_interval, d_store_lattice_b, d_store_lattice_r, E_min, E_max, num_iterations, num_qubits, X, 2 * Y, seed, interval_result.len_interval, found_interval, total_walker, num_intervals_per_interaction, walker_per_interaction, d_offset_lattice_per_walker);
         cudaDeviceSynchronize();
-
-        // TEST BLOCK
-        //-----------
-        CHECK_CUDA(cudaMemcpy(test_energies_wl.data(), d_energy, total_walker * sizeof(*d_energy), cudaMemcpyDeviceToHost)); // get energies from wl step with energy diff calc
-        calc_energy_eight_vertex<<<blocks_total_walker_x_thread, threads_per_block>>>(d_energy, d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, num_qubits, X, 2 * Y, total_walker, walker_per_interaction, d_offset_lattice_per_walker);
-        cudaDeviceSynchronize();
-        CHECK_CUDA(cudaMemcpy(test_energies.data(), d_energy, total_walker * sizeof(*d_energy), cudaMemcpyDeviceToHost)); // get energies from calc energy function
-        for (int idx = 0; idx < total_walker; idx++)
-        {
-            if (std::abs(test_energies_wl[idx] - test_energies[idx]) > 1e-10)
-            {
-                std::cerr << "Assertion failed for iteration: " << i << " walker idx: " << idx << " calc energy: " << test_energies[idx] << " wl calc energy: " << test_energies_wl[idx] << " Diff: " << std::abs(test_energies_wl[idx] - test_energies[idx]) << std::endl;
-            }
-        }
-        //-----------
 
         if (found_interval == 0)
         {
@@ -462,11 +423,11 @@ int main(int argc, char **argv)
     {
         if (is_qubit_specific_noise)
         {
-            path = "init/eight_vertex/periodic/qubit_specific_noise_1/error_mean_" + std::to_string(error_mean) + "_error_variance_" + std::to_string(error_variance) + "/X_" + std::to_string(X) + "_Y_" + std::to_string(Y) + "/error_class_" + error_string + "/seed_" + std::to_string(seed + i);
+            path = "init/task_id_" + std::to_string(task_id) + "/eight_vertex/periodic/qubit_specific_noise_1/error_mean_" + std::to_string(error_mean) + "_error_variance_" + std::to_string(error_variance) + "/X_" + std::to_string(X) + "_Y_" + std::to_string(Y) + "/error_class_" + error_string + "/seed_" + std::to_string(seed + i);
         }
         else
         {
-            path = "init/eight_vertex/periodic/qubit_specific_noise_0/prob_X_" + std::to_string(prob_x_err) + "_prob_Y_" + std::to_string(prob_y_err) + "_prob_Z_" + std::to_string(prob_z_err) + "/X_" + std::to_string(X) + "_Y_" + std::to_string(Y) + "/error_class_" + error_string + "/seed_" + std::to_string(seed + i);
+            path = "init/task_id_" + std::to_string(task_id) + "/eight_vertex/periodic/qubit_specific_noise_0/prob_X_" + std::to_string(prob_x_err) + "_prob_Y_" + std::to_string(prob_y_err) + "_prob_Z_" + std::to_string(prob_z_err) + "/X_" + std::to_string(X) + "_Y_" + std::to_string(Y) + "/error_class_" + error_string + "/seed_" + std::to_string(seed + i);
         }
 
         int offset_interactions = i * 2 * X * Y;       // for interactions closed on a single colored sublattice
@@ -503,7 +464,7 @@ int main(int argc, char **argv)
         write_histograms(h_H.data() + i * len_histogram, path + "/histogram/", (E_max - E_min + 1), seed, E_min);
     }
 
-    // printf("Finished prerun for Lattice %d x %d, boundary condition %s, probability %f, error type %c and %d interactions \n", X, 2 * Y, boundary.c_str(), prob_interactions, logical_error_type, num_interactions);
+    printf("Finished prerun for Lattice %d x %d and %d interactions \n", X, 2 * Y, num_interactions);
 
     return 0;
 }

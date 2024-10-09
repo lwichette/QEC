@@ -98,4 +98,3 @@ else
     && make clean prerun_eight_vertex ID=$SLURM_ARRAY_TASK_ID \
     && make clean main_eight_vertex ID=$SLURM_ARRAY_TASK_ID"
 
-

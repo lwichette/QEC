@@ -77,15 +77,16 @@ case $boundary_type in
         ;;
 esac
 
-base_dir="init/task_id_${$SLURM_JOB_ID}/${result}/prob_${formatted_prob}/X_${x}_Y_${y}/error_class_${error_type}"
+base_dir="init/task_id_${SLURM_JOB_ID}"
 
 singularity exec --home /mnt/beegfs/data/QuDA-KI/qec/WangLandau --nv /mnt/beegfs/public/images/boost.sif /bin/bash -c "
 make prerun ID=$SLURM_ARRAY_TASK_ID \
 && make wl ID=$SLURM_ARRAY_TASK_ID \
 && ./prerun_$SLURM_ARRAY_TASK_ID -x $x -y $y -p $prob -n $iterations -l $num_loops -w $num_walker_prerun -s $seed_hist -i $num_intervals_prerun -e "$error_type" -b $boundary_type -r $num_interactions -d $SLURM_JOB_ID\
 && timeout $time_limit ./wl_$SLURM_ARRAY_TASK_ID -x $x -y $y -n $iterations -p $prob -a $alpha -b $beta -i $intervals_wl -w $walker_wl -o $overlap -s $seed_run -e "$error_type" -t $boundary_type -h $seed_hist -r $num_interactions -c $replica_exchange_offset -d $SLURM_JOB_ID\
-&& python3 delete_folders.py "$base_dir" $seed_hist $end_seed \
-&& make clean ID=$SLURM_ARRAY_TASK_ID"
+&& rm -r $base_dir \
+&& make clean prerun ID=$SLURM_ARRAY_TASK_ID \
+&& make clean wl ID=$SLURM_ARRAY_TASK_ID"
 
 duration=$SECONDS
 echo "Total runtime: $((duration / 60)) minutes and $((duration % 60)) seconds."

@@ -1,0 +1,101 @@
+#!/bin/bash
+
+#SBATCH --job-name=WL-main
+
+#SBATCH --partition=qc
+#SBATCH --account=quxki
+
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=mbeuerle@uni-bremen.de
+
+#SBATCH --output=/mnt/beegfs/data/QuDA-KI/qec/WangLandau/slurm/slurm_%j.out   # Standard output file
+
+#SBATCH --time=7-00:00:00
+
+#SBATCH -N 1
+#SBATCH --mem=18G
+#SBATCH --cpus-per-task=6
+#SBATCH --gres=gpu:1
+
+#SBATCH -D /mnt/beegfs/data/QuDA-KI/qec/WangLandau
+
+config="configs/eight_vertex.txt"
+
+SECONDS=0
+
+alpha=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $2}' $config)
+
+beta=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $3}' $config)
+
+walker_wl=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $4}' $config)
+
+overlap_wl=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $5}' $config)
+
+seed_hist=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $6}' $config)
+
+seed_run=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $7}' $config)
+
+num_interactions=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $8}' $config)
+
+replica_exchange_steps=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $9}' $config)
+
+intervals_main=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $10}' $config)
+
+iterations=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $11}' $config)
+
+time_limit=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $12}' $config)
+
+histogram_scale=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $13}' $config)
+
+qubit_specific_noise=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $14}' $config)
+
+num_loops=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $15}' $config)
+
+num_walker_prerun=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $16}' $config)
+
+num_intervals_prerun=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $17}' $config)
+
+error_mean=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $18}' $config)
+
+error_variance=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $19}' $config)
+
+prob_x_err=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $20}' $config)
+
+prob_y_err=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $21}' $config)
+
+prob_z_err=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $22}' $config)
+
+x=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $23}' $config)
+
+y=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $24}' $config)
+
+xh_err=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $25}' $config)
+
+xv_err=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $26}' $config)
+
+zh_err=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $27}' $config)
+
+zv_err=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $28}' $config)
+
+base_dir="init/task_id_${$SLURM_JOB_ID}/"
+
+if [ $qubit_specific -eq 0 ]; then
+    singularity exec --home /mnt/beegfs/data/QuDA-KI/qec/WangLandau --nv /mnt/beegfs/public/images/boost.sif /bin/bash -c "
+    make prerun_eight_vertex ID=$SLURM_ARRAY_TASK_ID \
+    && make main_eight_vertex ID=$SLURM_ARRAY_TASK_ID \
+    && ./prerun_eight_vertex_$SLURM_ARRAY_TASK_ID --X $x --Y $y --prob_x $prob_x_err --prob_y $prob_y_err --prob_z $prob_z_err --nit $iterations --nl $num_loops --num_walkter_total $num_walker_prerun --seed $seed_hist --num_intervals $num_intervals_prerun --x_horizontal_error $xh_err  --x_vertical_error $xv_err --z_horizontal_error $zh_err --z_vertical_error $zv_err --replicas $num_interactions --hist_scale $histogram_scale --task_id $SLURM_JOB_ID\
+    && timeout $time_limit ./main_eight_vertex_-10 --alpha $alpha --beta $beta --x_horizontal_error $xh_err --x_vertical_error $xv_err --z_horizontal_error $zh_err --z_vertical_error $zv_err --prob_x $prob_x_err --prob_y $prob_y_err --prob_z $prob_z_err --replica_exchange_offsets $replica_exchange_steps --num_intervals $intervals_main --num_iterations $iterations --overlap_decimal $overlap_wl --seed_histogram $seed_hist --seed_run $seed_run --num_interactions $num_interactions --error_mean $error_mean --error_variance $error_variance --walker_per_interval $walker_wl --X $x --Y $y --task_id $SLURM_JOB_ID\
+    && rm -r $base_dir \
+    && make clean prerun_eight_vertex ID=$SLURM_ARRAY_TASK_ID \
+    && make clean main_eight_vertex ID=$SLURM_ARRAY_TASK_ID"
+else
+    singularity exec --home /mnt/beegfs/data/QuDA-KI/qec/WangLandau --nv /mnt/beegfs/public/images/boost.sif /bin/bash -c "
+    make prerun_eight_vertex ID=$SLURM_ARRAY_TASK_ID \
+    && make main_eight_vertex ID=$SLURM_ARRAY_TASK_ID \
+    && ./prerun_eight_vertex_$SLURM_ARRAY_TASK_ID --X $x --Y $y --prob_x $prob_x_err --prob_y $prob_y_err --prob_z $prob_z_err --nit $iterations --nl $num_loops --num_walkter_total $num_walker_prerun --seed $seed_hist --num_intervals $num_intervals_prerun --x_horizontal_error $xh_err  --x_vertical_error $xv_err --z_horizontal_error $zh_err --z_vertical_error $zv_err --replicas $num_interactions --hist_scale $histogram_scale --task_id $SLURM_JOB_ID --qubit_specific_noise\
+    && timeout $time_limit ./main_eight_vertex_-10 --alpha $alpha --beta $beta --x_horizontal_error $xh_err --x_vertical_error $xv_err --z_horizontal_error $zh_err --z_vertical_error $zv_err --prob_x $prob_x_err --prob_y $prob_y_err --prob_z $prob_z_err --replica_exchange_offsets $replica_exchange_steps --num_intervals $intervals_main --num_iterations $iterations --overlap_decimal $overlap_wl --seed_histogram $seed_hist --seed_run $seed_run --num_interactions $num_interactions --error_mean $error_mean --error_variance $error_variance --walker_per_interval $walker_wl --X $x --Y $y --task_id $SLURM_JOB_ID --qubit_specific_noise\
+    && rm -r $base_dir \
+    && make clean prerun_eight_vertex ID=$SLURM_ARRAY_TASK_ID \
+    && make clean main_eight_vertex ID=$SLURM_ARRAY_TASK_ID"
+
+

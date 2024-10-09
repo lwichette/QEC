@@ -2330,7 +2330,7 @@ void eight_vertex_result_handling_stitched_histogram(
     file << "{\n";
     file << "  \"histogram_seed\": \"" << (options.seed_histogram + int_id) << "\",\n";
     file << "  \"run_seed\": \"" << options.seed_run << "\",\n";
-    file << "  \"results\": [\n";
+    file << "  \"results\": {\n";
     file << std::fixed << std::setprecision(15);
     for (size_t i = 0; i < cut_data.size(); ++i)
     {
@@ -2351,7 +2351,7 @@ void eight_vertex_result_handling_stitched_histogram(
             file << "\n";
         }
     }
-    file << "]\n";
+    file << "}\n";
     file << "}\n";
     file.close();
 }

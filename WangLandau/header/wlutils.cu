@@ -456,8 +456,8 @@ std::map<std::string, std::vector<signed char>> get_lattice_with_pre_run_result_
                                 read(lattices["b"], lattice_path + "/" + filename_b + ".txt");
                                 std::string file_b = lattice_path + "/" + filename_b + ".txt";
                                 std::string file_r = lattice_path + "/" + filename + ".txt";
-				std::cout << lattice_path << " ";
-                                printf("interval %d start %d stop %d energy %.2f filename %s \n", interval_iterator, h_start[interval_iterator], h_end[interval_iterator], energy_r, filename.c_str());
+				// std::cout << lattice_path << " ";
+                                // printf("interval %d start %d stop %d energy %.2f filename %s \n", interval_iterator, h_start[interval_iterator], h_end[interval_iterator], energy_r, filename.c_str());
                             }
                             break;
                         }
@@ -2921,7 +2921,7 @@ std::string eight_vertex_histogram_path(
     strstr << "/error_class_" << error_string;
     strstr << "/seed_" << seed_hist;
     strstr << "/histogram/histogram.txt";
-    std::cout << strstr.str() << std::endl;
+    // std::cout << strstr.str() << std::endl;
     return strstr.str();
 }
 
@@ -2945,7 +2945,7 @@ std::string eight_vertex_interaction_path(
     strstr << "/error_class_" << error_string;
     strstr << "/seed_" << seed_hist;
     strstr << "/interactions/interactions_" << interaction_type << ".txt";
-    std::cout << strstr.str() << std::endl;
+    // std::cout << strstr.str() << std::endl;
     return strstr.str();
 }
 

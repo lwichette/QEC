@@ -456,7 +456,8 @@ std::map<std::string, std::vector<signed char>> get_lattice_with_pre_run_result_
                                 read(lattices["b"], lattice_path + "/" + filename_b + ".txt");
                                 std::string file_b = lattice_path + "/" + filename_b + ".txt";
                                 std::string file_r = lattice_path + "/" + filename + ".txt";
-                                // printf("interval %d start %d stop %d energy %.2f path %s \n", interval_iterator, h_start[interval_iterator], h_end[interval_iterator], energy_r, filename.c_str());
+				std::cout << lattice_path << " ";
+                                printf("interval %d start %d stop %d energy %.2f filename %s \n", interval_iterator, h_start[interval_iterator], h_end[interval_iterator], energy_r, filename.c_str());
                             }
                             break;
                         }

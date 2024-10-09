@@ -12,6 +12,8 @@
 
 #SBATCH --time=7-00:00:00
 
+#SBATCH --exclude=qcnode01
+
 #SBATCH -N 1
 #SBATCH --mem=18G
 #SBATCH --cpus-per-task=6
@@ -77,7 +79,7 @@ case $boundary_type in
         ;;
 esac
 
-base_dir="init/task_id_${$SLURM_JOB_ID}/${result}/prob_${formatted_prob}/X_${x}_Y_${y}/error_class_${error_type}"
+base_dir="init/task_id_${SLURM_JOB_ID}/${result}/prob_${formatted_prob}/X_${x}_Y_${y}/error_class_${error_type}"
 
 singularity exec --home /mnt/beegfs/data/QuDA-KI/qec/WangLandau --nv /mnt/beegfs/public/images/boost.sif /bin/bash -c "
 make prerun ID=$SLURM_ARRAY_TASK_ID \

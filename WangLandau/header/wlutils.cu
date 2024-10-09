@@ -456,7 +456,8 @@ std::map<std::string, std::vector<signed char>> get_lattice_with_pre_run_result_
                                 read(lattices["b"], lattice_path + "/" + filename_b + ".txt");
                                 std::string file_b = lattice_path + "/" + filename_b + ".txt";
                                 std::string file_r = lattice_path + "/" + filename + ".txt";
-                                // printf("interval %d start %d stop %d energy %.2f path %s \n", interval_iterator, h_start[interval_iterator], h_end[interval_iterator], energy_r, filename.c_str());
+				// std::cout << lattice_path << " ";
+                                // printf("interval %d start %d stop %d energy %.2f filename %s \n", interval_iterator, h_start[interval_iterator], h_end[interval_iterator], energy_r, filename.c_str());
                             }
                             break;
                         }
@@ -2330,7 +2331,7 @@ void eight_vertex_result_handling_stitched_histogram(
     file << "{\n";
     file << "  \"histogram_seed\": \"" << (options.seed_histogram + int_id) << "\",\n";
     file << "  \"run_seed\": \"" << options.seed_run << "\",\n";
-    file << "  \"results\": [\n";
+    file << "  \"results\": {\n";
     file << std::fixed << std::setprecision(15);
     for (size_t i = 0; i < cut_data.size(); ++i)
     {
@@ -2351,7 +2352,7 @@ void eight_vertex_result_handling_stitched_histogram(
             file << "\n";
         }
     }
-    file << "]\n";
+    file << "}\n";
     file << "}\n";
     file.close();
 }
@@ -2920,7 +2921,7 @@ std::string eight_vertex_histogram_path(
     strstr << "/error_class_" << error_string;
     strstr << "/seed_" << seed_hist;
     strstr << "/histogram/histogram.txt";
-
+    // std::cout << strstr.str() << std::endl;
     return strstr.str();
 }
 
@@ -2944,7 +2945,7 @@ std::string eight_vertex_interaction_path(
     strstr << "/error_class_" << error_string;
     strstr << "/seed_" << seed_hist;
     strstr << "/interactions/interactions_" << interaction_type << ".txt";
-
+    // std::cout << strstr.str() << std::endl;
     return strstr.str();
 }
 

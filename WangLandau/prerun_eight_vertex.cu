@@ -147,7 +147,9 @@ int main(int argc, char **argv)
         }
     }
 
-    if (prob_x_err + prob_y_err + prob_z_err > 1 || prob_x_err * prob_y_err * prob_z_err == 0)
+    std::cout << prob_x_err << " " << prob_y_err << " " << prob_z_err << " " << std::endl;
+
+    if (prob_x_err + prob_y_err + prob_z_err > 1 || prob_x_err == 0 || prob_y_err == 0 || prob_z_err == 0)
     {
         fprintf(stderr, "Error: Invalid value for error probabilities. Must sum to less then 1 and not be 0.\n");
         exit(EXIT_FAILURE);
@@ -328,18 +330,18 @@ int main(int argc, char **argv)
         // Find the maximum absolute value of J_X, J_Y, J_Z to bound the energy range
         max_J = std::max({std::abs(J_X), std::abs(J_Y), std::abs(J_Z)});
 
-        // Rescale the J values
+        // // Rescale the J values
         J_I *= (histogram_scale / max_J);
-        J_X *= (histogram_scale / max_J);
-        J_Y *= (histogram_scale / max_J);
-        J_Z *= (histogram_scale / max_J);
+        // J_X *= (histogram_scale / max_J);
+        // J_Y *= (histogram_scale / max_J);
+        // J_Z *= (histogram_scale / max_J);
 
-        // // TEST BLOCK
-        // // -----------
-        // J_X = 0;
-        // J_Y = 0;
-        // J_Z = 1;
-        // // -----------
+        // TEST BLOCK
+        // -----------
+        J_X = 0;
+        J_Y = 0;
+        J_Z = 1;
+        // -----------
 
         std::cout << "Unique noise model for all qubits" << std::endl;
         std::cout << "J params rescaled by hist_scale/ absolute max of J_i = " << histogram_scale / max_J << ":" << std::endl;

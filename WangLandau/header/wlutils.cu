@@ -356,6 +356,8 @@ std::vector<signed char> get_lattice_with_pre_run_result(float prob, int seed, i
         // std::cout << interval_iterator << " ";
         try
         {
+            bool found_energy_in_interval = false;
+
             for (const auto &entry : fs::directory_iterator(lattice_path))
             {
                 // Check if the entry is a regular file and has a .txt extension
@@ -385,6 +387,11 @@ std::vector<signed char> get_lattice_with_pre_run_result(float prob, int seed, i
                         std::cerr << "Unable to open file: " << entry.path() << std::endl;
                     }
                 }
+            }
+            if (!found_energy_in_interval)
+            {
+                std::cerr << "No Lattice in interval found " << interval_iterator << " in Seed " << seed << std::endl;
+                assert(0);
             }
         }
         catch (const fs::filesystem_error &e)
@@ -428,6 +435,8 @@ std::map<std::string, std::vector<signed char>> get_lattice_with_pre_run_result_
     {
         try
         {
+            bool found_energy_in_interval = false;
+
             for (const auto &entry : std::filesystem::directory_iterator(lattice_path))
             {
                 // Check if the entry is a regular file and has a .txt extension
@@ -445,6 +454,8 @@ std::map<std::string, std::vector<signed char>> get_lattice_with_pre_run_result_
                         if (energy_r >= h_start[interval_iterator] && energy_r <= h_end[interval_iterator])
                         {
 
+                            found_energy_in_interval = true;
+
                             // Find the position of the substring "_r_" to replace
                             std::size_t pos = filename.find("_r_");
 
@@ -453,13 +464,6 @@ std::map<std::string, std::vector<signed char>> get_lattice_with_pre_run_result_
                             // Matching energy and within bounds, process both
                             for (int walker_per_interval_iterator = 0; walker_per_interval_iterator < num_walkers_per_interval; walker_per_interval_iterator++)
                             {
-                                if (seed_hist == 25)
-                                {
-                                    std::cout << lattice_path << std::endl;
-                                    std::cout << filename << std::endl;
-                                    std::cout << filename_b << std::endl;
-                                }
-
                                 read(lattices["r"], lattice_path + "/" + filename + ".txt");
                                 read(lattices["b"], lattice_path + "/" + filename_b + ".txt");
                                 std::string file_b = lattice_path + "/" + filename_b + ".txt";
@@ -472,6 +476,12 @@ std::map<std::string, std::vector<signed char>> get_lattice_with_pre_run_result_
                         continue;
                     }
                 }
+            }
+
+            if (!found_energy_in_interval)
+            {
+                std::cerr << "No Lattice in interval found " << interval_iterator << " in Seed " << seed_hist << std::endl;
+                assert(0);
             }
         }
         catch (const std::filesystem::filesystem_error &e)

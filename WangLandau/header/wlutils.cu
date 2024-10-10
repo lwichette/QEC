@@ -371,10 +371,11 @@ std::vector<signed char> get_lattice_with_pre_run_result(float prob, int seed, i
                         // Check if the number is between interval boundaries
                         if (number >= h_start[interval_iterator] && number <= h_end[interval_iterator])
                         {
-                            // std::cout << "Lattice with energy: " << number << " for interval [" << h_start[interval_iterator] << ", " << h_end[interval_iterator] << "]" << std::endl;
+
                             for (int walker_per_interval_iterator = 0; walker_per_interval_iterator < num_walkers_per_interval; walker_per_interval_iterator++)
                             {
                                 read(lattice_over_all_walkers, entry.path().string());
+                                // std::cout << "Lattice with energy: " << number << " for interval [" << h_start[interval_iterator] << ", " << h_end[interval_iterator] << "]" << " walker: " << walker_per_interval_iterator << std::endl;
                             }
                             break;
                         }
@@ -456,8 +457,9 @@ std::map<std::string, std::vector<signed char>> get_lattice_with_pre_run_result_
                                 read(lattices["b"], lattice_path + "/" + filename_b + ".txt");
                                 std::string file_b = lattice_path + "/" + filename_b + ".txt";
                                 std::string file_r = lattice_path + "/" + filename + ".txt";
-				// std::cout << lattice_path << " ";
+                                // std::cout << lattice_path << " ";
                                 // printf("interval %d start %d stop %d energy %.2f filename %s \n", interval_iterator, h_start[interval_iterator], h_end[interval_iterator], energy_r, filename.c_str());
+                                // std::cout << "Lattice with energy: " << energy_r << " for interval [" << h_start[interval_iterator] << ", " << h_end[interval_iterator] << "]" << " walker: " << walker_per_interval_iterator << std::endl;
                             }
                             break;
                         }

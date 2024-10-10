@@ -411,8 +411,8 @@ int main(int argc, char **argv)
 
         // std::string error_string = std::to_string(x_horizontal_error) + std::to_string(x_vertical_error) + std::to_string(z_horizontal_error) + std::to_string(z_vertical_error);
         // create_directory("test/lattice/interaction_" + std::to_string(options.seed_histogram) + "_" + std::to_string(i) + "_" + error_string);
-        // write(run_lattice_b.data(), "test/lattice/interaction_" + std::to_string(options.seed_histogram) + "_" + std::to_string(i) + "_" + error_string + "/lattice_b", options.Y, options.X, options.num_intervals, true);
-        // write(run_lattice_r.data(), "test/lattice/interaction_" + std::to_string(options.seed_histogram) + "_" + std::to_string(i) + "_" + error_string + "/lattice_r", options.Y, options.X, options.num_intervals, true);
+        // write(run_lattice_b.data(), "test/lattice/interaction_" + std::to_string(options.seed_histogram) + "_" + std::to_string(i) + "_" + error_string + "/lattice_b", options.Y, options.X, walker_per_interactions, true);
+        // write(run_lattice_r.data(), "test/lattice/interaction_" + std::to_string(options.seed_histogram) + "_" + std::to_string(i) + "_" + error_string + "/lattice_r", options.Y, options.X, walker_per_interactions, true);
         // //-----------
     }
 
@@ -451,14 +451,16 @@ int main(int argc, char **argv)
               << " has started: "
               << elapsed.count() << " seconds" << std::endl;
 
-    /*
-    ----------------------------------------------
-    ------------ Actual WL Starts Now ------------
-    ----------------------------------------------
-    */
+    // /*
+    // ----------------------------------------------
+    // ------------ Actual WL Starts Now ------------
+    // ----------------------------------------------
+    // */
 
-    while (max_factor - exp(options.beta) > 1e-10) // set precision for abort condition
+    // while (max_factor - exp(options.beta) > 1e-10) // set precision for abort condition
+    for (int iterator = 0; iterator < 1000; iterator++)
     {
+        std::cout << iterator << " " << max_factor << " : " << std::setprecision(15) << exp(options.beta) << std::endl;
         // std::cout << max_factor << std::setprecision(7) << std::endl;
         wang_landau_eight_vertex<<<blocks_total_walker_x_thread, threads_per_block>>>(
             d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, d_energy, d_start, d_end, d_H,
@@ -524,6 +526,11 @@ int main(int argc, char **argv)
             d_end, d_start, d_factor, options.beta, d_expected_energy_spectrum, d_cond,
             d_offset_histogram_per_walker, options.num_interactions, d_offset_shared_logG, d_cond_interactions, total_len_histogram);
         cudaDeviceSynchronize();
+
+        if (iterator == 148)
+        {
+            return;
+        }
 
         CHECK_CUDA(cudaMemset(d_shared_logG, 0, size_shared_log_G * sizeof(*d_shared_logG)));
 

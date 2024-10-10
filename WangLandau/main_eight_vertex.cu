@@ -354,10 +354,10 @@ int main(int argc, char **argv)
         // std::string error_string = std::to_string(x_horizontal_error) + std::to_string(x_vertical_error) + std::to_string(z_horizontal_error) + std::to_string(z_vertical_error);
         // std::string path = "test/interactions/" + std::to_string(options.seed_histogram) + "_" + std::to_string(i) + "_" + error_string;
         // create_directory(path);
-        // write(h_interactions_b.data(), path + "/interactions_b", 2 * options.Y, options.X, 1, false);
-        // write(h_interactions_r.data(), path + "/interactions_r", 2 * options.Y, options.X, 1, false);
-        // write(h_interactions_four_body_right.data(), path + "/interactions_four_body_right", options.Y, options.X, 1, false);
-        // write(h_interactions_four_body_down.data(), path + "/interactions_four_body_down", options.Y, options.X, 1, false);
+        // write(run_interactions_b.data(), path + "/interactions_b", 2 * options.Y, options.X, 1, false);
+        // write(run_interactions_r.data(), path + "/interactions_r", 2 * options.Y, options.X, 1, false);
+        // write(run_interactions_four_body_right.data(), path + "/interactions_four_body_right", options.Y, options.X, 1, false);
+        // write(run_interactions_four_body_down.data(), path + "/interactions_four_body_down", options.Y, options.X, 1, false);
         // //-----------
     }
 

@@ -7,9 +7,9 @@ SECONDS=0
 
 alpha=0.8
 
-task_id=2
+task_id=3
 
-beta=0.000001
+beta=0.00000001
 
 walker_wl=4
 
@@ -19,33 +19,33 @@ seed_hist=1
 
 seed_run=1
 
-num_interactions=1000
+num_interactions=500
 
-replica_exchange_steps=10
+replica_exchange_steps=20
 
-intervals_main=10
+intervals_main=16
 
 iterations=1000
 
-time_limit=3600
+time_limit=7200
 
 histogram_scale=1
 
 qubit_specific_noise=0
 
-for prob in 0.05
+for prob in 0.08
 do
-    for size in 4
+    for size in 4 6
     do
         xval=$size
         yval=$size
-        for xh_err in 0
+        for xh_err in 0 1
         do
-            for xv_err in 0
+            for xv_err in 0 1
             do
-                for zh_err in 0
+                for zh_err in 0 1
                 do
-                    for zv_err in 0
+                    for zv_err in 0 1
                     do
                         ./prerun_eight_vertex_-10 -x $xval -y $yval --prob_x $prob --prob_y $prob --prob_z $prob --nit 1000 --nl 100 -w 512 --seed $seed_hist --num_intervals 64  --hist_scale $histogram_scale --replicas $num_interactions --x_horizontal_error $xh_err  --x_vertical_error $xv_err  --z_horizontal_error $zh_err --z_vertical_error $zv_err -v $task_id
 

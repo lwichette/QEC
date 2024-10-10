@@ -147,8 +147,6 @@ int main(int argc, char **argv)
         }
     }
 
-    std::cout << prob_x_err << " " << prob_y_err << " " << prob_z_err << " " << std::endl;
-
     if (prob_x_err + prob_y_err + prob_z_err > 1 || prob_x_err == 0 || prob_y_err == 0 || prob_z_err == 0)
     {
         fprintf(stderr, "Error: Invalid value for error probabilities. Must sum to less then 1 and not be 0.\n");

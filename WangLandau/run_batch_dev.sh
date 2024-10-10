@@ -60,22 +60,22 @@ for beta in 0.000001
           for error_type in I
           do
 
-            ./prerun_-10 -x $xval -y $yval -p $probability -n $iterations -l $num_loops -w $num_walker_prerun -s $seed_hist -i $num_intervals_prerun -e "$error_type" -b $boundary_type -r $num_interactions -d $slurm_job_array_id
+            # ./prerun_-10 -x $xval -y $yval -p $probability -n $iterations -l $num_loops -w $num_walker_prerun -s $seed_hist -i $num_intervals_prerun -e "$error_type" -b $boundary_type -r $num_interactions -d $slurm_job_array_id
 
             timeout $time_limit ./wl_-10 -x $xval -y $yval -n $iterations -p $probability -a $alpha -b $beta -i $intervals_wl -w $walker_wl -o $overlap_wl -s $seed_run -e "$error_type" -t $boundary_type -h $seed_hist -r $num_interactions -c $replica_exchange_steps -d $slurm_job_array_id
             if [ $? -eq 124 ]; then
                 echo "wl_-10 timed out after $time_limit seconds."
             fi
 
-            seed_run=$(($seed_run + 1))
+            # seed_run=$(($seed_run + 1))
 
-            echo "Done with size $size, probability $probability, error type $error_type"
+            # echo "Done with size $size, probability $probability, error type $error_type"
 
-            formatted_prob=$(LC_NUMERIC=C printf "%.6f" "$probability")
+            # formatted_prob=$(LC_NUMERIC=C printf "%.6f" "$probability")
 
-            base_dir="init/task_id_${slurm_job_array_id}/${result}/prob_${formatted_prob}/X_${xval}_Y_${yval}/error_class_${error_type}"
+            # base_dir="init/task_id_${slurm_job_array_id}/${result}/prob_${formatted_prob}/X_${xval}_Y_${yval}/error_class_${error_type}"
 
-            python3 delete_folders.py $base_dir $seed_hist $end_seed
+            # python3 delete_folders.py $base_dir $seed_hist $end_seed
 
           done
         done

@@ -349,16 +349,19 @@ int main(int argc, char **argv)
         h_interactions_four_body_down.insert(h_interactions_four_body_down.end(), run_interactions_four_body_down.begin(), run_interactions_four_body_down.end());
         h_interactions_four_body_right.insert(h_interactions_four_body_right.end(), run_interactions_four_body_right.begin(), run_interactions_four_body_right.end());
 
-        // // TEST BLOCK
-        // //-----------
-        // std::string error_string = std::to_string(x_horizontal_error) + std::to_string(x_vertical_error) + std::to_string(z_horizontal_error) + std::to_string(z_vertical_error);
-        // std::string path = "test/interactions/" + std::to_string(options.seed_histogram) + "_" + std::to_string(i) + "_" + error_string;
-        // create_directory(path);
-        // write(h_interactions_b.data(), path + "/interactions_b", 2 * options.Y, options.X, 1, false);
-        // write(h_interactions_r.data(), path + "/interactions_r", 2 * options.Y, options.X, 1, false);
-        // write(h_interactions_four_body_right.data(), path + "/interactions_four_body_right", options.Y, options.X, 1, false);
-        // write(h_interactions_four_body_down.data(), path + "/interactions_four_body_down", options.Y, options.X, 1, false);
-        // //-----------
+        // TEST BLOCK
+        //-----------
+        if (i == 24)
+        {
+            std::string error_string = std::to_string(x_horizontal_error) + std::to_string(x_vertical_error) + std::to_string(z_horizontal_error) + std::to_string(z_vertical_error);
+            std::string path = "test/interactions/" + std::to_string(options.seed_histogram) + "_" + std::to_string(i) + "_" + error_string;
+            create_directory(path);
+            write(h_interactions_b.data(), path + "/interactions_b", 2 * options.Y, options.X, 1, false);
+            write(h_interactions_r.data(), path + "/interactions_r", 2 * options.Y, options.X, 1, false);
+            write(h_interactions_four_body_right.data(), path + "/interactions_four_body_right", options.Y, options.X, 1, false);
+            write(h_interactions_four_body_down.data(), path + "/interactions_four_body_down", options.Y, options.X, 1, false);
+            //-----------
+        }
     }
 
     // Load lattices from init
@@ -409,11 +412,14 @@ int main(int argc, char **argv)
         //     }
         // }
 
-        // std::string error_string = std::to_string(x_horizontal_error) + std::to_string(x_vertical_error) + std::to_string(z_horizontal_error) + std::to_string(z_vertical_error);
-        // create_directory("test/lattice/interaction_" + std::to_string(options.seed_histogram) + "_" + std::to_string(i) + "_" + error_string);
-        // write(run_lattice_b.data(), "test/lattice/interaction_" + std::to_string(options.seed_histogram) + "_" + std::to_string(i) + "_" + error_string + "/lattice_b", options.Y, options.X, options.num_intervals, true);
-        // write(run_lattice_r.data(), "test/lattice/interaction_" + std::to_string(options.seed_histogram) + "_" + std::to_string(i) + "_" + error_string + "/lattice_r", options.Y, options.X, options.num_intervals, true);
-        // //-----------
+        if (i == 24)
+        {
+            std::string error_string = std::to_string(x_horizontal_error) + std::to_string(x_vertical_error) + std::to_string(z_horizontal_error) + std::to_string(z_vertical_error);
+            create_directory("test/lattice/interaction_" + std::to_string(options.seed_histogram) + "_" + std::to_string(i) + "_" + error_string);
+            write(run_lattice_b.data(), "test/lattice/interaction_" + std::to_string(options.seed_histogram) + "_" + std::to_string(i) + "_" + error_string + "/lattice_b", options.Y, options.X, options.num_intervals, true);
+            write(run_lattice_r.data(), "test/lattice/interaction_" + std::to_string(options.seed_histogram) + "_" + std::to_string(i) + "_" + error_string + "/lattice_r", options.Y, options.X, options.num_intervals, true);
+            //-----------
+        }
     }
 
     // Init device arrays with host lattices and interactions
@@ -430,6 +436,22 @@ int main(int argc, char **argv)
     // init the energy array
     calc_energy_eight_vertex<<<blocks_total_walker_x_thread, threads_per_block>>>(d_energy, d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, 2 * options.X * options.Y, options.X, 2 * options.Y, total_walker, walker_per_interactions, d_offset_lattice_per_walker);
     cudaDeviceSynchronize();
+
+    // std::vector<double> h_energy(total_walker);
+    // CHECK_CUDA(cudaMemcpy(h_energy.data(), d_energy, total_walker * sizeof(d_energy), cudaMemcpyDeviceToHost));
+
+    // for (int i = 0; i < options.num_interactions; i++)
+    // {
+    //     for (int j = 0; j < options.num_intervals; j++)
+    //     {
+    //         for (int k = 0; k < options.walker_per_interval; k++)
+    //         {
+    //             std::cout << "Interaction " << i << " Interval " << j << " Energy " << h_energy[i * options.num_intervals * options.walker_per_interval + j * options.walker_per_interval + k] << std::endl;
+    //         }
+    //     }
+    // }
+
+    // return;
 
     // check if read of lattices matches expected energy range of intervals
     check_energy_ranges<double><<<total_intervals, options.walker_per_interval>>>(d_energy, d_start, d_end, total_walker);

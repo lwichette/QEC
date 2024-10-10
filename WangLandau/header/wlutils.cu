@@ -371,10 +371,11 @@ std::vector<signed char> get_lattice_with_pre_run_result(float prob, int seed, i
                         // Check if the number is between interval boundaries
                         if (number >= h_start[interval_iterator] && number <= h_end[interval_iterator])
                         {
-                            // std::cout << "Lattice with energy: " << number << " for interval [" << h_start[interval_iterator] << ", " << h_end[interval_iterator] << "]" << std::endl;
+
                             for (int walker_per_interval_iterator = 0; walker_per_interval_iterator < num_walkers_per_interval; walker_per_interval_iterator++)
                             {
                                 read(lattice_over_all_walkers, entry.path().string());
+                                // std::cout << "Lattice with energy: " << number << " for interval [" << h_start[interval_iterator] << ", " << h_end[interval_iterator] << "]" << " walker: " << walker_per_interval_iterator << std::endl;
                             }
                             break;
                         }
@@ -1820,19 +1821,17 @@ std::tuple<int, double> find_stitching_keys(const std::map<int, double> &current
     {
         if (it1->first == it2->first)
         {
-            if (std::next(it1) != current_interval.end() && std::next(it2) != next_interval.end())
+
+            double diff1 = (std::next(it1)->second - it1->second) / (std::next(it1)->first - it1->first);
+            double diff2 = (std::next(it2)->second - it2->second) / (std::next(it2)->first - it2->first);
+
+            // std::cout << "E = " << it1->first << " derivative = " << diff1 << std::endl; // sanity check
+
+            double diff_between_intervals = std::abs(diff1 - diff2);
+            if (diff_between_intervals < min_diff)
             {
-                double diff1 = (std::next(it1)->second - it1->second) / (std::next(it1)->first - it1->first);
-                double diff2 = (std::next(it2)->second - it2->second) / (std::next(it2)->first - it2->first);
-
-                // std::cout << "E = " << it1->first << " derivative = " << diff1 << std::endl; // sanity check
-
-                double diff_between_intervals = std::abs(diff1 - diff2);
-                if (diff_between_intervals < min_diff)
-                {
-                    min_diff = diff_between_intervals;
-                    min_key = it1->first;
-                }
+                min_diff = diff_between_intervals;
+                min_key = it1->first;
             }
             ++it1;
             ++it2;

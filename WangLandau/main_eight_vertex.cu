@@ -473,14 +473,15 @@ int main(int argc, char **argv)
               << " has started: "
               << elapsed.count() << " seconds" << std::endl;
 
-    /*
-    ----------------------------------------------
-    ------------ Actual WL Starts Now ------------
-    ----------------------------------------------
-    */
+    // /*
+    // ----------------------------------------------
+    // ------------ Actual WL Starts Now ------------
+    // ----------------------------------------------
+    // */
 
     while (max_factor - exp(options.beta) > 1e-10) // set precision for abort condition
     {
+        // std::cout << iterator << " " << max_factor << " : " << std::setprecision(15) << exp(options.beta) << std::endl;
         // std::cout << max_factor << std::setprecision(7) << std::endl;
         wang_landau_eight_vertex<<<blocks_total_walker_x_thread, threads_per_block>>>(
             d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, d_energy, d_start, d_end, d_H,

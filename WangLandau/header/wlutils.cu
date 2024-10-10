@@ -459,7 +459,6 @@ std::map<std::string, std::vector<signed char>> get_lattice_with_pre_run_result_
                                 std::string file_r = lattice_path + "/" + filename + ".txt";
                                 // std::cout << lattice_path << " ";
                                 // printf("interval %d start %d stop %d energy %.2f filename %s \n", interval_iterator, h_start[interval_iterator], h_end[interval_iterator], energy_r, filename.c_str());
-                                // std::cout << "Lattice with energy: " << energy_r << " for interval [" << h_start[interval_iterator] << ", " << h_end[interval_iterator] << "]" << " walker: " << walker_per_interval_iterator << std::endl;
                             }
                             break;
                         }
@@ -1816,19 +1815,17 @@ std::tuple<int, double> find_stitching_keys(const std::map<int, double> &current
     {
         if (it1->first == it2->first)
         {
-            if (std::next(it1) != current_interval.end() && std::next(it2) != next_interval.end())
+
+            double diff1 = (std::next(it1)->second - it1->second) / (std::next(it1)->first - it1->first);
+            double diff2 = (std::next(it2)->second - it2->second) / (std::next(it2)->first - it2->first);
+
+            // std::cout << "E = " << it1->first << " derivative = " << diff1 << std::endl; // sanity check
+
+            double diff_between_intervals = std::abs(diff1 - diff2);
+            if (diff_between_intervals < min_diff)
             {
-                double diff1 = (std::next(it1)->second - it1->second) / (std::next(it1)->first - it1->first);
-                double diff2 = (std::next(it2)->second - it2->second) / (std::next(it2)->first - it2->first);
-
-                // std::cout << "E = " << it1->first << " derivative = " << diff1 << std::endl; // sanity check
-
-                double diff_between_intervals = std::abs(diff1 - diff2);
-                if (diff_between_intervals < min_diff)
-                {
-                    min_diff = diff_between_intervals;
-                    min_key = it1->first;
-                }
+                min_diff = diff_between_intervals;
+                min_key = it1->first;
             }
             ++it1;
             ++it2;

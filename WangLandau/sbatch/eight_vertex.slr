@@ -79,11 +79,23 @@ zv_err=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $28}' $
 
 base_dir="init/task_id_${SLURM_JOB_ID}/"
 
-singularity exec --home /mnt/beegfs/data/QuDA-KI/qec/WangLandau --nv /mnt/beegfs/public/images/boost.sif /bin/bash -c "
+if [ $qubit_specific_noise -eq 0 ]; then
+    singularity exec --home /mnt/beegfs/data/QuDA-KI/qec/WangLandau --nv /mnt/beegfs/public/images/boost.sif /bin/bash -c "
+        make prerun_eight_vertex ID=$SLURM_ARRAY_TASK_ID \
+        && make main_eight_vertex ID=$SLURM_ARRAY_TASK_ID \
+        && ./prerun_eight_vertex_$SLURM_ARRAY_TASK_ID --X $x --Y $y --prob_x $prob_x_err --prob_y $prob_y_err --prob_z $prob_z_err --nit $iterations --nl $num_loops --num_walker_total $num_walker_prerun --seed $seed_hist --num_intervals $num_intervals_prerun --x_horizontal_error $xh_err  --x_vertical_error $xv_err --z_horizontal_error $zh_err --z_vertical_error $zv_err --replicas $num_interactions --hist_scale $histogram_scale --task_id $SLURM_JOB_ID \
+        && timeout $time_limit ./main_eight_vertex_$SLURM_ARRAY_TASK_ID --alpha $alpha --beta $beta --x_horizontal_error $xh_err --x_vertical_error $xv_err --z_horizontal_error $zh_err --z_vertical_error $zv_err --prob_x $prob_x_err --prob_y $prob_y_err --prob_z $prob_z_err --replica_exchange_offsets $replica_exchange_steps --num_intervals $intervals_main --num_iterations $iterations --overlap_decimal $overlap_wl --seed_histogram $seed_hist --seed_run $seed_run --num_interactions $num_interactions --error_mean $error_mean --error_variance $error_variance --walker_per_interval $walker_wl --X $x --Y $y --task_id $SLURM_JOB_ID; \
+        rm -r $base_dir; \
+        make clean_prerun_eight_vertex ID=$SLURM_ARRAY_TASK_ID; \
+        make clean_main_eight_vertex ID=$SLURM_ARRAY_TASK_ID"
+else
+    singularity exec --home /mnt/beegfs/data/QuDA-KI/qec/WangLandau --nv /mnt/beegfs/public/images/boost.sif /bin/bash -c "
     make prerun_eight_vertex ID=$SLURM_ARRAY_TASK_ID \
     && make main_eight_vertex ID=$SLURM_ARRAY_TASK_ID \
-    && ./prerun_eight_vertex_$SLURM_ARRAY_TASK_ID --X $x --Y $y --prob_x $prob_x_err --prob_y $prob_y_err --prob_z $prob_z_err --nit $iterations --nl $num_loops --num_walker_total $num_walker_prerun --seed $seed_hist --num_intervals $num_intervals_prerun --x_horizontal_error $xh_err  --x_vertical_error $xv_err --z_horizontal_error $zh_err --z_vertical_error $zv_err --replicas $num_interactions --hist_scale $histogram_scale --task_id $SLURM_JOB_ID \
-    && timeout $time_limit ./main_eight_vertex_$SLURM_ARRAY_TASK_ID --alpha $alpha --beta $beta --x_horizontal_error $xh_err --x_vertical_error $xv_err --z_horizontal_error $zh_err --z_vertical_error $zv_err --prob_x $prob_x_err --prob_y $prob_y_err --prob_z $prob_z_err --replica_exchange_offsets $replica_exchange_steps --num_intervals $intervals_main --num_iterations $iterations --overlap_decimal $overlap_wl --seed_histogram $seed_hist --seed_run $seed_run --num_interactions $num_interactions --error_mean $error_mean --error_variance $error_variance --walker_per_interval $walker_wl --X $x --Y $y --task_id $SLURM_JOB_ID \
-    && rm -r $base_dir \
-    && make clean_prerun_eight_vertex ID=$SLURM_ARRAY_TASK_ID \
+    && ./prerun_eight_vertex_$SLURM_ARRAY_TASK_ID --X $x --Y $y --prob_x $prob_x_err --prob_y $prob_y_err --prob_z $prob_z_err --nit $iterations --nl $num_loops --num_walker_total $num_walker_prerun --seed $seed_hist --num_intervals $num_intervals_prerun --x_horizontal_error $xh_err  --x_vertical_error $xv_err --z_horizontal_error $zh_err --z_vertical_error $zv_err --replicas $num_interactions --hist_scale $histogram_scale --task_id $SLURM_JOB_ID --qubit_specific_noise \
+    && timeout $time_limit ./main_eight_vertex_$SLURM_ARRAY_TASK_ID --alpha $alpha --beta $beta --x_horizontal_error $xh_err --x_vertical_error $xv_err --z_horizontal_error $zh_err --z_vertical_error $zv_err --prob_x $prob_x_err --prob_y $prob_y_err --prob_z $prob_z_err --replica_exchange_offsets $replica_exchange_steps --num_intervals $intervals_main --num_iterations $iterations --overlap_decimal $overlap_wl --seed_histogram $seed_hist --seed_run $seed_run --num_interactions $num_interactions --error_mean $error_mean --error_variance $error_variance --walker_per_interval $walker_wl --X $x --Y $y --task_id $SLURM_JOB_ID --qubit_specific_noise; \
+    && rm -r $base_dir; \
+    && make clean_prerun_eight_vertex ID=$SLURM_ARRAY_TASK_ID; \
     && make clean_main_eight_vertex ID=$SLURM_ARRAY_TASK_ID"
+fi
+

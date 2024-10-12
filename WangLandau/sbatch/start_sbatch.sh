@@ -6,4 +6,4 @@ line_count=$(awk 'NR > 1 {print $1}' ../configs/${filename}.txt | sort -n | tail
 
 echo "The file '$filename' has $line_count lines."
 
-sbatch --array=1-1 $filename.slr
+sbatch --array=1-$line_count $filename.slr

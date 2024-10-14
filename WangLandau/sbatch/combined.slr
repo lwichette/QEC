@@ -12,8 +12,6 @@
 
 #SBATCH --time=7-00:00:00
 
-#SBATCH --exclude=qcnode01
-
 #SBATCH -N 1
 #SBATCH --mem=18G
 #SBATCH --cpus-per-task=6
@@ -21,7 +19,9 @@
 
 #SBATCH -D /mnt/beegfs/data/QuDA-KI/qec/WangLandau
 
-config="configs/combined.txt"
+FILENAME=$1
+
+config="configs/${FILENAME}.txt"
 
 SECONDS=0
 
@@ -85,10 +85,10 @@ singularity exec --home /mnt/beegfs/data/QuDA-KI/qec/WangLandau --nv /mnt/beegfs
 make prerun ID=$SLURM_ARRAY_TASK_ID \
 && make wl ID=$SLURM_ARRAY_TASK_ID \
 && ./prerun_$SLURM_ARRAY_TASK_ID -x $x -y $y -p $prob -n $iterations -l $num_loops -w $num_walker_prerun -s $seed_hist -i $num_intervals_prerun -e "$error_type" -b $boundary_type -r $num_interactions -d $SLURM_JOB_ID\
-&& timeout $time_limit ./wl_$SLURM_ARRAY_TASK_ID -x $x -y $y -n $iterations -p $prob -a $alpha -b $beta -i $intervals_wl -w $walker_wl -o $overlap -s $seed_run -e "$error_type" -t $boundary_type -h $seed_hist -r $num_interactions -c $replica_exchange_offset -d $SLURM_JOB_ID\
-&& rm -r $base_dir \
-&& make clean_prerun ID=$SLURM_ARRAY_TASK_ID \
-&& make clean_wl ID=$SLURM_ARRAY_TASK_ID"
+&& timeout $time_limit ./wl_$SLURM_ARRAY_TASK_ID -x $x -y $y -n $iterations -p $prob -a $alpha -b $beta -i $intervals_wl -w $walker_wl -o $overlap -s $seed_run -e "$error_type" -t $boundary_type -h $seed_hist -r $num_interactions -c $replica_exchange_offset -d $SLURM_JOB_ID;\
+rm -r $base_dir; \
+make clean_prerun ID=$SLURM_ARRAY_TASK_ID; \
+make clean_wl ID=$SLURM_ARRAY_TASK_ID"
 
 duration=$SECONDS
 echo "Total runtime: $((duration / 60)) minutes and $((duration % 60)) seconds."

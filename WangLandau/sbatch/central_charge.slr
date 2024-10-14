@@ -6,7 +6,7 @@
 #SBATCH --account=quxki
 
 #SBATCH --mail-type=BEGIN,END,FAIL
-#SBATCH --mail-user=mbeuerle@uni-bremen.de
+#SBATCH --mail-user=lpwichette@dfki.de
 
 #SBATCH --output=/mnt/beegfs/data/QuDA-KI/qec/WangLandau/slurm/slurm_%j.out   # Standard output file
 

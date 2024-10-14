@@ -109,6 +109,14 @@ IntervalResult generate_intervals(const int E_min, const int E_max, int num_inte
     const int len_interval = E_range / (1.0f + overlap_decimal * (num_intervals - 1)); // Len_interval computation stems from condition: len_interval + overlap * len_interval * (num_intervals - 1) = E_range
     const int step_size = overlap_decimal * len_interval;
 
+    // const int step_size = std::floor(E_range / (num_intervals - 2 + (1 / overlap_decimal)));
+    // const int len_interval = std::ceil(step_size / overlap_decimal);
+
+    // if (step_size <= 0)
+    // {
+    //     throw std::runtime_error("Error: step_size must be greater than zero.");
+    // }
+
     int start_interval = E_min;
 
     long long len_histogram_over_all_walkers = 0;

@@ -12,8 +12,6 @@
 
 #SBATCH --time=7-00:00:00
 
-#SBATCH --exclude=qcnode01
-
 #SBATCH -N 1
 #SBATCH --mem=18G
 #SBATCH --cpus-per-task=6
@@ -24,8 +22,6 @@
 FILENAME=$1
 
 config="configs/${FILENAME}.txt"
-
-config="configs/combined.txt"
 
 SECONDS=0
 
@@ -92,7 +88,7 @@ make prerun ID=$SLURM_ARRAY_TASK_ID \
 && timeout $time_limit ./wl_$SLURM_ARRAY_TASK_ID -x $x -y $y -n $iterations -p $prob -a $alpha -b $beta -i $intervals_wl -w $walker_wl -o $overlap -s $seed_run -e "$error_type" -t $boundary_type -h $seed_hist -r $num_interactions -c $replica_exchange_offset -d $SLURM_JOB_ID;\
 rm -r $base_dir; \
 make clean_prerun ID=$SLURM_ARRAY_TASK_ID; \
-&& make clean_wl ID=$SLURM_ARRAY_TASK_ID"
+make clean_wl ID=$SLURM_ARRAY_TASK_ID"
 
 duration=$SECONDS
 echo "Total runtime: $((duration / 60)) minutes and $((duration % 60)) seconds."

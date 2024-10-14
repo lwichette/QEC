@@ -2369,7 +2369,7 @@ void eight_vertex_result_handling_stitched_histogram(
         }
     }
     file << "}\n";
-    file << "}\n";
+    file << "},\n";
     file.close();
 }
 

@@ -19,7 +19,9 @@
 
 #SBATCH -D /mnt/beegfs/data/QuDA-KI/qec/WangLandau
 
-config="configs/eight_vertex.txt"
+FILENAME=$1
+
+config="configs/${FILENAME}.txt"
 
 SECONDS=0
 

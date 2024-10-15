@@ -2520,21 +2520,28 @@ __global__ void generate_pauli_errors(int *pauli_errors, const int num_qubits, c
         int i = idx % num_qubits / X; // row index of qubit
         int j = idx % num_qubits % X; // column index of qubit
 
-        // // TEST BLOCK
-        // // ------
-        // int before_commutator_pauli = 0;
-        // if (pauli_errors[idx] != 0)
-        // {
-        //     before_commutator_pauli = pauli_errors[idx];
-        // }
-        // // ------
-
         // here goes error chain application
         if (i == 0)
         {
             if (x_horizontal_error)
             {
+                // // TEST BLOCK
+                // //----------
+                // if (interaction_id == 1)
+                // {
+                //     printf("before at j=%d is pauli %d\n", j, pauli_errors[idx]);
+                // }
+                // //----------
+
                 pauli_errors[idx] = commutator(1, pauli_errors[idx]); // x commutator with Pauli on qubit
+
+                // // TEST BLOCK
+                // //----------
+                // if (interaction_id == 1)
+                // {
+                //     printf("after at j=%d is pauli %d\n", j, pauli_errors[idx]);
+                // }
+                // //----------
             }
             if (z_horizontal_error)
             {
@@ -2545,20 +2552,29 @@ __global__ void generate_pauli_errors(int *pauli_errors, const int num_qubits, c
         {
             if (x_vertical_error)
             {
+                // // TEST BLOCK
+                // //----------
+                // if (interaction_id == 1)
+                // {
+                //     printf("before at i=%d is pauli %d\n", i, pauli_errors[idx]);
+                // }
+                // //----------
+
                 pauli_errors[idx] = commutator(1, pauli_errors[idx]); // x commutator with Pauli on qubit
+
+                // // TEST BLOCK
+                // //----------
+                // if (interaction_id == 1)
+                // {
+                //     printf("after at i=%d is pauli %d\n", i, pauli_errors[idx]);
+                // }
+                // //----------
             }
             if (z_vertical_error)
             {
                 pauli_errors[idx] = commutator(3, pauli_errors[idx]); // z commutator with Pauli on qubit
             }
         }
-        // // TEST BLOCK
-        // // ------
-        // if (before_commutator_pauli != pauli_errors[idx])
-        // {
-        //     printf("interaction %d walker %lld i %d j %d pauli before %d pauli after % d\n", interaction_id, idx % num_qubits, i, j, before_commutator_pauli, pauli_errors[idx]);
-        // }
-        // // ------
     }
 }
 
@@ -2616,7 +2632,11 @@ __global__ void get_interaction_from_commutator(int *pauli_errors, double *int_X
         int_Y[idx] = -comm_result_Y * J_Y;
         int_Z[idx] = -comm_result_Z * J_Z;
 
-        // printf("idx %lld int_X %f int_Y %f int_Z %f \n", idx, int_X[idx], int_Y[idx], int_Z[idx]);
+        // // TEST BLOCK
+        // //------------
+        // int interaction_id = idx / num_qubits;
+        // printf("idx: %lld interaction: int_X: %f int_Y: %f int_Z: %f \n", idx, interaction_id, int_X[idx], int_Y[idx], int_Z[idx]);
+        // //------------
     }
 }
 

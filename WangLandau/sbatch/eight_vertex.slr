@@ -6,7 +6,7 @@
 #SBATCH --account=quxki
 
 #SBATCH --mail-type=BEGIN,END,FAIL
-#SBATCH --mail-user=mbeuerle@uni-bremen.de
+#SBATCH --mail-user=lewi02@dfki.de
 
 #SBATCH --output=/mnt/beegfs/data/QuDA-KI/qec/WangLandau/slurm/slurm_%j.out   # Standard output file
 
@@ -17,6 +17,7 @@
 #SBATCH --cpus-per-task=6
 #SBATCH --gres=gpu:1
 
+#SBATCH --exclude=qcnode01,qcnode03
 #SBATCH -D /mnt/beegfs/data/QuDA-KI/qec/WangLandau
 
 FILENAME=$1

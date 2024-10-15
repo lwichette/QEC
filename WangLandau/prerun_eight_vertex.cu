@@ -330,15 +330,15 @@ int main(int argc, char **argv)
 
         // // Rescale the J values
         J_I *= (histogram_scale / max_J);
-        // J_X *= (histogram_scale / max_J);
-        // J_Y *= (histogram_scale / max_J);
-        // J_Z *= (histogram_scale / max_J);
+        J_X *= (histogram_scale / max_J);
+        J_Y *= (histogram_scale / max_J);
+        J_Z *= (histogram_scale / max_J);
 
         // TEST BLOCK
         // -----------
-        J_X = 0;
-        J_Y = 0;
-        J_Z = 1;
+        // J_X = 0;
+        // J_Y = 0;
+        // J_Z = 1;
         // -----------
 
         std::cout << "Unique noise model for all qubits" << std::endl;
@@ -439,21 +439,21 @@ int main(int argc, char **argv)
         create_directory(path + "/lattice");
         create_directory(path + "/histogram");
 
-        std::string j_scale_path = "results/eight_vertex/J_scale/periodic/qubit_specific_noise_0/prob_X_" + std::to_string(prob_x_err) + "_prob_Y_" + std::to_string(prob_y_err) + "_prob_Z_" + std::to_string(prob_z_err) + "/X_" + std::to_string(X) + "_Y_" + std::to_string(Y) + "/error_class_" + error_string + "/seed_" + std::to_string(seed + i);
-        create_directory(j_scale_path);
-        std::ofstream scale_file(j_scale_path + "/scale.txt");
-        // Check if the file was successfully opened
-        if (scale_file.is_open())
-        {
-            // Calculate the value to write
-            float value = histogram_scale / max_J;
+        // std::string j_scale_path = "results/eight_vertex/J_scale/periodic/qubit_specific_noise_0/prob_X_" + std::to_string(prob_x_err) + "_prob_Y_" + std::to_string(prob_y_err) + "_prob_Z_" + std::to_string(prob_z_err) + "/X_" + std::to_string(X) + "_Y_" + std::to_string(Y) + "/error_class_" + error_string + "/seed_" + std::to_string(seed + i);
+        // create_directory(j_scale_path);
+        // std::ofstream scale_file(j_scale_path + "/scale.txt");
+        // // Check if the file was successfully opened
+        // if (scale_file.is_open())
+        // {
+        //     // Calculate the value to write
+        //     float value = histogram_scale / max_J;
 
-            // Write the value to the file
-            scale_file << value << std::endl;
+        //     // Write the value to the file
+        //     scale_file << value << std::endl;
 
-            // Close the file
-            scale_file.close();
-        }
+        //     // Close the file
+        //     scale_file.close();
+        // }
 
         write(h_interactions_b.data() + offset_interactions, path + "/interactions/interactions_b", 2 * Y, X, 1, false);
         write(h_interactions_r.data() + offset_interactions, path + "/interactions/interactions_r", 2 * Y, X, 1, false);

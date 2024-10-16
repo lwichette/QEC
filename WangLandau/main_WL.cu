@@ -85,6 +85,8 @@ int main(int argc, char **argv)
         len_histogram_int.push_back(run_result.len_histogram_over_all_walkers);
         len_interval_int.push_back(run_result.len_interval);
         total_len_histogram += run_result.len_histogram_over_all_walkers;
+
+        std::cout << "last interval: " << h_start_int.back() << " - " << h_end_int.back() << " other intervals len: " << len_interval_int[i] << " num intervals: " << options.num_intervals << std::endl;
     }
 
     int *d_len_histograms;

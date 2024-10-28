@@ -3,31 +3,182 @@
 #include "./header/cudamacro.h"
 #include "./header/wlutils.cuh"
 
-/*
-To Do:
-    - blockID to blockIdx.x to save storage?
-    - d_indices array not needed, could in theory use shared memory in each
-fisher yates call
-    - init flag for found new energy with seperate kernel and only update in
-wang landau inverted to current setting
-    - maybe implement runtime balanced subdivision as in
-https://www.osti.gov/servlets/purl/1567362
-    - Add sort to lattice read function
-    - update histogram not working
-*/
+std::vector<signed char> get_lattice_with_pre_run_result(Options options, int seed_offset, std::vector<int> h_start, std::vector<int> h_end)
+{
+    std::string boundary;
+
+    switch (options.boundary_type)
+    {
+    case 0:
+        boundary = "periodic";
+        break;
+    case 1:
+        boundary = "open";
+        break;
+    case 2:
+        boundary = "cylinder";
+        break;
+    default:
+        boundary = "unknown";
+        break; // Handle any unexpected boundary_type values
+    }
+
+    namespace fs = std::filesystem;
+    std::ostringstream oss;
+    oss << "init/task_id_" << options.task_id << "/" << boundary << "/error_mean_" << std::fixed << std::setprecision(6) << options.error_mean << "/error_variance_" << options.error_variance;
+    oss << "/X_" << options.X << "_Y_" << options.Y;
+    oss << "/error_class_" << options.logical_error_type;
+    oss << "/seed_" << (options.seed_histogram + seed_offset);
+    oss << "/lattice";
+
+    std::string lattice_path = oss.str();
+    std::vector<signed char> lattice_over_all_walkers;
+
+    for (int interval_iterator = 0; interval_iterator < options.num_intervals; interval_iterator++)
+    {
+        // std::cout << interval_iterator << " ";
+        try
+        {
+            bool found_energy_in_interval = false;
+
+            for (const auto &entry : fs::directory_iterator(lattice_path))
+            {
+                // Check if the entry is a regular file and has a .txt extension
+                if (entry.is_regular_file() && entry.path().extension() == ".txt")
+                {
+                    // Extract the number from the filename
+                    std::string filename = entry.path().stem().string(); // Get the filename without extension
+                    std::regex regex("lattice_energy_(-?\\d+(\\.\\d+)?)");
+                    std::smatch match;
+                    if (std::regex_search(filename, match, regex))
+                    {
+                        float number = std::stof(match[1]);
+                        // Check if the number is between interval boundaries
+                        if (static_cast<int>(std::round(number)) >= h_start[interval_iterator] && static_cast<int>(std::round(number)) <= h_end[interval_iterator])
+                        {
+                            found_energy_in_interval = true;
+
+                            for (int walker_per_interval_iterator = 0; walker_per_interval_iterator < options.walker_per_interval; walker_per_interval_iterator++)
+                            {
+                                read(lattice_over_all_walkers, entry.path().string());
+                                // std::cout << "Lattice with energy: " << number << " for interval [" << h_start[interval_iterator] << ", " << h_end[interval_iterator] << "]" << " walker: " << walker_per_interval_iterator << std::endl;
+                            }
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        std::cerr << "Unable to open file: " << entry.path() << std::endl;
+                    }
+                }
+            }
+            if (!found_energy_in_interval)
+            {
+                std::cerr << "No Lattice found for interval [" << h_start[interval_iterator] << ", " << h_end[interval_iterator] << "]" << " and interaction seed " << options.seed_histogram + seed_offset << std::endl;
+                assert(0);
+            }
+        }
+        catch (const fs::filesystem_error &e)
+        {
+            std::cerr << "Filesystem error: " << e.what() << std::endl;
+        }
+    }
+    return lattice_over_all_walkers;
+}
 
 int main(int argc, char **argv)
 {
-
-    // // Get the device properties
-    // cudaDeviceProp prop;
-    // cudaGetDeviceProperties(&prop, 0); // Assuming device 0
     int max_threads_per_block = 128;
 
     auto start = std::chrono::high_resolution_clock::now();
 
     Options options;
-    parse_args(argc, argv, &options);
+    int opt;
+    while (1)
+    {
+        int option_index = 0;
+        static struct option long_options[] = {
+            {"X", 1, 0, 'x'},
+            {"Y", 1, 0, 'y'},
+            {"num_iterations", 1, 0, 'n'},
+            {"alpha", 1, 0, 'a'},
+            {"beta", 1, 0, 'b'},
+            {"num_intervals", 1, 0, 'i'},
+            {"walker_per_interval", 1, 0, 'w'},
+            {"overlap_decimal", 1, 0, 'o'},
+            {"seed_histogram", 1, 0, 'h'},
+            {"seed_run", 1, 0, 's'},
+            {"logical_error", 1, 0, 'e'},
+            {"boundary_type", 1, 0, 't'},
+            {"repetitions_interactions", 1, 0, 'r'},
+            {"replica_exchange_offsets", 1, 0, 'c'},
+            {"task_id", 1, 0, 'd'},
+            {"error_mean", 1, 0, 'm'},
+            {"error_variance", 1, 0, 'v'},
+            {0, 0, 0, 0}};
+
+        opt = getopt_long(argc, argv, "x:y:n:a:b:i:w:o:h:s:e:t:r:c:d:m:v:", long_options, &option_index);
+
+        if (opt == -1)
+            break;
+        switch (opt)
+        {
+        case 'x':
+            options.X = std::atoi(optarg);
+            break;
+        case 'y':
+            options.Y = std::atoi(optarg);
+            break;
+        case 'n':
+            options.num_iterations = std::atoi(optarg);
+            break;
+        case 'a':
+            options.alpha = std::atof(optarg);
+            break;
+        case 'b':
+            options.beta = std::atof(optarg);
+            break;
+        case 'i':
+            options.num_intervals = std::atoi(optarg);
+            break;
+        case 'w':
+            options.walker_per_interval = std::atoi(optarg);
+            break;
+        case 'o':
+            options.overlap_decimal = std::atof(optarg);
+            break;
+        case 'h':
+            options.seed_histogram = std::atoi(optarg);
+            break;
+        case 's':
+            options.seed_run = std::atoi(optarg);
+            break;
+        case 'e':
+            options.logical_error_type = *optarg;
+            break;
+        case 't':
+            options.boundary_type = std::atoi(optarg);
+            break;
+        case 'r':
+            options.num_interactions = std::atoi(optarg);
+            break;
+        case 'c':
+            options.replica_exchange_offset = std::atoi(optarg);
+            break;
+        case 'd':
+            options.task_id = std::atoi(optarg);
+            break;
+        case 'm':
+            options.error_mean = std::atof(optarg);
+            break;
+        case 'v':
+            options.error_variance = std::atof(optarg);
+            break;
+        default:
+            fprintf(stderr, "Usage: %s [-i num_intervals] [-m E_min] [-M E_max] [-w walker_per_interval] [-o overlap_decimal] [-r num_iterations]\n", argv[0]);
+            exit(EXIT_FAILURE);
+        }
+    }
 
     const int total_walker = options.num_interactions * options.num_intervals * options.walker_per_interval;
     const int total_intervals = options.num_interactions * options.num_intervals;
@@ -42,7 +193,7 @@ int main(int argc, char **argv)
     for (int i = 0; i < options.num_interactions; i++)
     {
         std::string hist_path =
-            constructFilePath(options, i, "histogram", false);
+            constructFilePath(options, i, "histogram", true);
 
         std::vector<signed char>
             energy_spectrum = read_histogram(hist_path, options.E_min, options.E_max);
@@ -147,12 +298,14 @@ int main(int argc, char **argv)
     CHECK_CUDA(cudaMalloc(&d_indices, total_walker * sizeof(*d_indices)));
 
     // lattice, interactions
-    signed char *d_lattice, *d_interactions;
+    signed char *d_lattice;
     CHECK_CUDA(cudaMalloc(&d_lattice, total_walker * options.X * options.Y * sizeof(*d_lattice)));
+
+    double *d_interactions;
     CHECK_CUDA(cudaMalloc(&d_interactions, options.num_interactions * options.X * options.Y * 2 * sizeof(*d_interactions)));
 
     // Hamiltonian of lattices
-    int *d_energy;
+    double *d_energy;
     CHECK_CUDA(cudaMalloc(&d_energy, total_walker * sizeof(*d_energy)));
     CHECK_CUDA(cudaMemset(d_energy, 0, total_walker * sizeof(*d_energy)));
 
@@ -162,8 +315,10 @@ int main(int argc, char **argv)
     CHECK_CUDA(cudaMemcpy(d_expected_energy_spectrum, h_expected_energy_spectrum.data(), h_expected_energy_spectrum.size() * sizeof(*d_expected_energy_spectrum), cudaMemcpyHostToDevice));
 
     // To catch energies which are outside of expected spectrum
-    int *d_newEnergies, *d_foundNewEnergyFlag;
+    double *d_newEnergies;
     CHECK_CUDA(cudaMalloc(&d_newEnergies, total_walker * sizeof(*d_newEnergies)));
+
+    int *d_foundNewEnergyFlag;
     CHECK_CUDA(cudaMalloc(&d_foundNewEnergyFlag, total_walker * sizeof(*d_foundNewEnergyFlag)));
 
     signed char *d_cond;
@@ -211,11 +366,11 @@ int main(int argc, char **argv)
     init_indices<<<total_intervals, options.walker_per_interval>>>(d_indices, total_walker);
     cudaDeviceSynchronize();
 
-    std::vector<signed char> h_interactions;
+    std::vector<double> h_interactions;
     for (int i = 0; i < options.num_interactions; i++)
     {
-        std::string run_int_path = constructFilePath(options, i, "interactions", false);
-        std::vector<signed char> run_interactions;
+        std::string run_int_path = constructFilePath(options, i, "interactions", true);
+        std::vector<double> run_interactions;
         read(run_interactions, run_int_path);
 
         h_interactions.insert(h_interactions.end(), run_interactions.begin(), run_interactions.end());
@@ -234,25 +389,24 @@ int main(int argc, char **argv)
             h_end_int.begin() + i * options.num_intervals,
             h_end_int.begin() + i * options.num_intervals + options.num_intervals);
 
-        std::vector<signed char> run_lattice = get_lattice_with_pre_run_result(
-            options.prob_interactions, options.seed_histogram + i, options.X,
-            options.Y, run_start, run_end, options.num_intervals, total_walker,
-            options.walker_per_interval, options.logical_error_type,
-            options.boundary_type, options.task_id);
+        std::vector<signed char> run_lattice = get_lattice_with_pre_run_result(options, i, run_start, run_end);
 
         h_lattice.insert(h_lattice.end(), run_lattice.begin(), run_lattice.end());
     }
 
     CHECK_CUDA(cudaMemcpy(d_lattice, h_lattice.data(), total_walker * options.X * options.Y * sizeof(*d_lattice), cudaMemcpyHostToDevice));
 
-    calc_energy(total_intervals, options.walker_per_interval,
-                options.boundary_type, d_lattice, d_interactions, d_energy,
-                d_offset_lattice, options.X, options.Y, total_walker,
-                walker_per_interactions);
+    calc_energy(total_intervals, options.walker_per_interval, options.boundary_type, d_lattice, d_interactions, d_energy, d_offset_lattice, options.X, options.Y, total_walker, walker_per_interactions);
     cudaDeviceSynchronize();
 
-    check_energy_ranges<<<total_intervals, options.walker_per_interval>>>(d_energy, d_start, d_end, total_walker);
+    check_energy_ranges<double><<<total_intervals, options.walker_per_interval>>>(d_energy, d_start, d_end, total_walker);
     cudaDeviceSynchronize();
+
+    // // TEST BLOCK
+    // // ---------------------
+    // double *d_energy_test;
+    // CHECK_CUDA(cudaMalloc(&d_energy_test, total_walker * sizeof(*d_energy_test)));
+    // // ---------------------
 
     // Stop timing
     auto end = std::chrono::high_resolution_clock::now();
@@ -280,6 +434,23 @@ int main(int argc, char **argv)
             d_offset_energy_spectrum, d_cond_interactions);
         cudaDeviceSynchronize();
 
+        // // TEST BLOCK
+        // //-----------
+        // std::vector<double> test_energies(total_walker);
+        // std::vector<double> test_energies_wl(total_walker);
+        // CHECK_CUDA(cudaMemcpy(test_energies_wl.data(), d_energy, total_walker * sizeof(*d_energy), cudaMemcpyDeviceToHost)); // get energies from wl step with energy diff calc
+        // calc_energy_periodic_boundary<<<total_intervals, options.walker_per_interval>>>(d_lattice, d_interactions, d_energy_test, d_offset_lattice, options.X, options.Y, total_walker, walker_per_interactions);
+        // cudaDeviceSynchronize();
+        // CHECK_CUDA(cudaMemcpy(test_energies.data(), d_energy_test, total_walker * sizeof(*d_energy_test), cudaMemcpyDeviceToHost)); // get energies from calc energy function
+        // for (int idx = 0; idx < total_walker; idx++)
+        // {
+        //     if (std::abs(test_energies_wl[idx] - test_energies[idx]) > 1e-10)
+        //     {
+        //         std::cerr << " walker idx: " << idx << " calc energy: " << test_energies[idx] << " wl calc energy: " << test_energies_wl[idx] << " Diff: " << std::abs(test_energies_wl[idx] - test_energies[idx]) << std::endl;
+        //     }
+        // }
+        // //-----------
+
         // get max of found new energy flag array to condition break and update the
         // histogramm file with value in new energy array
         thrust::device_ptr<int> d_newEnergyFlag_ptr(d_foundNewEnergyFlag);
@@ -290,7 +461,7 @@ int main(int argc, char **argv)
         // host, update histogramm file and print error message.
         if (max_newEnergyFlag != 0)
         {
-            int h_newEnergies[total_walker];
+            double h_newEnergies[total_walker];
             int h_newEnergyFlag[total_walker];
             CHECK_CUDA(cudaMemcpy(h_newEnergies, d_newEnergies, total_walker * sizeof(*d_newEnergies), cudaMemcpyDeviceToHost));
             CHECK_CUDA(cudaMemcpy(h_newEnergyFlag, d_foundNewEnergyFlag, total_walker * sizeof(*d_foundNewEnergyFlag), cudaMemcpyDeviceToHost));
@@ -309,11 +480,10 @@ int main(int argc, char **argv)
             d_offset_energy_spectrum, d_cond_interactions);
         cudaDeviceSynchronize();
 
-        calc_average_log_g<<<block_count, max_threads_per_block>>>(options.num_intervals,
-                                                                   d_len_histograms, options.walker_per_interval,
-                                                                   d_logG, d_shared_logG, d_end, d_start, d_expected_energy_spectrum, d_cond,
-                                                                   d_offset_histogram, d_offset_energy_spectrum, options.num_interactions,
-                                                                   d_offset_shared_logG, d_cond_interactions, total_len_histogram);
+        calc_average_log_g<<<block_count, max_threads_per_block>>>(
+            options.num_intervals, d_len_histograms, options.walker_per_interval, d_logG, d_shared_logG,
+            d_end, d_start, d_expected_energy_spectrum, d_cond, d_offset_histogram,
+            d_offset_energy_spectrum, options.num_interactions, d_offset_shared_logG, d_cond_interactions, total_len_histogram);
         cudaDeviceSynchronize();
 
         redistribute_g_values<<<block_count, max_threads_per_block>>>(options.num_intervals,
@@ -345,13 +515,13 @@ int main(int argc, char **argv)
 
         if (wang_landau_counter % options.replica_exchange_offset == 0)
         {
-            replica_exchange<int><<<total_intervals, options.walker_per_interval>>>(
+            replica_exchange<double><<<total_intervals, options.walker_per_interval>>>(
                 d_offset_lattice, d_energy, d_start, d_end, d_indices, d_logG,
                 d_offset_histogram, true, options.seed_run, d_offset_iter,
                 options.num_intervals, walker_per_interactions, d_cond_interactions);
             cudaDeviceSynchronize();
 
-            replica_exchange<int><<<total_intervals, options.walker_per_interval>>>(
+            replica_exchange<double><<<total_intervals, options.walker_per_interval>>>(
                 d_offset_lattice, d_energy, d_start, d_end, d_indices, d_logG,
                 d_offset_histogram, false, options.seed_run, d_offset_iter,
                 options.num_intervals, walker_per_interactions, d_cond_interactions);
@@ -388,7 +558,7 @@ int main(int argc, char **argv)
 
                     std::vector<int> run_end(h_end_int.begin() + i * options.num_intervals, h_end_int.begin() + (i + 1) * options.num_intervals); // stores end energies of intervals of currently handled interaction
 
-                    result_handling_stitched_histogram(options, h_logG, run_start, run_end, i, false); // reduced result dump with X, Y needed for rescaling
+                    result_handling_stitched_histogram(options, h_logG, run_start, run_end, i, true); // reduced result dump with X, Y needed for rescaling
                     // result_handling(options, h_logG, run_start, run_end, i); // extended result dump
                 }
             }

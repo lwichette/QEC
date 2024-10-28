@@ -157,7 +157,7 @@ int main(int argc, char **argv)
         prob_i_err = 1 - (prob_x_err + prob_y_err + prob_z_err);
     }
 
-    unsigned long long num_qubits = 2 * X * Y; // which is equivalent to amount of interactions, i.e. add further Ising spins for open boundary but dimensionality of active system remains unchanged
+    int num_qubits = 2 * X * Y; // which is equivalent to amount of interactions
 
     int total_walker = num_interactions * walker_per_interaction;
     int total_intervals = num_interactions * num_intervals_per_interaction;
@@ -248,27 +248,27 @@ int main(int argc, char **argv)
     double *d_prob_X;
     double *d_prob_Y;
     double *d_prob_Z;
-    CHECK_CUDA(cudaMalloc(&d_prob_I, total_walker * sizeof(*d_prob_I)));
-    CHECK_CUDA(cudaMemset(d_prob_I, 0, total_walker * sizeof(*d_prob_I)));
-    CHECK_CUDA(cudaMalloc(&d_prob_X, total_walker * sizeof(*d_prob_X)));
-    CHECK_CUDA(cudaMemset(d_prob_X, 0, total_walker * sizeof(*d_prob_X)));
-    CHECK_CUDA(cudaMalloc(&d_prob_Y, total_walker * sizeof(*d_prob_Y)));
-    CHECK_CUDA(cudaMemset(d_prob_Y, 0, total_walker * sizeof(*d_prob_Y)));
-    CHECK_CUDA(cudaMalloc(&d_prob_Z, total_walker * sizeof(*d_prob_Z)));
-    CHECK_CUDA(cudaMemset(d_prob_Z, 0, total_walker * sizeof(*d_prob_Z)));
+    CHECK_CUDA(cudaMalloc(&d_prob_I, num_interactions * num_qubits * sizeof(*d_prob_I)));
+    CHECK_CUDA(cudaMemset(d_prob_I, 0, num_interactions * num_qubits * sizeof(*d_prob_I)));
+    CHECK_CUDA(cudaMalloc(&d_prob_X, num_interactions * num_qubits * sizeof(*d_prob_X)));
+    CHECK_CUDA(cudaMemset(d_prob_X, 0, num_interactions * num_qubits * sizeof(*d_prob_X)));
+    CHECK_CUDA(cudaMalloc(&d_prob_Y, num_interactions * num_qubits * sizeof(*d_prob_Y)));
+    CHECK_CUDA(cudaMemset(d_prob_Y, 0, num_interactions * num_qubits * sizeof(*d_prob_Y)));
+    CHECK_CUDA(cudaMalloc(&d_prob_Z, num_interactions * num_qubits * sizeof(*d_prob_Z)));
+    CHECK_CUDA(cudaMemset(d_prob_Z, 0, num_interactions * num_qubits * sizeof(*d_prob_Z)));
 
     double *d_J_I;
     double *d_J_X;
     double *d_J_Y;
     double *d_J_Z;
-    CHECK_CUDA(cudaMalloc(&d_J_I, total_walker * sizeof(*d_J_I)));
-    CHECK_CUDA(cudaMemset(d_J_I, 0, total_walker * sizeof(*d_J_I)));
-    CHECK_CUDA(cudaMalloc(&d_J_X, total_walker * sizeof(*d_J_X)));
-    CHECK_CUDA(cudaMemset(d_J_X, 0, total_walker * sizeof(*d_J_X)));
-    CHECK_CUDA(cudaMalloc(&d_J_Y, total_walker * sizeof(*d_J_Y)));
-    CHECK_CUDA(cudaMemset(d_J_Y, 0, total_walker * sizeof(*d_J_Y)));
-    CHECK_CUDA(cudaMalloc(&d_J_Z, total_walker * sizeof(*d_J_Z)));
-    CHECK_CUDA(cudaMemset(d_J_Z, 0, total_walker * sizeof(*d_J_Z)));
+    CHECK_CUDA(cudaMalloc(&d_J_I, num_interactions * num_qubits * sizeof(*d_J_I)));
+    CHECK_CUDA(cudaMemset(d_J_I, 0, num_interactions * num_qubits * sizeof(*d_J_I)));
+    CHECK_CUDA(cudaMalloc(&d_J_X, num_interactions * num_qubits * sizeof(*d_J_X)));
+    CHECK_CUDA(cudaMemset(d_J_X, 0, num_interactions * num_qubits * sizeof(*d_J_X)));
+    CHECK_CUDA(cudaMalloc(&d_J_Y, num_interactions * num_qubits * sizeof(*d_J_Y)));
+    CHECK_CUDA(cudaMemset(d_J_Y, 0, num_interactions * num_qubits * sizeof(*d_J_Y)));
+    CHECK_CUDA(cudaMalloc(&d_J_Z, num_interactions * num_qubits * sizeof(*d_J_Z)));
+    CHECK_CUDA(cudaMemset(d_J_Z, 0, num_interactions * num_qubits * sizeof(*d_J_Z)));
 
     float *d_probs; // for lattice init
     CHECK_CUDA(cudaMalloc(&d_probs, total_walker * sizeof(*d_probs)));
@@ -294,6 +294,7 @@ int main(int argc, char **argv)
     CHECK_CUDA(cudaMalloc(&d_offset_lattice_per_interval, total_intervals * sizeof(*d_offset_lattice_per_interval)));
 
     int blocks_qubit_x_thread = (num_interactions * num_qubits + threads_per_block - 1) / threads_per_block;
+    int blocks_interaction_x_thread = (num_interactions + threads_per_block - 1) / threads_per_block;
     int blocks_spins_single_color_x_thread = (total_walker * num_qubits / 2 + threads_per_block - 1) / threads_per_block;
     int blocks_total_walker_x_thread = (total_walker + threads_per_block - 1) / threads_per_block;
     int blocks_total_intervals_x_thread = (total_intervals + threads_per_block - 1) / threads_per_block;
@@ -306,7 +307,11 @@ int main(int argc, char **argv)
         cudaDeviceSynchronize();
 
         // initialize qubit specific couplings based on error rates from kernel before
-        initialize_coupling_factors<<<blocks_qubit_x_thread, threads_per_block>>>(d_prob_I, d_prob_X, d_prob_Y, d_prob_Z, num_qubits, num_interactions, histogram_scale, d_J_I, d_J_X, d_J_Y, d_J_Z);
+        initialize_coupling_factors<<<blocks_qubit_x_thread, threads_per_block>>>(d_prob_I, d_prob_X, d_prob_Y, d_prob_Z, num_qubits, num_interactions, d_J_I, d_J_X, d_J_Y, d_J_Z);
+        cudaDeviceSynchronize();
+
+        // rescaling of coupling factors per interaction for maximum absolute value 1
+        max_rescaling_of_coupling_factors<<<blocks_interaction_x_thread, threads_per_block>>>(d_J_I, d_J_X, d_J_Y, d_J_Z, histogram_scale, num_interactions, num_qubits);
         cudaDeviceSynchronize();
 
         // generate errors on the qubits based on qubit specific error distributions

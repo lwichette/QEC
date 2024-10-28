@@ -4,6 +4,113 @@
 // order is important 0: periodic, 1: open, 2: cylinder
 __device__ RBIM (*rbim_func_map[])(signed char *, signed char *, int *, int *, unsigned long long *, curandStatePhilox4_32_10_t *, const long long, const int, const int, const int) = {periodic_boundary_random_bond_ising, open_boundary_random_bond_ising, cylinder_random_bond_ising};
 
+__device__ RBIM_qubit (*rbim_func_map_qubit[])(signed char *, double *, double *, int *, unsigned long long *, curandStatePhilox4_32_10_t *, const long long, const int, const int, const int) = {periodic_boundary_random_bond_ising, open_boundary_random_bond_ising, cylinder_random_bond_ising};
+
+__device__ RBIM_qubit cylinder_random_bond_ising(
+    signed char *d_lattice, double *d_interactions, double *d_energy, int *d_offset_lattice, unsigned long long *d_offset_iter,
+    curandStatePhilox4_32_10_t *st, const long long tid, const int nx, const int ny, const int interaction_offset)
+{
+    double randval = curand_uniform(st);
+    randval *= (nx * ny - 1 + 0.999999);
+    int random_index = (int)trunc(randval);
+
+    d_offset_iter[tid] += 1;
+
+    int i = random_index / ny;
+    int j = random_index % ny;
+
+    int ipp = (i + 1) % nx;
+    int inn = (i - 1 + nx) % nx;
+    int jpp = (j + 1 < ny) ? j + 1 : 0;
+    int jnn = (j - 1 >= 0) ? j - 1 : ny - 1;
+
+    int c_up = (i > 0);
+    int c_down = (i < nx - 1);
+
+    int index = d_offset_lattice[tid] + i * ny + j;
+    signed char current_spin = d_lattice[index];
+
+    // // for test
+    // printf("nx: %d ny: %d i: %d j: %d ipp: %d inn: %d jpp: %d jnn: %d c_up: %d c_down: %d \n", nx, ny, i, j, ipp, inn, jpp, jnn, c_up, c_down);
+
+    // "-" simulates spin flip and "2" stems from energy diff.
+    double energy_diff = -2 * current_spin * (c_up * d_lattice[d_offset_lattice[tid] + inn * ny + j] * d_interactions[interaction_offset + nx * ny + inn * ny + j] + d_lattice[d_offset_lattice[tid] + i * ny + jnn] * d_interactions[interaction_offset + i * ny + jnn] + c_down * d_lattice[d_offset_lattice[tid] + ipp * ny + j] * d_interactions[interaction_offset + nx * ny + i * ny + j] + d_lattice[d_offset_lattice[tid] + i * ny + jpp] * d_interactions[interaction_offset + i * ny + j]);
+
+    double d_new_energy = d_energy[tid] - energy_diff;
+
+    RBIM_qubit rbim;
+    rbim.new_energy = d_new_energy;
+    rbim.i = i;
+    rbim.j = j;
+
+    return rbim;
+}
+
+__device__ RBIM_qubit open_boundary_random_bond_ising(
+    signed char *d_lattice, double *d_interactions, double *d_energy, int *d_offset_lattice, unsigned long long *d_offset_iter,
+    curandStatePhilox4_32_10_t *st, const long long tid, const int nx, const int ny, const int interaction_offset)
+{
+    double randval = curand_uniform(st);
+    randval *= (nx * ny - 1 + 0.999999);
+    int random_index = (int)trunc(randval);
+
+    d_offset_iter[tid] += 1;
+
+    int i = random_index / ny;
+    int j = random_index % ny;
+
+    int ipp = (i + 1 < nx) ? i + 1 : 0;
+    int inn = (i - 1 >= 0) ? i - 1 : nx - 1;
+    int jpp = (j + 1 < ny) ? j + 1 : 0;
+    int jnn = (j - 1 >= 0) ? j - 1 : ny - 1;
+
+    int c_up = 1 - inn / (nx - 1);
+    int c_down = 1 - (i + 1) / nx;
+    int c_right = (j == (ny - 1)) ? 0 : 1;
+    int c_left = (j == 0) ? 0 : 1;
+
+    double energy_diff = -2 * d_lattice[d_offset_lattice[tid] + i * ny + j] * (c_up * d_lattice[d_offset_lattice[tid] + inn * ny + j] * d_interactions[interaction_offset + nx * ny + inn * ny + j] + c_left * d_lattice[d_offset_lattice[tid] + i * ny + jnn] * d_interactions[interaction_offset + i * ny + jnn] + c_down * d_lattice[d_offset_lattice[tid] + ipp * ny + j] * d_interactions[interaction_offset + nx * ny + i * ny + j] + c_right * d_lattice[d_offset_lattice[tid] + i * ny + jpp] * d_interactions[interaction_offset + i * ny + j]);
+
+    double d_new_energy = d_energy[tid] - energy_diff;
+
+    RBIM_qubit rbim;
+    rbim.new_energy = d_new_energy;
+    rbim.i = i;
+    rbim.j = j;
+
+    return rbim;
+}
+
+__device__ RBIM_qubit periodic_boundary_random_bond_ising(
+    signed char *d_lattice, double *d_interactions, double *d_energy, int *d_offset_lattice, unsigned long long *d_offset_iter,
+    curandStatePhilox4_32_10_t *st, const long long tid, const int nx, const int ny, const int interaction_offset)
+{
+    double randval = curand_uniform(st);
+    randval *= (nx * ny - 1 + 0.999999);
+    int random_index = (int)trunc(randval);
+
+    d_offset_iter[tid] += 1;
+
+    int i = random_index / ny;
+    int j = random_index % ny;
+
+    int ipp = (i + 1 < nx) ? i + 1 : 0;
+    int inn = (i - 1 >= 0) ? i - 1 : nx - 1;
+    int jpp = (j + 1 < ny) ? j + 1 : 0;
+    int jnn = (j - 1 >= 0) ? j - 1 : ny - 1;
+
+    double energy_diff = -2 * d_lattice[d_offset_lattice[tid] + i * ny + j] * (d_lattice[d_offset_lattice[tid] + inn * ny + j] * d_interactions[interaction_offset + nx * ny + inn * ny + j] + d_lattice[d_offset_lattice[tid] + i * ny + jnn] * d_interactions[interaction_offset + i * ny + jnn] + d_lattice[d_offset_lattice[tid] + ipp * ny + j] * d_interactions[interaction_offset + nx * ny + i * ny + j] + d_lattice[d_offset_lattice[tid] + i * ny + jpp] * d_interactions[interaction_offset + i * ny + j]);
+
+    double d_new_energy = d_energy[tid] - energy_diff;
+
+    RBIM_qubit rbim;
+    rbim.new_energy = d_new_energy;
+    rbim.i = i;
+    rbim.j = j;
+
+    return rbim;
+}
+
 void parse_args(int argc, char *argv[], Options *options)
 {
     // overlap decimal is more like the reciprocal non overlap parameter here, i.e. 0 as overlap_decimal is full overlap of intervals.
@@ -297,32 +404,39 @@ void handleNewEnergyError(int *new_energies, int *new_energies_flag, char *histo
     return;
 }
 
-std::string constructFilePath(float prob_interactions, int X, int Y, int seed, std::string type, char error_class, int boundary_type, int task_id)
+std::string constructFilePath(const Options &options, int seed_offset, std::string type, bool qubit_specific)
 {
     std::string boundary;
 
-    if (boundary_type == 0)
+    switch (options.boundary_type)
     {
+    case 0:
         boundary = "periodic";
-    }
-    else if (boundary_type == 1)
-    {
+        break;
+    case 1:
         boundary = "open";
-    }
-    else if (boundary_type == 2)
-    {
+        break;
+    case 2:
         boundary = "cylinder";
-    }
-    else
-    {
-        boundary = "unknown"; // Handle any unexpected boundary_type values
+        break;
+    default:
+        boundary = "unknown";
+        break; // Handle any unexpected boundary_type values
     }
 
     std::stringstream strstr;
-    strstr << "init/task_id_" << task_id << "/" << boundary << "/prob_" << std::fixed << std::setprecision(6) << prob_interactions;
-    strstr << "/X_" << X << "_Y_" << Y;
-    strstr << "/error_class_" << error_class;
-    strstr << "/seed_" << seed;
+    strstr << "init/task_id_" << options.task_id << "/" << boundary;
+    if (qubit_specific)
+    {
+        strstr << "/error_mean_" << std::fixed << std::setprecision(6) << options.error_mean << "/error_variance_" << options.error_variance;
+    }
+    else
+    {
+        strstr << "/prob_" << std::fixed << std::setprecision(6) << options.prob_interactions;
+    }
+    strstr << "/X_" << options.X << "_Y_" << options.Y;
+    strstr << "/error_class_" << options.logical_error_type;
+    strstr << "/seed_" << (options.seed_histogram + seed_offset);
     strstr << "/" << type << "/" << type << ".txt";
 
     return strstr.str();
@@ -399,7 +513,7 @@ std::vector<signed char> get_lattice_with_pre_run_result(float prob, int seed, i
             }
             if (!found_energy_in_interval)
             {
-                std::cerr << "No Lattice in interval found " << interval_iterator << " in Seed " << seed << std::endl;
+                std::cerr << "No Lattice found for interval [" << h_start[interval_iterator] << ", " << h_end[interval_iterator] << "]" << " and interaction seed " << seed << std::endl;
                 assert(0);
             }
         }
@@ -455,14 +569,13 @@ std::map<std::string, std::vector<signed char>> get_lattice_with_pre_run_result_
 
                     std::string filename_b = filename;
                     // Check for "r" lattice
-                    std::regex regex_r("lattice_r_energy_(-?\\d+(\\.\\d{6})?)");
+                    std::regex regex_r("lattice_r_energy_(-?\\d+(\\.\\d+)?)");
                     std::smatch match_r;
                     if (std::regex_search(filename, match_r, regex_r))
                     {
                         float energy_r = std::stof(match_r[1]);
-                        if (energy_r >= h_start[interval_iterator] && energy_r <= h_end[interval_iterator])
+                        if (static_cast<int>(std::round(energy_r)) >= h_start[interval_iterator] && static_cast<int>(std::round(energy_r)) <= h_end[interval_iterator]) // binning is done by rounding to closest integer such that initialization is ok within range of binning
                         {
-
                             found_energy_in_interval = true;
 
                             // Find the position of the substring "_r_" to replace
@@ -489,7 +602,7 @@ std::map<std::string, std::vector<signed char>> get_lattice_with_pre_run_result_
 
             if (!found_energy_in_interval)
             {
-                std::cerr << "No Lattice in interval found " << interval_iterator << " in Seed " << seed_hist << std::endl;
+                std::cerr << "No Lattice found for interval [" << h_start[interval_iterator] << ", " << h_end[interval_iterator] << "]" << " and interaction seed " << seed_hist << std::endl;
                 assert(0);
             }
         }
@@ -962,6 +1075,7 @@ __global__ void wang_landau_eight_vertex(
             RBIM_eight_vertex result = eight_vertex_periodic_wl_step(
                 d_lattice_b, d_lattice_r, d_interactions_b, d_interactions_r, d_interactions_right_four_body, d_interactions_down_four_body, d_energy, d_offset_iter,
                 &st, tid, nx * ny, nx, ny, num_lattices, walker_per_interactions, d_offset_lattice);
+
             const int old_energy_int = static_cast<int>(round(d_energy[tid])); // Int cast for indexing via energy
             const int new_energy_int = static_cast<int>(round(result.new_energy));
 
@@ -1049,7 +1163,7 @@ __global__ void wang_landau_eight_vertex(
                 return;
             }
 
-            if (result.new_energy <= d_end[interval_id] || result.new_energy >= d_start[interval_id])
+            if (new_energy_int <= d_end[interval_id] || new_energy_int >= d_start[interval_id])
             {
                 int index_old = d_offset_histogramm[tid] + old_energy_int - d_start[interval_id];
                 int index_new = d_offset_histogramm[tid] + new_energy_int - d_start[interval_id];
@@ -1259,13 +1373,6 @@ __global__ void check_histogram(
     // Here is average and min calculation over all bins in histogram which correspond to values in expected energy spectrum
     for (int i = 0; i < (d_end[blockId] - d_start[blockId] + 1); i++)
     {
-        // if (blockIdx.x == 37)
-        // {
-        //     for (int e = 0; e < (d_end[blockIdx.x] - d_start[blockIdx.x] + 1); e++)
-        //     {
-        //         printf("%d : %lld \n", d_start[blockIdx.x] + e, d_H[d_offset_histogramm[tid] + e]);
-        //     }
-        // }
         if (d_expected_energy_spectrum[d_offset_energy_spectrum[int_id] + d_start[blockId] + i - d_start[int_id * num_intervals]] == 1)
         {
             if (d_H[d_offset_histogramm[tid] + i] < min)
@@ -2075,7 +2182,7 @@ std::vector<std::tuple<int, int>> calculate_stitching_points(std::vector<std::ma
     return stitching_keys;
 }
 
-void write_results(std::vector<std::map<int, double>> rescaled_data, Options options, int int_id)
+void write_results(std::vector<std::map<int, double>> rescaled_data, Options options, int int_id, bool qubit_specific)
 {
     // From here on only write to csv
     std::stringstream result_directory;
@@ -2099,10 +2206,21 @@ void write_results(std::vector<std::map<int, double>> rescaled_data, Options opt
         boundary = "unknown"; // Handle any unexpected boundary_type values
     }
 
-    result_directory << "results/" << boundary << "/prob_" << std::fixed << std::setprecision(6) << options.prob_interactions
-                     << "/X_" << options.X
-                     << "_Y_" << options.Y
-                     << "/error_class_" << options.logical_error_type;
+    if (qubit_specific)
+    {
+        result_directory << "results/" << boundary << "/error_mean_" << std::fixed << std::setprecision(6) << options.error_mean
+                         << "/error_variance_" << options.error_variance
+                         << "/X_" << options.X
+                         << "_Y_" << options.Y
+                         << "/error_class_" << options.logical_error_type;
+    }
+    else
+    {
+        result_directory << "results/" << boundary << "/prob_" << std::fixed << std::setprecision(6) << options.prob_interactions
+                         << "/X_" << options.X
+                         << "_Y_" << options.Y
+                         << "/error_class_" << options.logical_error_type;
+    }
 
     create_directory(result_directory.str());
 
@@ -2155,7 +2273,7 @@ void write_results(std::vector<std::map<int, double>> rescaled_data, Options opt
 
 void result_handling_stitched_histogram(
     Options options, std::vector<double> h_logG,
-    std::vector<int> h_start, std::vector<int> h_end, int int_id)
+    std::vector<int> h_start, std::vector<int> h_end, int int_id, bool qubit_specific)
 {
 
     std::vector<std::map<int, double>> interval_data = get_logG_data(h_logG, h_start, h_end, options);
@@ -2224,7 +2342,7 @@ void result_handling_stitched_histogram(
 
     rescaleMapValues(cut_data, options.X, options.Y); // rescaling for high temperature interpretation of partition function
 
-    write_results(cut_data, options, int_id);
+    write_results(cut_data, options, int_id, qubit_specific);
 }
 
 void eight_vertex_result_handling_stitched_histogram(
@@ -2299,7 +2417,7 @@ void eight_vertex_result_handling_stitched_histogram(
 
     std::vector<std::map<int, double>> cut_data = cut_overlapping_histogram_parts(rescaled_data, smallest_values);
 
-    rescaleMapValues(interval_data, options.X, options.Y); // rescaling for high temperature interpretation of partition function
+    rescaleMapValues(cut_data, options.X, options.Y); // rescaling for high temperature interpretation of partition function
 
     // From here on only write to csv
     std::stringstream result_directory;
@@ -2798,8 +2916,12 @@ __device__ RBIM_eight_vertex eight_vertex_periodic_wl_step(
     const int offset_interactions_four_body = int_id * num_qubits / 2;        // offset on four body interaction arrays
 
     bool color = (random_index / (num_qubits / 2)) % 2; // which sublattice the spin gets flipped on. 0: b, 1: r
-    int i = (random_index % (num_qubits / 2)) / X;      // row index on sublattice
-    int j = (random_index % (num_qubits / 2)) % X;      // columns index on sublattice
+
+    // // For bitflip limit choose only flips on red lattice corresponding to J(Z) interactions
+    // bool color = true;
+
+    int i = (random_index % (num_qubits / 2)) / X; // row index on sublattice
+    int j = (random_index % (num_qubits / 2)) % X; // columns index on sublattice
 
     // these neighbor indices are used for interactions closed under an Ising lattice
     int i_dn = (i + 1 < Y / 2) ? (i + 1) : 0;    // down neighbor row index
@@ -2905,7 +3027,7 @@ __global__ void initialize_Gaussian_error_rates(double *d_prob_i, double *d_prob
     // printf("idx: %d prob_i: %.10f prob_x: %.10f prob_y: %.10f prob_z: %.10f \n", idx, d_prob_i[idx], d_prob_x[idx], d_prob_y[idx], d_prob_z[idx]);
 }
 
-__global__ void initialize_coupling_factors(double *prob_i_err, double *prob_x_err, double *prob_y_err, double *prob_z_err, int num_qubits, int num_interactions, int histogram_scale, double *d_J_i, double *d_J_x, double *d_J_y, double *d_J_z)
+__global__ void initialize_coupling_factors(double *prob_i_err, double *prob_x_err, double *prob_y_err, double *prob_z_err, int num_qubits, int num_interactions, double *d_J_i, double *d_J_x, double *d_J_y, double *d_J_z)
 {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= num_qubits * num_interactions)
@@ -2917,32 +3039,54 @@ __global__ void initialize_coupling_factors(double *prob_i_err, double *prob_x_e
     double J_y = log((prob_i_err[idx] * prob_y_err[idx]) / (prob_x_err[idx] * prob_z_err[idx])) / 4;
     double J_z = log((prob_i_err[idx] * prob_z_err[idx]) / (prob_x_err[idx] * prob_y_err[idx])) / 4;
 
-    double abs_J_X = fabs(J_x);
-    double abs_J_Y = fabs(J_y);
-    double abs_J_Z = fabs(J_z);
+    d_J_i[idx] = J_i;
+    d_J_x[idx] = J_x;
+    d_J_y[idx] = J_y;
+    d_J_z[idx] = J_z;
+}
 
-    // Find the maximum of the absolute values using fmax
-    double max_J = fmax(fmax(abs_J_X, abs_J_Y), abs_J_Z);
+__global__ void max_rescaling_of_coupling_factors(double *d_J_i, double *d_J_x, double *d_J_y, double *d_J_z, int histogram_scale, int num_interaction, unsigned long long num_qubits)
+{
+    int interaction_id = blockIdx.x * blockDim.x + threadIdx.x;
 
-    // Ensure max_J is non-zero to avoid division by zero
-    if (max_J > 0)
+    if (interaction_id >= num_interaction)
     {
-        // Rescale the J values
-        d_J_i[idx] = J_i * (histogram_scale / max_J);
-        d_J_x[idx] = J_x * (histogram_scale / max_J);
-        d_J_y[idx] = J_y * (histogram_scale / max_J);
-        d_J_z[idx] = J_z * (histogram_scale / max_J);
+        return;
     }
 
-    // // // TEST BLOCK
-    // // // -----------
-    // // d_J_x[idx] = 1;
-    // // d_J_y[idx] = 1;
-    // // d_J_z[idx] = 1;
-    // // // -----------
+    int start_qubit = interaction_id * num_qubits;
 
-    // printf("J params are rescaled by histogram_scale / max J_i. \n");
-    // printf("idx: %d j_i: %.10f j_x: %.10f j_y: %.10f j_z: %.10f \n", idx, d_J_i[idx], d_J_x[idx], d_J_y[idx], d_J_z[idx]);
+    double max_J = 0.0;
+    for (int i = 0; i < num_qubits; ++i)
+    {
+        double value_x = fabs(d_J_x[start_qubit + i]);
+        if (value_x > max_J)
+        {
+            max_J = value_x;
+        }
+        double value_y = fabs(d_J_y[start_qubit + i]);
+        if (value_y > max_J)
+        {
+            max_J = value_y;
+        }
+        double value_z = fabs(d_J_z[start_qubit + i]);
+        if (value_z > max_J)
+        {
+            max_J = value_z;
+        }
+    }
+
+    if (max_J > 0)
+    {
+        for (int i = 0; i < num_qubits; ++i)
+        {
+            // Rescale the J values for current interaction
+            d_J_i[start_qubit + i] *= (histogram_scale / max_J);
+            d_J_x[start_qubit + i] *= (histogram_scale / max_J);
+            d_J_y[start_qubit + i] *= (histogram_scale / max_J);
+            d_J_z[start_qubit + i] *= (histogram_scale / max_J);
+        }
+    }
 }
 
 std::string eight_vertex_histogram_path(
@@ -3049,4 +3193,341 @@ __global__ void reset_d_cond(signed char *d_cond, double *d_factor, int total_in
             d_cond[tid] = 0;
         }
     }
+}
+
+__global__ void calc_energy_cylinder(signed char *lattice, double *interactions, double *d_energy, int *d_offset_lattice, const int nx, const int ny, const int num_lattices, const int walker_per_interactions)
+{
+
+    long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
+
+    if (tid >= num_lattices)
+        return;
+
+    int int_id = tid / walker_per_interactions;
+
+    double energy = 0;
+    int offset_lattice = d_offset_lattice[tid];
+    int offset_interactions = int_id * nx * ny * 2;
+
+    for (int i = 0; i < nx; i++) // row index up to nx
+    {
+        for (int j = 0; j < ny; j++) // column index up to ny
+        {
+            signed char s_ij = lattice[offset_lattice + i * ny + j];
+            // up neighbor spin set to zero at boundary to set open condition in vertical lattice direction
+            signed char s_up = (i > 0) ? lattice[offset_lattice + (i - 1) * ny + j] : 0;
+            // left neighbor spin closed periodically to close cylinder in horizontal lattice direction - last horizontal index is ny-1
+            signed char s_left = (j > 0) ? lattice[offset_lattice + i * ny + (j - 1)] : lattice[offset_lattice + i * ny + (ny - 1)];
+
+            // down interaction linearised index set arbitrarily to zero
+            int inn = (i > 0) ? nx * ny + (i - 1) * ny + j : 0;
+            // right interacton linearised index closed periodically
+            int jnn = (j > 0) ? i * ny + (j - 1) : i * ny + (ny - 1);
+
+            // formula follows root spin times [up neighbor times down interaction rooted at up neighbor spin]
+            energy += s_ij * (s_up * interactions[offset_interactions + inn] + s_left * interactions[offset_interactions + jnn]);
+        }
+    }
+
+    d_energy[tid] = -energy;
+
+    return;
+}
+
+__global__ void calc_energy_open_boundary(signed char *lattice, double *interactions, double *d_energy, int *d_offset_lattice, const int nx, const int ny, const int num_lattices, const int walker_per_interactions)
+{
+
+    long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
+
+    if (tid >= num_lattices)
+        return;
+
+    int int_id = tid / walker_per_interactions;
+
+    double energy = 0;
+    int offset = d_offset_lattice[tid];
+
+    for (int i = 0; i < nx; i++)
+    {
+        for (int j = 0; j < ny; j++)
+        {
+            signed char s_ij = lattice[offset + i * ny + j];
+            signed char s_up = (i > 0) ? lattice[offset + (i - 1) * ny + j] : 0;
+            signed char s_left = (j > 0) ? lattice[offset + i * ny + (j - 1)] : 0;
+
+            // to avoid accessing interactions out of range for boundary terms the indices are arbitrarily set to 0
+            int inn = (i > 0) ? nx * ny + (i - 1) * ny + j : 0;
+            int jnn = (j > 0) ? i * ny + (j - 1) : 0;
+
+            energy += s_ij * (s_up * interactions[int_id * nx * ny * 2 + inn] + s_left * interactions[int_id * nx * ny * 2 + jnn]);
+        }
+    }
+
+    d_energy[tid] = -energy;
+
+    return;
+}
+
+__global__ void calc_energy_periodic_boundary(signed char *lattice, double *interactions, double *d_energy, int *d_offset_lattice, const int nx, const int ny, const int num_lattices, const int walker_per_interactions)
+{
+
+    long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
+
+    if (tid >= num_lattices)
+        return;
+
+    int int_id = tid / walker_per_interactions;
+    double energy = 0;
+
+    for (int l = 0; l < nx * ny; l++)
+    {
+        int i = l / ny;
+        int j = l % ny;
+
+        int inn = (i - 1 >= 0) ? i - 1 : nx - 1;
+        int jnn = (j - 1 >= 0) ? j - 1 : ny - 1;
+
+        energy += lattice[d_offset_lattice[tid] + i * ny + j] * (lattice[d_offset_lattice[tid] + inn * ny + j] * interactions[int_id * 2 * nx * ny + nx * ny + inn * ny + j] + lattice[d_offset_lattice[tid] + i * ny + jnn] * interactions[int_id * nx * ny * 2 + i * ny + jnn]);
+    }
+
+    d_energy[tid] = -energy;
+
+    return;
+}
+
+void calc_energy(
+    int blocks, int threads, const int boundary_type, signed char *lattice,
+    double *interactions, double *d_energy, int *d_offset_lattice,
+    const int nx, const int ny, const int total_walker, const int walker_per_interactions)
+{
+
+    switch (boundary_type)
+    {
+    case 2: // Cylinder closed horizontally
+        calc_energy_cylinder<<<blocks, threads>>>(lattice, interactions, d_energy, d_offset_lattice, nx, ny, total_walker, walker_per_interactions);
+        break;
+
+    case 1: // Open boundary
+        calc_energy_open_boundary<<<blocks, threads>>>(lattice, interactions, d_energy, d_offset_lattice, nx, ny, total_walker, walker_per_interactions);
+        break;
+
+    case 0: // Periodic boundary
+        calc_energy_periodic_boundary<<<blocks, threads>>>(lattice, interactions, d_energy, d_offset_lattice, nx, ny, total_walker, walker_per_interactions);
+        break;
+
+    default:
+        printf("Invalid boundary type!\n");
+        break;
+    }
+
+    return;
+}
+
+__global__ void wang_landau_pre_run(
+    signed char *d_lattice, double *d_interactions, double *d_energy, unsigned long long *d_H, unsigned long long *d_iter,
+    int *d_offset_lattice, int *d_found_interval, signed char *d_store_lattice, const int E_min, const int E_max,
+    const int num_iterations, const int nx, const int ny, const int seed, const int len_interval, const int found_interval,
+    const int num_walker, const int num_interval, const int boundary_type, const int walker_per_interactions)
+{
+
+    long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
+
+    if (tid >= num_walker)
+        return;
+
+    const int offset_lattice = tid * nx * ny;
+    const int int_id = tid / walker_per_interactions;
+    const int interaction_offset = int_id * 2 * nx * ny;
+
+    const int len_hist = E_max - E_min + 1;
+
+    curandStatePhilox4_32_10_t st;
+    curand_init(seed, tid, d_iter[tid], &st);
+
+    for (int it = 0; it < num_iterations; it++)
+    {
+
+        RBIM_qubit result = rbim_func_map_qubit[boundary_type](d_lattice, d_interactions, d_energy, d_offset_lattice, d_iter, &st, tid, nx, ny, interaction_offset);
+
+        double d_new_energy = result.new_energy;
+
+        if (d_new_energy > E_max + 1e-10 || d_new_energy + 1e-10 < E_min)
+        {
+            printf("Iterator %d \n", it);
+            printf("Thread Id %lld \n", tid);
+            printf("Energy out of range %f \n", d_new_energy);
+            printf("Old energy %f \n", d_energy[tid]);
+            assert(0);
+            return;
+        }
+        else
+        {
+            const int old_energy_int = static_cast<int>(round(d_energy[tid]));
+            const int new_energy_int = static_cast<int>(round(d_new_energy));
+
+            int index_old = old_energy_int - E_min + int_id * len_hist;
+            int index_new = new_energy_int - E_min + int_id * len_hist;
+
+            double prob = exp(static_cast<double>(d_H[index_old]) - static_cast<double>(d_H[index_new]));
+
+            if (curand_uniform(&st) < prob)
+            {
+
+                d_lattice[offset_lattice + result.i * ny + result.j] *= -1;
+                d_energy[tid] = d_new_energy;
+
+                atomicAdd(&d_H[index_new], 1);
+
+                if (found_interval == 0)
+                {
+                    store_lattice(d_lattice, d_energy, d_found_interval, d_store_lattice, E_min, nx, ny, tid, len_interval, num_interval, int_id);
+                }
+            }
+            else
+            {
+                atomicAdd(&d_H[index_old], 1);
+            }
+            d_iter[tid] += 1;
+        }
+    }
+
+    return;
+}
+
+__device__ void store_lattice(
+    signed char *d_lattice, double *d_energy, int *d_found_interval, signed char *d_store_lattice,
+    const int E_min, const int nx, const int ny, const long long tid, const int len_interval,
+    const int num_interval, const int int_id)
+{
+
+    int interval_index = ((static_cast<int>(round(d_energy[tid])) - E_min) / len_interval < num_interval) ? (d_energy[tid] - E_min) / len_interval : num_interval - 1;
+
+    if (atomicCAS(&d_found_interval[int_id * num_interval + interval_index], 0, 1) != 0)
+        return;
+
+    for (int i = 0; i < nx; i++)
+    {
+        for (int j = 0; j < ny; j++)
+        {
+            d_store_lattice[int_id * num_interval * nx * ny + interval_index * nx * ny + i * ny + j] = d_lattice[tid * nx * ny + i * ny + j];
+        }
+    }
+
+    return;
+}
+
+__global__ void wang_landau(
+    signed char *d_lattice, double *d_interactions, double *d_energy, int *d_start, int *d_end, unsigned long long *d_H,
+    double *d_logG, int *d_offset_histogramm, int *d_offset_lattice, const int num_iterations, const int nx, const int ny,
+    const int seed, double *factor, unsigned long long *d_offset_iter, signed char *d_expected_energy_spectrum, double *d_newEnergies, int *foundFlag,
+    const int num_lattices, const double beta, signed char *d_cond, int boundary_type, const int walker_per_interactions, const int num_intervals,
+    int *d_offset_energy_spectrum, int *d_cond_interaction)
+{
+
+    long long tid = static_cast<long long>(blockDim.x) * blockIdx.x + threadIdx.x;
+
+    if (tid >= num_lattices)
+        return;
+
+    const int blockId = blockIdx.x;
+    const int int_id = tid / walker_per_interactions;
+    const int interaction_offset = int_id * 2 * nx * ny;
+
+    if (d_cond_interaction[int_id] == -1)
+        return;
+
+    curandStatePhilox4_32_10_t st;
+    curand_init(seed, tid, d_offset_iter[tid], &st);
+
+    if (d_cond[blockId] == 0)
+    {
+
+        for (int it = 0; it < num_iterations; it++)
+        {
+
+            RBIM_qubit result = rbim_func_map_qubit[boundary_type](d_lattice, d_interactions, d_energy, d_offset_lattice, d_offset_iter, &st, tid, nx, ny, interaction_offset);
+
+            const int old_energy_int = static_cast<int>(round(d_energy[tid]));
+            const int new_energy_int = static_cast<int>(round(result.new_energy));
+
+            // If no new energy is found, set it to 0, else to tid + 1
+            foundFlag[tid] = (d_expected_energy_spectrum[d_offset_energy_spectrum[int_id] + new_energy_int - d_start[int_id * num_intervals]] == 1) ? 0 : tid + 1;
+
+            if (foundFlag[tid] != 0)
+            {
+                printf("new_energy %d index in spectrum %d \n", new_energy_int, new_energy_int - d_start[int_id * num_intervals]);
+                d_newEnergies[tid] = result.new_energy;
+                return;
+            }
+
+            int index_old = d_offset_histogramm[tid] + old_energy_int - d_start[blockId];
+
+            if (new_energy_int > d_end[blockId] || new_energy_int < d_start[blockId])
+            {
+
+                d_H[index_old] += 1;
+                d_logG[index_old] += log(factor[tid]);
+            }
+            else
+            {
+                int index_new = d_offset_histogramm[tid] + new_energy_int - d_start[blockId];
+                double prob = min(1.0, exp(d_logG[index_old] - d_logG[index_new]));
+                double randval = curand_uniform(&st);
+
+                if (randval < prob)
+                {
+                    d_lattice[d_offset_lattice[tid] + result.i * ny + result.j] *= -1;
+                    d_H[index_new] += 1;
+                    d_logG[index_new] += log(factor[tid]);
+                    d_energy[tid] = result.new_energy;
+                }
+
+                else
+                {
+                    d_H[index_old] += 1;
+                    d_logG[index_old] += log(factor[tid]);
+                }
+
+                d_offset_iter[tid] += 1;
+            }
+        }
+    }
+    else
+    {
+        for (int it = 0; it < num_iterations; it++)
+        {
+
+            RBIM_qubit result = rbim_func_map_qubit[boundary_type](d_lattice, d_interactions, d_energy, d_offset_lattice, d_offset_iter, &st, tid, nx, ny, interaction_offset);
+
+            const int old_energy_int = static_cast<int>(round(d_energy[tid]));
+            const int new_energy_int = static_cast<int>(round(result.new_energy));
+
+            // If no new energy is found, set it to 0, else to tid + 1
+            foundFlag[tid] = (d_expected_energy_spectrum[d_offset_energy_spectrum[int_id] + new_energy_int - d_start[int_id * num_intervals]] == 1) ? 0 : tid + 1;
+
+            if (foundFlag[tid] != 0)
+            {
+                printf("new_energy %d index in spectrum %d \n", new_energy_int, new_energy_int - d_start[int_id * num_intervals]);
+                d_newEnergies[tid] = result.new_energy;
+                return;
+            }
+
+            if (new_energy_int <= d_end[blockId] || new_energy_int >= d_start[blockId])
+            {
+                int index_old = d_offset_histogramm[tid] + old_energy_int - d_start[blockId];
+                int index_new = d_offset_histogramm[tid] + new_energy_int - d_start[blockId];
+
+                double prob = min(1.0, exp(d_logG[index_old] - d_logG[index_new]));
+
+                if (curand_uniform(&st) < prob)
+                {
+                    d_lattice[d_offset_lattice[tid] + result.i * ny + result.j] *= -1;
+                    d_energy[tid] = result.new_energy;
+                }
+                d_offset_iter[tid] += 1;
+            }
+        }
+    }
+
+    return;
 }

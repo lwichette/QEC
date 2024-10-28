@@ -53,6 +53,8 @@ typedef struct
     int num_interactions;
     int replica_exchange_offset;
     int task_id;
+    float error_mean;
+    float error_variance;
 } Options;
 
 typedef struct
@@ -61,6 +63,13 @@ typedef struct
     int i;
     int j;
 } RBIM;
+
+typedef struct
+{
+    double new_energy;
+    int i;
+    int j;
+} RBIM_qubit;
 
 typedef struct
 {
@@ -304,7 +313,7 @@ void result_handling(Options options, std::vector<double> h_logG, std::vector<in
 
 void result_handling_stitched_histogram(
     Options options, std::vector<double> h_logG,
-    std::vector<int> h_start, std::vector<int> h_end, int int_id);
+    std::vector<int> h_start, std::vector<int> h_end, int int_id, bool qubit_specific);
 
 void check_interactions_finished(
     signed char *d_cond, int *d_cond_interactions,
@@ -316,7 +325,7 @@ void cut_overlapping_histogram_parts(
 
 std::tuple<int, double> find_stitching_keys(const std::map<int, double> &current_interval, const std::map<int, double> &next_interval);
 
-std::string constructFilePath(float prob_interactions, int X, int Y, int seed, std::string type, char error_class, int boundary_type, int task_id);
+std::string constructFilePath(const Options &options, int seed_offset, std::string type, bool qubit_specific);
 
 std::vector<signed char> get_lattice_with_pre_run_result(float prob, int seed, int x, int y, std::vector<int> h_start, std::vector<int> h_end, int num_intervals, int num_walkers_total, int num_walkers_per_interval, char error_class, int boundary_type, int task_id);
 
@@ -376,7 +385,9 @@ __global__ void calc_average_log_g(
 
 __global__ void initialize_Gaussian_error_rates(double *d_prob_i, double *d_prob_x, double *d_prob_y, double *d_prob_z, int num_qubits, int num_interactions, double error_rate_mean, double error_rate_variance, unsigned long long seed);
 
-__global__ void initialize_coupling_factors(double *prob_i_err, double *prob_x_err, double *prob_y_err, double *prob_z_err, int num_qubits, int num_interactions, int histogram_scale, double *d_J_i, double *d_J_x, double *d_J_y, double *d_J_z);
+__global__ void initialize_coupling_factors(double *prob_i_err, double *prob_x_err, double *prob_y_err, double *prob_z_err, int num_qubits, int num_interactions, double *d_J_i, double *d_J_x, double *d_J_y, double *d_J_z);
+
+__global__ void max_rescaling_of_coupling_factors(double *d_J_i, double *d_J_x, double *d_J_y, double *d_J_z, int histogram_scale, int num_interaction, unsigned long long num_qubits);
 
 // Overload for int type (no color argument)
 __device__ void store_lattice(
@@ -466,5 +477,46 @@ void eight_vertex_result_handling_stitched_histogram(
     bool z_vertical_error);
 
 __global__ void reset_d_cond(signed char *d_cond, double *d_factor, int total_intervals, double beta, int walker_per_interval);
+
+__global__ void calc_energy_cylinder(signed char *lattice, double *interactions, double *d_energy, int *d_offset_lattice, const int nx, const int ny, const int num_lattices, const int walker_per_interactions);
+
+__global__ void calc_energy_open_boundary(signed char *lattice, double *interactions, double *d_energy, int *d_offset_lattice, const int nx, const int ny, const int num_lattices, const int walker_per_interactions);
+
+__global__ void calc_energy_periodic_boundary(signed char *lattice, double *interactions, double *d_energy, int *d_offset_lattice, const int nx, const int ny, const int num_lattices, const int walker_per_interactions);
+
+void calc_energy(
+    int blocks, int threads, const int boundary_type, signed char *lattice,
+    double *interactions, double *d_energy, int *d_offset_lattice,
+    const int nx, const int ny, const int total_walker, const int walker_per_interactions);
+
+__device__ RBIM_qubit cylinder_random_bond_ising(
+    signed char *d_lattice, double *d_interactions, double *d_energy, int *d_offset_lattice, unsigned long long *d_offset_iter,
+    curandStatePhilox4_32_10_t *st, const long long tid, const int nx, const int ny, const int interaction_offset);
+
+__device__ RBIM_qubit open_boundary_random_bond_ising(
+    signed char *d_lattice, double *d_interactions, double *d_energy, int *d_offset_lattice, unsigned long long *d_offset_iter,
+    curandStatePhilox4_32_10_t *st, const long long tid, const int nx, const int ny, const int interaction_offset);
+
+__device__ RBIM_qubit periodic_boundary_random_bond_ising(
+    signed char *d_lattice, double *d_interactions, double *d_energy, int *d_offset_lattice, unsigned long long *d_offset_iter,
+    curandStatePhilox4_32_10_t *st, const long long tid, const int nx, const int ny, const int interaction_offset);
+
+__device__ void store_lattice(
+    signed char *d_lattice, double *d_energy, int *d_found_interval, signed char *d_store_lattice,
+    const int E_min, const int nx, const int ny, const long long tid, const int len_interval,
+    const int num_interval, const int int_id);
+
+__global__ void wang_landau_pre_run(
+    signed char *d_lattice, double *d_interactions, double *d_energy, unsigned long long *d_H, unsigned long long *d_iter,
+    int *d_offset_lattice, int *d_found_interval, signed char *d_store_lattice, const int E_min, const int E_max,
+    const int num_iterations, const int nx, const int ny, const int seed, const int len_interval, const int found_interval,
+    const int num_walker, const int num_interval, const int boundary_type, const int walker_per_interactions);
+
+__global__ void wang_landau(
+    signed char *d_lattice, double *d_interactions, double *d_energy, int *d_start, int *d_end, unsigned long long *d_H,
+    double *d_logG, int *d_offset_histogramm, int *d_offset_lattice, const int num_iterations, const int nx, const int ny,
+    const int seed, double *factor, unsigned long long *d_offset_iter, signed char *d_expected_energy_spectrum, double *d_newEnergies, int *foundFlag,
+    const int num_lattices, const double beta, signed char *d_cond, int boundary_type, const int walker_per_interactions, const int num_intervals,
+    int *d_offset_energy_spectrum, int *d_cond_interaction);
 
 #endif // WLUTILS_H

@@ -17,7 +17,7 @@ seed_hist=1
 
 seed_run=42
 
-num_interactions=10
+num_interactions=1
 
 replica_exchange_steps=20
 
@@ -33,7 +33,7 @@ num_loops=100
 
 num_walker_prerun=250
 
-num_intervals_prerun=30
+num_intervals_prerun=20
 
 end_seed=$((seed_hist + num_interactions - 1))
 
@@ -49,18 +49,18 @@ case $boundary_type in
         ;;
 esac
 
-for beta in 0.000001
+for beta in 0.00000001
   do
-  for probability in 0.07
+  for probability in 0.05
     do
-      for xval in 4
+      for xval in 5
       do
-        for yval in 4
+        for yval in 5
         do
-          for error_type in I
+          for error_type in X
           do
 
-            # ./prerun_-10 -x $xval -y $yval -p $probability -n $iterations -l $num_loops -w $num_walker_prerun -s $seed_hist -i $num_intervals_prerun -e "$error_type" -b $boundary_type -r $num_interactions -d $slurm_job_array_id
+            ./prerun_-10 -x $xval -y $yval -p $probability -n $iterations -l $num_loops -w $num_walker_prerun -s $seed_hist -i $num_intervals_prerun -e "$error_type" -b $boundary_type -r $num_interactions -d $slurm_job_array_id
 
             timeout $time_limit ./wl_-10 -x $xval -y $yval -n $iterations -p $probability -a $alpha -b $beta -i $intervals_wl -w $walker_wl -o $overlap_wl -s $seed_run -e "$error_type" -t $boundary_type -h $seed_hist -r $num_interactions -c $replica_exchange_steps -d $slurm_job_array_id
             if [ $? -eq 124 ]; then

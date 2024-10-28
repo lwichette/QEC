@@ -17,7 +17,7 @@
 #SBATCH --cpus-per-task=6
 #SBATCH --gres=gpu:1
 
-#SBATCH --exclude=qcnode01,qcnode03
+#SBATCH --exclude=qcnode01
 #SBATCH -D /mnt/beegfs/data/QuDA-KI/qec/WangLandau
 
 FILENAME=$1

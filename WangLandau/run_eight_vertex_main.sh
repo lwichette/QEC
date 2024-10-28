@@ -19,7 +19,7 @@ seed_hist=1
 
 seed_run=1
 
-num_interactions=26
+num_interactions=1
 
 replica_exchange_steps=20
 
@@ -33,7 +33,7 @@ histogram_scale=1
 
 qubit_specific_noise=0
 
-for prob in 0.08
+for prob in 0.04
 do
     for size in 4 #6
     do

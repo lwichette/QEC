@@ -21,6 +21,12 @@ prerun_eight_vertex: prerun_eight_vertex.cu
 main_eight_vertex: main_eight_vertex.cu
 	$(CUDACC) $(NVCC_FLAGS) ./header/wlutils.cu main_eight_vertex.cu -o main_eight_vertex_$(ID) $(LDFLAGS) $(LBOOSTFLAGS)
 
+prerun_qubit: main_prerun_qubit.cu
+	$(CUDACC) $(NVCC_FLAGS) ./header/wlutils.cu main_prerun_qubit.cu -o prerun_qubit_$(ID) $(LDFLAGS) $(LBOOSTFLAGS)
+
+wl_qubit: main_wl_qubit.cu
+	$(CUDACC) $(NVCC_FLAGS) ./header/wlutils.cu main_wl_qubit.cu -o wl_qubit_$(ID) $(LDFLAGS) $(LBOOSTFLAGS)
+
 
 clean_wl:
 	rm -f wl_$(ID)
@@ -33,6 +39,12 @@ clean_prerun_eight_vertex:
 
 clean_main_eight_vertex:
 	rm -f main_eight_vertex_$(ID)
+
+clean_prerun_qubit:
+	rm -f prerun_qubit_$(ID)
+
+clean_wl_qubit:
+	rm -f wl_qubit_$(ID)
 
 # General clean target
 clean: clean_wl clean_prerun clean_prerun_eight_vertex clean_main_eight_vertex
